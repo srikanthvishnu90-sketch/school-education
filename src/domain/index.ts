@@ -9,3 +9,4 @@ export * from "./learningMap";
 export * from "./calibration";
 export * from "./transferProbe";
 export * from "./emotion";
+export * from "./gap";
