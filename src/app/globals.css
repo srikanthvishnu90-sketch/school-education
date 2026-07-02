@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+/*
+ * plumb design tokens — Tailwind v4 theme.
+ * MIRRORS src/ui/tokens.ts exactly. Keep the two in sync.
+ * Custom colors here generate utilities: bg-*, text-*, border-*, etc.
+ */
+@theme {
+  /* Base */
+  --color-paper: #f6f8fa;
+
+  /* Primary (ink family) */
+  --color-ink: #1b3a5b;
+  --color-ink-tint: #3e6187;
+  --color-ink-wash: #e8eef4;
+
+  /* Text */
+  --color-ink-black: #0f1b26;
+  --color-secondary: #536878;
+
+  /* Accent — affective/human moments ONLY (<=5% of surface, never text color) */
+  --color-warm: #e0a06a;
+
+  /* Accuracy semantics — NEVER red/green. aligned = ink-tint, gap = warm. */
+  --color-aligned: #3e6187;
+  --color-gap: #e0a06a;
+
+  /* Radius */
+  --radius-control: 6px;
+  --radius-card: 12px;
+
+  /* Type — sans for all data/academic UI; voice is a reserved serif slot. */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-voice: var(--font-voice-serif), ui-serif, Georgia, serif;
+}
+
+body {
+  background: var(--color-paper);
+  color: var(--color-ink-black);
+  font-family: var(--font-sans);
+}

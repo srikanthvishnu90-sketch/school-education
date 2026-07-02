@@ -1,0 +1,62 @@
+/**
+ * plumb design tokens — the single source of truth for the design system.
+ *
+ * These values are mirrored 1:1 into the Tailwind `@theme` block in
+ * `src/app/globals.css` so they are consumable as utility classes
+ * (e.g. `bg-paper`, `text-ink-black`, `rounded-card`). If you change a value
+ * here, change it there too — the two must stay identical.
+ *
+ * Product-safety note (see CLAUDE.md): accuracy is NEVER encoded as
+ * green=good / red=bad. Alignment uses `ink-tint`; gaps use the `warm`
+ * accent. Those two roles are the ONLY sanctioned "state" colors.
+ */
+
+export const color = {
+  // Base
+  white: "#FFFFFF",
+  paper: "#F6F8FA",
+
+  // Primary (ink family)
+  ink: "#1B3A5B",
+  inkTint: "#3E6187",
+  inkWash: "#E8EEF4",
+
+  // Text
+  inkBlack: "#0F1B26",
+  secondary: "#536878",
+
+  // Accent — affective / human moments ONLY (<=5% of surface, never text color)
+  warm: "#E0A06A",
+} as const;
+
+/**
+ * Accuracy semantics. Deliberately references the ink/warm families above —
+ * NOT red/green. `aligned` = confidence matched reality; `gap` = it did not
+ * (in either direction: overconfidence OR underconfidence).
+ */
+export const state = {
+  aligned: color.inkTint, // #3E6187
+  gap: color.warm, // #E0A06A
+} as const;
+
+export const radius = {
+  control: "6px",
+  card: "12px",
+} as const;
+
+export const font = {
+  /** All data / academic UI. */
+  sans: "Inter, ui-sans-serif, system-ui, sans-serif",
+  /**
+   * Reflection / emotional ("voice") surfaces. Reserved slot — wired through
+   * `--font-voice` but not yet applied anywhere. Serif is intentional here.
+   */
+  voice: "var(--font-voice)",
+} as const;
+
+export type ColorToken = keyof typeof color;
+export type StateToken = keyof typeof state;
+export type RadiusToken = keyof typeof radius;
+export type FontToken = keyof typeof font;
+
+export const tokens = { color, state, radius, font } as const;
