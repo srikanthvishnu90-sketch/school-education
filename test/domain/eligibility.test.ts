@@ -5,8 +5,10 @@ import {
   assessEvidence,
   computeCalibration,
   decideEligibility,
+  gateByCapabilities,
   predictionCoversOutcome,
   type AssessmentItem,
+  type EligibilityDecision,
   type EvidenceInput,
 } from "@/domain";
 import { T_SCORE, makeOutcome, makePrediction } from "../fixtures/domain";
@@ -174,5 +176,60 @@ describe("assessEvidence", () => {
     expect(calibration?.perSkill?.map((s) => s.skillId)).toEqual(["skill-a"]);
     // The summary still covers ALL matched items.
     expect(calibration?.summary.n).toBe(2);
+  });
+});
+
+describe("gateByCapabilities — declared flags cap the ladder (P8)", () => {
+  const full: EligibilityDecision = {
+    level: "full",
+    calibrationEligible: true,
+    perSkillEligible: true,
+    reasons: ["base"],
+  };
+
+  it("skillTags=false downgrades full → item (per-skill withheld)", () => {
+    const gated = gateByCapabilities(full, {
+      itemLevel: true,
+      skillTags: false,
+      attendance: false,
+    });
+    expect(gated.level).toBe("item");
+    expect(gated.perSkillEligible).toBe(false);
+    expect(gated.calibrationEligible).toBe(true);
+  });
+
+  it("itemLevel=false downgrades any item/full → global", () => {
+    const gated = gateByCapabilities(full, {
+      itemLevel: false,
+      skillTags: true,
+      attendance: false,
+    });
+    expect(gated.level).toBe("global");
+    expect(gated.perSkillEligible).toBe(false);
+  });
+
+  it("leaves a decision that already fits within the capabilities untouched", () => {
+    const gated = gateByCapabilities(full, {
+      itemLevel: true,
+      skillTags: true,
+      attendance: false,
+    });
+    expect(gated).toBe(full);
+  });
+
+  it("never UPGRADES: a baseline stays baseline regardless of flags", () => {
+    const baseline: EligibilityDecision = {
+      level: "baseline",
+      calibrationEligible: false,
+      perSkillEligible: false,
+      reasons: ["no prediction"],
+    };
+    expect(
+      gateByCapabilities(baseline, {
+        itemLevel: true,
+        skillTags: true,
+        attendance: true,
+      }).level,
+    ).toBe("baseline");
   });
 });

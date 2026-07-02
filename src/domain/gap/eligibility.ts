@@ -1,6 +1,7 @@
 import type { AssessmentItem } from "../skill";
 import type { Prediction } from "../prediction";
 import type { Outcome } from "../outcome";
+import type { ProviderCapabilities } from "../evidence";
 import {
   computeCalibration,
   perSkill,
@@ -139,6 +140,39 @@ export function decideEligibility(input: EvidenceInput): EligibilityDecision {
   return baseline("no item detail and no assignment total to reconcile against");
 }
 
+/**
+ * Caps a data-driven eligibility decision to a provider's DECLARED capabilities.
+ * Capabilities are an upper bound, not a discovery: a provider that declares no
+ * item-level detail is held to globalGap even if a row leaked item data, and one
+ * that declares no skill tags never yields a per-skill breakdown. This is how
+ * P8's capability flags gate the P6 ladder without the gate reaching into a
+ * vendor's shape.
+ */
+export function gateByCapabilities(
+  decision: EligibilityDecision,
+  capabilities: ProviderCapabilities,
+): EligibilityDecision {
+  const reasons = [...decision.reasons];
+  let level = decision.level;
+
+  if (!capabilities.itemLevel && (level === "full" || level === "item")) {
+    level = "global";
+    reasons.push("provider declares no item-level detail; capped at global");
+  }
+  if (!capabilities.skillTags && level === "full") {
+    level = "item";
+    reasons.push("provider declares no skill tags; per-skill breakdown withheld");
+  }
+
+  if (level === decision.level) return decision;
+  return {
+    level,
+    calibrationEligible: level !== "baseline",
+    perSkillEligible: level === "full",
+    reasons,
+  };
+}
+
 export interface EvidenceCalibration {
   summary: CalibrationSummary;
   /** Null whenever the evidence is not perSkill-eligible. */
@@ -165,9 +199,19 @@ const EMPTY_BASE = {
  * eligible, runs the EXISTING calibration engine (never reimplemented here).
  * For "global" evidence the achieved fraction comes from the assignment total,
  * so globalGap is set while every item-level metric stays null.
+ *
+ * When `capabilities` is supplied (evidence arriving through a P8 provider), the
+ * data-driven decision is first capped to what the provider DECLARED it can
+ * supply. Omitting it preserves the pre-P8 behavior exactly.
  */
-export function assessEvidence(input: EvidenceInput): EvidenceAssessment {
-  const decision = decideEligibility(input);
+export function assessEvidence(
+  input: EvidenceInput,
+  capabilities?: ProviderCapabilities,
+): EvidenceAssessment {
+  const decision =
+    capabilities === undefined
+      ? decideEligibility(input)
+      : gateByCapabilities(decideEligibility(input), capabilities);
   if (input.prediction === null || !decision.calibrationEligible) {
     return { decision, calibration: null };
   }
