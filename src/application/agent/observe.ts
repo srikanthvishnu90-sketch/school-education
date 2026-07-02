@@ -5,6 +5,7 @@ import {
   perSkill as computePerSkill,
 } from "@/domain";
 import type {
+  ActionVerificationRepository,
   AffectRepository,
   AssessmentRepository,
   CalibrationRepository,
@@ -16,7 +17,8 @@ import type {
 } from "@/domain/ports";
 import type { Id } from "@/domain";
 import { NotFoundError } from "../errors";
-import { POLICY_EPS } from "./policy";
+import { repeatedlyRegressedSkills } from "../verification";
+import { POLICY_EPS, REPEATED_REGRESSION_MIN } from "./policy";
 import type { AgentObservation } from "./types";
 
 /**
@@ -34,6 +36,8 @@ export interface ObserverDeps {
   affects: AffectRepository;
   reflections: ReflectionRepository;
   calibrations: CalibrationRepository;
+  /** P7 verification history — optional so pre-P7 wirings still observe. */
+  verifications?: ActionVerificationRepository;
 }
 
 export interface Observer {
@@ -106,6 +110,14 @@ export function createObserver(deps: ObserverDeps): Observer {
         await deps.calibrations.listByStudent(studentId)
       ).filter((c) => Math.abs(c.bias) > POLICY_EPS).length;
 
+      const verificationEscalations =
+        deps.verifications !== undefined
+          ? repeatedlyRegressedSkills(
+              await deps.verifications.listByStudent(studentId),
+              REPEATED_REGRESSION_MIN,
+            )
+          : [];
+
       return {
         assessmentId,
         studentId,
@@ -117,6 +129,7 @@ export function createObserver(deps: ObserverDeps): Observer {
         displayedMisconception,
         action,
         priorGapCount,
+        verificationEscalations,
       };
     },
   };

@@ -7,6 +7,7 @@ export * from "./outcome";
 export * from "./reflection";
 export * from "./learningMap";
 export * from "./calibration";
+export * from "./verification";
 export * from "./transferProbe";
 export * from "./emotion";
 export * from "./gap";

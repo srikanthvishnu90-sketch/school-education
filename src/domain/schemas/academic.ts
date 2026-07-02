@@ -155,3 +155,41 @@ export const transferProbeSchema = z.object({
   itemId: idSchema,
   createdAt: z.date(),
 });
+
+// --- Verification cycle (closes the loop; the MATH is P7) ---------------------
+
+export const verificationVerdictSchema = z.enum([
+  "improved",
+  "flat",
+  "regressed",
+  "pending",
+  "inconclusive",
+]);
+
+export const skillMeasureSchema = z.object({
+  skillId: idSchema,
+  accuracy: unitIntervalSchema,
+  brier: z.number().optional(),
+  itemCount: z.number().int().nonnegative(),
+});
+
+export const skillDriftSchema = z.object({
+  skillId: idSchema,
+  accuracy: unitIntervalSchema,
+});
+
+export const actionVerificationSchema = z.object({
+  id: idSchema,
+  nextActionId: idSchema,
+  studentId: idSchema,
+  targetSkillId: idSchema,
+  openedAt: z.date(),
+  baseline: skillMeasureSchema,
+  baselineAssessmentId: idSchema,
+  followup: skillMeasureSchema.optional(),
+  followupAssessmentId: idSchema.optional(),
+  accuracyVerdict: verificationVerdictSchema,
+  calibrationVerdict: verificationVerdictSchema,
+  untargetedDrift: z.array(skillDriftSchema).optional(),
+  closedAt: z.date().optional(),
+});

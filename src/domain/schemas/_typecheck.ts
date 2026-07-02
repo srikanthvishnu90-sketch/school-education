@@ -14,6 +14,11 @@ import type { LearningMap, MasteryBand } from "../learningMap";
 import type { CalibrationRecord } from "../calibration";
 import type { TransferProbe } from "../transferProbe";
 import type {
+  ActionVerification,
+  SkillDrift,
+  SkillMeasure,
+} from "../verification";
+import type {
   AffectSnapshot,
   EmotionLabel,
   EmotionVocabulary,
@@ -28,12 +33,15 @@ import type {
   itemPredictionSchema,
   learningGoalSchema,
   learningMapSchema,
+  actionVerificationSchema,
   masteryBandSchema,
   misconceptionSchema,
   nextActionSchema,
   outcomeSchema,
   predictionSchema,
   reflectionSchema,
+  skillDriftSchema,
+  skillMeasureSchema,
   skillSchema,
   transferProbeSchema,
 } from "./academic";
@@ -102,6 +110,15 @@ export type _CalibrationRecordSync = Expect<
 >;
 export type _TransferProbeSync = Expect<
   Equal<TransferProbe, z.infer<typeof transferProbeSchema>>
+>;
+export type _SkillMeasureSync = Expect<
+  Equal<SkillMeasure, z.infer<typeof skillMeasureSchema>>
+>;
+export type _SkillDriftSync = Expect<
+  Equal<SkillDrift, z.infer<typeof skillDriftSchema>>
+>;
+export type _ActionVerificationSync = Expect<
+  Equal<ActionVerification, z.infer<typeof actionVerificationSchema>>
 >;
 
 // Emotional axis

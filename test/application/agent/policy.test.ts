@@ -178,6 +178,30 @@ describe("interventionPolicy — each priority branch", () => {
   });
 });
 
+describe("interventionPolicy — P7 verification escalation", () => {
+  it("repeated 'regressed' on a skill changes the intervention (does not re-serve the probe)", () => {
+    const o = baseObservation();
+    o.reflection = productiveReflection();
+    o.perSkill = [skill("skill-slope", 0.5)]; // overconfident → normally serve_probe
+
+    // Without escalation history, it serves the probe.
+    expect(interventionPolicy(o).intervention).toBe("serve_probe");
+
+    // With the skill flagged as repeatedly regressed, it changes tack.
+    o.verificationEscalations = ["skill-slope"];
+    const escalated = interventionPolicy(o);
+    expect(escalated.intervention).toBe("require_redecomposition");
+    expect(escalated.targetSkillId).toBe("skill-slope");
+  });
+
+  it("escalation only applies to the flagged skill, not other overconfident skills", () => {
+    const o = baseObservation();
+    o.perSkill = [skill("skill-linear", 0.6)]; // worst skill is linear
+    o.verificationEscalations = ["skill-slope"]; // a different skill is flagged
+    expect(interventionPolicy(o).intervention).toBe("serve_probe");
+  });
+});
+
 describe("interventionPolicy — ordering between co-firing branches", () => {
   it("academic overconfidence outranks purely-emotional over-positivity", () => {
     // Both branch 2 and branch 3 are satisfied; the probe (reality first) must win.

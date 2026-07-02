@@ -5,11 +5,13 @@ import type { Prediction } from "@/domain/prediction";
 import type { Outcome } from "@/domain/outcome";
 import type { Reflection } from "@/domain/reflection";
 import type { CalibrationRecord } from "@/domain/calibration";
+import type { ActionVerification } from "@/domain/verification";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "@/domain/emotion";
 import type {
   AffectRepository,
+  ActionVerificationRepository,
   AssessmentRepository,
   CalibrationRepository,
   EmotionVocabularyRepository,
@@ -154,6 +156,21 @@ export function createTransferProbeRepository(): TransferProbeRepository {
     },
     async findById(id) {
       return store.get(id);
+    },
+  };
+}
+
+export function createActionVerificationRepository(): ActionVerificationRepository {
+  const store = new MemoryStore<ActionVerification>();
+  return {
+    async save(verification) {
+      store.set(verification.id, verification);
+    },
+    async findById(id) {
+      return store.get(id);
+    },
+    async listByStudent(studentId) {
+      return store.values().filter((v) => v.studentId === studentId);
     },
   };
 }

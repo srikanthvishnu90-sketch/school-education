@@ -5,6 +5,7 @@ import type { Prediction } from "../prediction";
 import type { Outcome } from "../outcome";
 import type { Reflection } from "../reflection";
 import type { CalibrationRecord } from "../calibration";
+import type { ActionVerification } from "../verification";
 import type { TransferProbe } from "../transferProbe";
 import type { LearningMap } from "../learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "../emotion";
@@ -61,6 +62,12 @@ export interface CalibrationRepository {
 export interface TransferProbeRepository {
   save(probe: TransferProbe): Promise<void>;
   findById(id: Id): Promise<TransferProbe | null>;
+}
+
+export interface ActionVerificationRepository {
+  save(verification: ActionVerification): Promise<void>;
+  findById(id: Id): Promise<ActionVerification | null>;
+  listByStudent(studentId: Id): Promise<ActionVerification[]>;
 }
 
 export interface LearningMapRepository {

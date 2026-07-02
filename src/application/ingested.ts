@@ -125,7 +125,7 @@ export interface IngestedWorld extends SeededWorld {
 }
 
 export async function buildIngestedWorld(): Promise<IngestedWorld> {
-  const { repos, clock, ids, services, agent } = buildWorldCore();
+  const { repos, clock, ids, services, verification, agent } = buildWorldCore();
 
   // Static world — the teacher's assessment structure is known up front (that
   // is what students pre-register predictions against); grades are not.
@@ -185,6 +185,7 @@ export async function buildIngestedWorld(): Promise<IngestedWorld> {
 
   return {
     services,
+    verification,
     repos,
     agent,
     clock,

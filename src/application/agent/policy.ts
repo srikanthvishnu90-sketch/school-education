@@ -28,6 +28,8 @@ export const POLICY_EPS = 0.1;
 export const LOW_GRANULARITY_MAX = 1;
 export const PERSISTENT_GAP_MIN = 2;
 export const SEVERE_GLOBAL_GAP = 0.9;
+/** How many regressed verifications on a skill before the policy changes tack. */
+export const REPEATED_REGRESSION_MIN = 2;
 
 /** The overconfident skill with the largest positive bias, or null if none. */
 export function worstOverconfidentSkill(
@@ -63,6 +65,16 @@ export function interventionPolicy(
   // 2. Academic overconfidence — puncture the fluency illusion with a probe.
   const worst = worstOverconfidentSkill(observation.perSkill);
   if (worst !== null) {
+    // If prior actions on this skill have REPEATEDLY regressed (P7), re-serving
+    // the same probe is not working. Change the intervention TYPE — re-decompose
+    // the approach — instead of repeating a failed tactic.
+    if ((observation.verificationEscalations ?? []).includes(worst.skillId)) {
+      return {
+        intervention: "require_redecomposition",
+        targetSkillId: worst.skillId,
+        rationale: `repeated 'regressed' verdicts on ${worst.skillId} after prior probes; change tack and re-decompose the approach rather than re-serving the same probe`,
+      };
+    }
     return {
       intervention: "serve_probe",
       targetSkillId: worst.skillId,

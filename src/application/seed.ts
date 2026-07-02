@@ -9,6 +9,7 @@ import {
   type LearningMap,
 } from "@/domain";
 import {
+  createActionVerificationRepository,
   createAffectRepository,
   createAssessmentRepository,
   createCalibrationRepository,
@@ -23,6 +24,7 @@ import {
   createTransferProbeRepository,
 } from "@/adapters/memory";
 import type {
+  ActionVerificationRepository,
   AffectRepository,
   AssessmentRepository,
   CalibrationRepository,
@@ -37,6 +39,10 @@ import type {
   TransferProbeRepository,
 } from "@/domain/ports";
 import { createServices, type Services } from "./services";
+import {
+  createVerificationService,
+  type VerificationService,
+} from "./verification";
 import {
   createAgentLoop,
   createObserver,
@@ -226,10 +232,12 @@ export interface Repos {
   learningMaps: LearningMapRepository;
   affects: AffectRepository;
   emotionVocab: EmotionVocabularyRepository;
+  verifications: ActionVerificationRepository;
 }
 
 export interface SeededWorld {
   services: Services;
+  verification: VerificationService;
   repos: Repos;
   agent: AgentLoop;
   clock: Clock;
@@ -245,6 +253,7 @@ export interface WorldCore {
   clock: Clock;
   ids: IdGenerator;
   services: Services;
+  verification: VerificationService;
   agent: AgentLoop;
 }
 
@@ -265,6 +274,7 @@ export function buildWorldCore(): WorldCore {
     learningMaps: createLearningMapRepository(),
     affects: createAffectRepository(),
     emotionVocab: createEmotionVocabularyRepository(),
+    verifications: createActionVerificationRepository(),
   };
 
   const clock = createSequentialClock(START_EPOCH);
@@ -282,6 +292,15 @@ export function buildWorldCore(): WorldCore {
     affects: repos.affects,
   });
 
+  const verification = createVerificationService({
+    clock,
+    ids,
+    assessments: repos.assessments,
+    predictions: repos.predictions,
+    outcomes: repos.outcomes,
+    verifications: repos.verifications,
+  });
+
   const agent = createAgentLoop({
     observer: createObserver({
       clock,
@@ -292,6 +311,7 @@ export function buildWorldCore(): WorldCore {
       affects: repos.affects,
       reflections: repos.reflections,
       calibrations: repos.calibrations,
+      verifications: repos.verifications,
     }),
     policy: interventionPolicy,
     services,
@@ -300,11 +320,11 @@ export function buildWorldCore(): WorldCore {
     clock,
   });
 
-  return { repos, clock, ids, services, agent };
+  return { repos, clock, ids, services, verification, agent };
 }
 
 export async function buildSeededWorld(): Promise<SeededWorld> {
-  const { repos, clock, ids, services, agent } = buildWorldCore();
+  const { repos, clock, ids, services, verification, agent } = buildWorldCore();
 
   // Static world.
   await repos.assessments.save(buildAssessment());
@@ -348,6 +368,7 @@ export async function buildSeededWorld(): Promise<SeededWorld> {
 
   return {
     services,
+    verification,
     repos,
     agent,
     clock,

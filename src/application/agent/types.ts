@@ -43,6 +43,12 @@ export interface AgentObservation {
   action: ActionState | null;
   /** How many prior assessments already showed a meaningful calibration gap. */
   priorGapCount: number;
+  /**
+   * Skills whose committed actions have REPEATEDLY regressed on the verification
+   * cycle (P7). The policy must change tack for these rather than re-serving the
+   * same probe. Absent/empty when there is no such history.
+   */
+  verificationEscalations?: Id[];
 }
 
 export interface AgentDecision {
