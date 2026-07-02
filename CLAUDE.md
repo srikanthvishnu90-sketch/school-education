@@ -69,3 +69,58 @@ The single source of truth is `src/ui/tokens.ts`, mirrored 1:1 into the Tailwind
     State:     aligned = ink-tint #3E6187 ; gap = warm #E0A06A
     Radius:    control 6px, card 12px
     Type:      sans = Inter (all data/academic UI); --font-voice serif slot reserved
+
+## Psychological foundation (the product's steps derive from these; do not invent mechanics that contradict them)
+
+- LOOP = Zimmerman's self-regulated learning cycle: forethought (goal + prediction) →
+  performance → self-reflection (self-evaluation, causal attribution, self-reaction).
+  The emotional axis IS Zimmerman's self-reaction subprocess, not an add-on.
+- THREE QUESTIONS = Hattie & Timperley. Every cycle answers, for the student:
+  Why does this matter? (feed-up / goal), Where am I really? (feed-back / evidence),
+  Where to next? (feed-forward / next action). Feed-forward is the highest-value output.
+- ACADEMIC decompose = metacognitive calibration (confidence vs. correctness).
+- EMOTIONAL decompose = emotional granularity (Barrett): move the student from
+  "good/bad" to differentiated, specific emotion labels. Higher granularity → better
+  regulation. The product BUILDS granularity; it never tells a student their feeling is
+  "wrong."
+- MOTIVATION = Self-Determination Theory (Deci & Ryan): support autonomy (student owns
+  the instrument), competence (evidence of mastery + a reachable next step), relatedness
+  (teacher as ally). Extrinsic rewards and controlling/surveillance framing THWART
+  motivation — this is the theoretical reason gamified rewards and admin-surveillance are
+  forbidden, not just a style choice.
+- DEVELOPMENT: adolescent metacognition is emerging but its ACCURACY is highly variable,
+  so (a) externalize and scaffold the monitoring, never assume unaided accuracy, and
+  (b) trust trajectory over any single self-judgment. The socioemotional system runs
+  ahead of cognitive control ("hot" vs "cold"), so reflection happens in a COLD context
+  after the feeling is named, and the UI stays calm and reward-free.
+- SAFETY (Kluger & DeNisi): >1/3 of feedback interventions REDUCE performance; the cause
+  is attention to the SELF. All feedback is task/process/strategy-focused, never
+  self-focused. Reflect against a CORRECT exemplar (reflecting on one's own wrong answer
+  can consolidate the misconception).
+- Deliberately NOT used: growth-mindset framing as a load-bearing mechanic — its effects
+  are small and contested in replications. We ground in SDT + attribution instead.
+
+## Congruence is a flag, never a verdict
+
+The academic-emotional congruence signal ("feels good about a 50") OPENS reflection; it
+never asserts a "correct" feeling. Intervention on incongruence = increase granularity
+(decompose the feeling), never prescribe an emotion. Congruence is always goal-referenced.
+
+## AI = labor, not judgment
+
+The language capability may DRAFT prompts, CLASSIFY free-text into taxonomies, and
+NORMALIZE evidence data. It must never decide interventions, compute calibration, or
+set safety outcomes. Deterministic default; schema-validated output; zero-LLM must work.
+
+## Build standard (how we work, non-negotiable)
+
+- Build under the assumption of PERFECTION. This is an exterior product a new person
+  uses day-to-day: every surface, name, error, and edge case is built for that stranger,
+  not for us. No rough edges shipped.
+- Master each portion before moving on. Understand a piece fully — its invariants, its
+  failure modes — before building the next one on top of it.
+- When training or writing models/ML code, obey the principled rules: NO cheating. No
+  data leakage (train/test separation), no target leakage, no fitting to the test set,
+  no metric gaming. Honest evaluation or none.
+- Take care of every warning. A warning is a defect until proven otherwise; resolve it,
+  do not silence it.
