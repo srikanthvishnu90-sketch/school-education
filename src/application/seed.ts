@@ -37,6 +37,13 @@ import type {
   TransferProbeRepository,
 } from "@/domain/ports";
 import { createServices, type Services } from "./services";
+import {
+  createAgentLoop,
+  createObserver,
+  interventionPolicy,
+  type AgentLoop,
+} from "./agent";
+import { createDeterministicLanguageCapability } from "@/adapters/language";
 
 /**
  * buildSeededWorld — the composition root. It is the ONE place allowed to import
@@ -224,6 +231,7 @@ export interface Repos {
 export interface SeededWorld {
   services: Services;
   repos: Repos;
+  agent: AgentLoop;
   clock: Clock;
   ids: IdGenerator;
   classId: Id;
@@ -258,6 +266,24 @@ export async function buildSeededWorld(): Promise<SeededWorld> {
     reflections: repos.reflections,
     transferProbes: repos.transferProbes,
     affects: repos.affects,
+  });
+
+  const agent = createAgentLoop({
+    observer: createObserver({
+      clock,
+      assessments: repos.assessments,
+      predictions: repos.predictions,
+      outcomes: repos.outcomes,
+      goals: repos.goals,
+      affects: repos.affects,
+      reflections: repos.reflections,
+      calibrations: repos.calibrations,
+    }),
+    policy: interventionPolicy,
+    services,
+    assessments: repos.assessments,
+    language: createDeterministicLanguageCapability(),
+    clock,
   });
 
   // Static world.
@@ -303,6 +329,7 @@ export async function buildSeededWorld(): Promise<SeededWorld> {
   return {
     services,
     repos,
+    agent,
     clock,
     ids,
     classId: CLASS_ID,

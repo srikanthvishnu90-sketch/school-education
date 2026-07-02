@@ -1,0 +1,123 @@
+import {
+  computeCalibration,
+  computeCongruence,
+  granularity,
+  perSkill as computePerSkill,
+} from "@/domain";
+import type {
+  AffectRepository,
+  AssessmentRepository,
+  CalibrationRepository,
+  Clock,
+  GoalRepository,
+  OutcomeRepository,
+  PredictionRepository,
+  ReflectionRepository,
+} from "@/domain/ports";
+import type { Id } from "@/domain";
+import { NotFoundError } from "../errors";
+import { POLICY_EPS } from "./policy";
+import type { AgentObservation } from "./types";
+
+/**
+ * Assembles an AgentObservation from the repositories — the "observe" half of the
+ * agent. It only READS (pure domain computations over stored data); it decides
+ * nothing. The policy consumes what this produces.
+ */
+
+export interface ObserverDeps {
+  clock: Clock;
+  assessments: AssessmentRepository;
+  predictions: PredictionRepository;
+  outcomes: OutcomeRepository;
+  goals: GoalRepository;
+  affects: AffectRepository;
+  reflections: ReflectionRepository;
+  calibrations: CalibrationRepository;
+}
+
+export interface Observer {
+  observe(assessmentId: Id, studentId: Id): Promise<AgentObservation>;
+}
+
+export function createObserver(deps: ObserverDeps): Observer {
+  return {
+    async observe(assessmentId, studentId) {
+      const prediction = await deps.predictions.findByAssessmentAndStudent(
+        assessmentId,
+        studentId,
+      );
+      const outcome = await deps.outcomes.findByAssessmentAndStudent(
+        assessmentId,
+        studentId,
+      );
+      if (prediction === null || outcome === null) {
+        throw new NotFoundError(
+          `prediction+outcome for assessment ${assessmentId} / student ${studentId}`,
+        );
+      }
+
+      const assessment = await deps.assessments.findById(assessmentId);
+      const calibration = computeCalibration(prediction, outcome);
+      const perSkill =
+        assessment !== null
+          ? computePerSkill(prediction, outcome, assessment.items)
+          : [];
+
+      const goal =
+        (await deps.goals.listByStudent(studentId))
+          .filter((g) => g.assessmentId === assessmentId)
+          .at(-1) ?? null;
+
+      const post =
+        (await deps.affects.listByAssessmentAndStudent(assessmentId, studentId))
+          .filter((a) => a.phase === "post_evidence")
+          .at(-1) ?? null;
+
+      const congruence =
+        goal !== null && post !== null
+          ? computeCongruence(post, outcome, goal)
+          : null;
+
+      const reflection =
+        (await deps.reflections.listByStudent(studentId))
+          .filter((r) => r.assessmentId === assessmentId)
+          .at(-1) ?? null;
+
+      const displayedMisconception =
+        assessment !== null &&
+        assessment.items.some(
+          (item) =>
+            (item.misconceptionIds?.length ?? 0) > 0 &&
+            outcome.itemOutcomes.find((o) => o.itemId === item.id)?.correct ===
+              false,
+        );
+
+      const action =
+        reflection !== null
+          ? {
+              overdue:
+                reflection.nextAction.dueBy.getTime() <
+                deps.clock.now().getTime(),
+            }
+          : null;
+
+      const priorGapCount = (
+        await deps.calibrations.listByStudent(studentId)
+      ).filter((c) => Math.abs(c.bias) > POLICY_EPS).length;
+
+      return {
+        assessmentId,
+        studentId,
+        calibration,
+        perSkill,
+        congruence,
+        granularity: post !== null ? granularity(post.labels) : null,
+        reflection,
+        displayedMisconception,
+        action,
+        priorGapCount,
+      };
+    },
+  };
+}
