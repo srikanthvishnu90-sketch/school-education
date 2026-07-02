@@ -111,6 +111,7 @@ export const reflectionSchema = z.object({
   attribution: attributionSchema,
   nextAction: nextActionSchema,
   exemplarReviewed: z.boolean(),
+  stale: z.boolean().optional(),
   createdAt: z.date(),
 });
 

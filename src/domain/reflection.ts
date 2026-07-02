@@ -43,6 +43,13 @@ export interface Reflection {
    * wrong answer can consolidate the misconception (Kluger & DeNisi).
    */
   exemplarReviewed: boolean;
+  /**
+   * True when the outcome this reflection was built on has since been REVISED
+   * (e.g. a re-graded assignment). A stale reflection is flagged, never
+   * silently overwritten — the student's reasoning stays intact, but it is
+   * marked as built on superseded evidence.
+   */
+  stale?: boolean;
   createdAt: Date;
 }
 

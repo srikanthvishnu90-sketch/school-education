@@ -54,19 +54,19 @@ import { createDeterministicLanguageCapability } from "@/adapters/language";
  */
 
 // Fixed instant so timestamps are reproducible (Date.UTC is deterministic).
-const START_EPOCH = Date.UTC(2026, 0, 5, 9, 0, 0);
+export const START_EPOCH = Date.UTC(2026, 0, 5, 9, 0, 0);
 
 export const CLASS_ID = "class-algebra1-p3";
 export const ASSESSMENT_ID = "assess-algebra1-u1";
 export const SKILL_LINEAR = "skill-linear-equations";
 export const SKILL_SLOPE = "skill-interpreting-slope";
 
-const ITEM_IDS = ["item-1", "item-2", "item-3", "item-4"] as const;
+export const ITEM_IDS = ["item-1", "item-2", "item-3", "item-4"] as const;
 
 export type Archetype =
   "overconfident-low" | "underconfident-high" | "calibrated";
 
-interface SeedStudent {
+export interface SeedStudent {
   id: Id;
   archetype: Archetype;
   targetScore: number;
@@ -78,7 +78,7 @@ interface SeedStudent {
   labels: EmotionLabel[];
 }
 
-const SEED_STUDENTS: SeedStudent[] = [
+export const SEED_STUDENTS: SeedStudent[] = [
   {
     // Predicted high, scored 1/4 vs a 0.7 goal — yet names a single, undifferentiated
     // "good". Overconfident + over_positive congruence + LOW granularity. Target case.
@@ -126,7 +126,7 @@ const SEED_STUDENTS: SeedStudent[] = [
 ];
 
 /** A differentiated palette spanning the valence × arousal circumplex. */
-function buildEmotionVocabulary(): EmotionVocabulary {
+export function buildEmotionVocabulary(): EmotionVocabulary {
   return createEmotionVocabulary({
     terms: [
       { term: "anxious", valence: -0.6, arousal: 0.85 },
@@ -143,7 +143,7 @@ function buildEmotionVocabulary(): EmotionVocabulary {
   });
 }
 
-function buildAssessment(): Assessment {
+export function buildAssessment(): Assessment {
   return createAssessment({
     id: ASSESSMENT_ID,
     title: "Algebra I — Unit 1 check",
@@ -181,7 +181,7 @@ function buildAssessment(): Assessment {
   });
 }
 
-function buildLearningMap(): LearningMap {
+export function buildLearningMap(): LearningMap {
   return createLearningMap({
     id: "map-linear-equations",
     skillId: SKILL_LINEAR,
@@ -239,7 +239,21 @@ export interface SeededWorld {
   students: { id: Id; archetype: Archetype }[];
 }
 
-export async function buildSeededWorld(): Promise<SeededWorld> {
+/** The adapter wiring shared by every composition (seeded AND ingested). */
+export interface WorldCore {
+  repos: Repos;
+  clock: Clock;
+  ids: IdGenerator;
+  services: Services;
+  agent: AgentLoop;
+}
+
+/**
+ * Wires in-memory adapters, a deterministic clock + id generator, the P4
+ * services, and the agent loop. Compositions differ only in how they POPULATE
+ * this world (seed data vs ingested evidence).
+ */
+export function buildWorldCore(): WorldCore {
   const repos: Repos = {
     assessments: createAssessmentRepository(),
     goals: createGoalRepository(),
@@ -285,6 +299,12 @@ export async function buildSeededWorld(): Promise<SeededWorld> {
     language: createDeterministicLanguageCapability(),
     clock,
   });
+
+  return { repos, clock, ids, services, agent };
+}
+
+export async function buildSeededWorld(): Promise<SeededWorld> {
+  const { repos, clock, ids, services, agent } = buildWorldCore();
 
   // Static world.
   await repos.assessments.save(buildAssessment());
