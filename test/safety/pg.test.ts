@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
-  applyRls,
   createPgClient,
   runMigrations,
   type PoolClient,
@@ -21,8 +20,9 @@ suite("crisis escalation PG repo", () => {
 
   beforeAll(async () => {
     client = createPgClient(DB as string);
+    // Migrations alone create the table (the counselor RLS policy is applied by
+    // the app world's applyRls); this repo accesses as service-role.
     await runMigrations(client);
-    await applyRls(client);
   });
 
   afterAll(async () => {

@@ -20,27 +20,9 @@ import { runIdempotent, type SqlClient } from "./client";
  */
 export const RLS_SQL = `
 create schema if not exists app;
-create schema if not exists safety;
 grant usage on schema safety to authenticated;
-
--- Crisis escalations (P16) — the ONE sanctioned exception to data-flows-to-student,
--- readable ONLY by the tenant's designated counselor. text_ref is ciphertext.
-create table if not exists safety.crisis_escalations (
-  id text primary key,
-  student_id text not null,
-  tenant_id text not null,
-  tier text not null,
-  text_ref text not null,
-  detector_version text not null,
-  created_at timestamptz not null,
-  delivered_to jsonb not null default '[]'::jsonb,
-  delivered_at timestamptz,
-  acknowledged_at timestamptz,
-  acknowledged_by text,
-  undelivered boolean not null default false,
-  attempts integer not null default 0,
-  last_attempt_at timestamptz
-);
+-- The crisis_escalations TABLE is created by runMigrations (schema.ts); here we
+-- only grant + policy it. Readable ONLY by the tenant's designated counselor.
 grant select on safety.crisis_escalations to authenticated;
 
 -- The application role every signed-in user connects as (Supabase's convention).

@@ -17,6 +17,26 @@ export const SCHEMA_SQL = `
 create schema if not exists academic;
 create schema if not exists emotional;
 create schema if not exists pilot;
+create schema if not exists safety;
+
+-- Crisis escalations (P16). The RLS grant + counselor policy are applied in
+-- rls.ts; the table itself lives here so migrations alone (no applyRls) create it.
+create table if not exists safety.crisis_escalations (
+  id text primary key,
+  student_id text not null,
+  tenant_id text not null,
+  tier text not null,
+  text_ref text not null,
+  detector_version text not null,
+  created_at timestamptz not null,
+  delivered_to jsonb not null default '[]'::jsonb,
+  delivered_at timestamptz,
+  acknowledged_at timestamptz,
+  acknowledged_by text,
+  undelivered boolean not null default false,
+  attempts integer not null default 0,
+  last_attempt_at timestamptz
+);
 
 -- Pilot metadata (P15/P17). SERVICE-ROLE ONLY: never granted to authenticated, so
 -- these are unreachable from any signed-in surface. Events carry PSEUDONYMS; the
@@ -39,6 +59,18 @@ create table if not exists pilot.response_quality (
 create table if not exists pilot.pseudonyms (
   real_id text primary key,
   pseudonym text not null,
+  created_at timestamptz not null
+);
+
+-- LLM shadow-render harvest (p6): deterministic-vs-LLM renders for the golden set.
+-- Template + slots only (teacher exam text + skill), never student free text.
+create table if not exists pilot.shadow_renders (
+  seq bigserial primary key,
+  template text not null,
+  slots jsonb not null,
+  deterministic text not null,
+  llm text not null,
+  agreed boolean not null,
   created_at timestamptz not null
 );
 
@@ -226,16 +258,15 @@ const ALL_TABLES = [
   "academic.action_verifications",
   "academic.cohort_assignments",
   "academic.canonical_evidence",
-  "academic.imported_grades",
   "academic.field_maps",
   "academic.consent_records",
   "academic.deletion_receipts",
   "academic.flag_acknowledgements",
   "emotional.emotion_vocabularies",
   "emotional.affect_snapshots",
-  "pilot.events",
-  "pilot.response_quality",
-  "pilot.pseudonyms",
+  // Note: pilot.*, safety.crisis_escalations, and academic.imported_grades are
+  // deliberately NOT truncated here — their own suites use idempotent unique-key
+  // inserts, and truncating them would race with the RLS suite's seeds.
 ] as const;
 
 /** Applies the schema. Idempotent (every statement is `if not exists`). */

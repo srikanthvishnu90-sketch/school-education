@@ -6,6 +6,7 @@ import {
   createLlmLanguageCapability,
   type AsyncLanguageCapability,
 } from "@/adapters/language";
+import { createPgClient, type SqlClient } from "@/adapters/supabase";
 
 /**
  * LLM SHADOW MODE (p6). The student is ALWAYS shown the deterministic reflection
@@ -83,14 +84,43 @@ export async function shadowCompare(
 }
 
 // The harvest buffer — pinned to globalThis so it accumulates across bundles.
-const store = globalThis as unknown as { __plumbShadowLog?: ShadowEntry[] };
+const store = globalThis as unknown as {
+  __plumbShadowLog?: ShadowEntry[];
+  __plumbShadowPgClient?: SqlClient;
+};
 const shadowLog: ShadowEntry[] = (store.__plumbShadowLog ??= []);
 
 export function getShadowLog(): readonly ShadowEntry[] {
   return shadowLog;
 }
 
-/** Run shadow rendering (no-op without a key) and append to the harvest log. */
+/** A cached PG client for the harvest when a DB is configured (the world's
+ * migrations already created pilot.shadow_renders), else null. */
+function harvestClient(): SqlClient | null {
+  const url = process.env.DATABASE_URL;
+  if (url === undefined || url.length === 0) return null;
+  return (store.__plumbShadowPgClient ??= createPgClient(url));
+}
+
+/** Persist harvested renders — PG when configured (durable), else the buffer. */
+export async function persistShadowEntries(
+  entries: readonly ShadowEntry[],
+): Promise<void> {
+  const client = harvestClient();
+  if (client === null) {
+    shadowLog.push(...entries);
+    return;
+  }
+  for (const e of entries) {
+    await client.query(
+      "insert into pilot.shadow_renders (template, slots, deterministic, llm, agreed, created_at) " +
+        "values ($1, $2, $3, $4, $5, $6)",
+      [e.template, JSON.stringify(e.slots), e.deterministic, e.llm, e.agreed, new Date(e.at)],
+    );
+  }
+}
+
+/** Run shadow rendering (no-op without a key) and persist to the harvest. */
 export async function runShadowRenders(
   inputs: readonly ShadowInput[],
 ): Promise<void> {
@@ -98,7 +128,7 @@ export async function runShadowRenders(
   if (llm === null || inputs.length === 0) return;
   try {
     const entries = await shadowCompare(llm, inputs, () => new Date());
-    shadowLog.push(...entries);
+    await persistShadowEntries(entries);
     const agreed = entries.filter((e) => e.agreed).length;
     console.log(
       `[shadow-render] ${entries.length} rendered, ${agreed} agreed with deterministic`,
