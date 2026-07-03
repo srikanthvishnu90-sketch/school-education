@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
+import { after } from "next/server";
 import type { ReactElement } from "react";
 import { createDeterministicLanguageCapability } from "@/adapters/language";
+import { runShadowRenders, type ShadowInput } from "@/app/_world/shadowRender";
 import { getSessionStudent } from "@/app/_world/session";
 import {
   assessmentById,
@@ -59,10 +61,20 @@ export default async function ReflectPage({
     }));
 
   const language = createDeterministicLanguageCapability();
+  // Capture the (template, slots) the student is shown so the LLM can re-render
+  // them in the background (shadow mode) — for golden-set harvest, never shown.
+  const shadowInputs: ShadowInput[] = [];
   const { probes, truncated } = buildReflectionProbes(
     wrongItems,
-    (template, slots) => language.renderQuestion(template, slots),
+    (template, slots) => {
+      shadowInputs.push({ template, slots: { ...slots } });
+      return language.renderQuestion(template, slots);
+    },
   );
+  // Runs AFTER the response is sent — never blocks or changes what the student sees.
+  after(async () => {
+    await runShadowRenders(shadowInputs);
+  });
 
   const vocabulary = world.vocabulary.terms.map((t) => ({
     term: t.term,
