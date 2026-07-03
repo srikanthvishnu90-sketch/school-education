@@ -5,6 +5,7 @@ export * from "./goal";
 export * from "./prediction";
 export * from "./outcome";
 export * from "./reflection";
+export * from "./reflectionProbe";
 export * from "./learningMap";
 export * from "./calibration";
 export * from "./verification";

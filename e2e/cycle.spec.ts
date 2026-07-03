@@ -1,11 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * The full student cycle, end to end, on seed archetypes. Asserts the hard
- * budget (≤ 12 screens, one decision per screen), the emotional skip path (flow
- * proceeds identically), the free-answer depth gate (a thin answer cannot move
- * on), the gentle re-ask on a non-productive attribution (never blocks exit), and
- * task-focused gap language with no self-referential wording.
+ * The full student cycle, end to end, on seed archetypes. plumb is an emotional
+ * AND academic awareness instrument, so reflection is now a DETAILED, free-response
+ * walk formulated from the teacher's exam items: for each missed question, what
+ * happened; per skill, where the thinking turned; then what changed. This asserts
+ * the emotional skip path, that the depth gate blocks a thin answer, that the
+ * probe questions are formulated from the actual exam prompts, task-focused gap
+ * language with no self-referential wording, and the gentle re-ask that never
+ * blocks the way out.
  *
  * The whole suite runs under prefers-reduced-motion (playwright.config.ts).
  */
@@ -24,8 +27,10 @@ const FORBIDDEN_SELF_WORDS = [
   "ability",
 ];
 
-const A_REAL_WHY =
-  "I thought I understood how to find the slope but I mixed up the rise and the run and flipped my fraction the wrong way.";
+// A long, real answer that clears the deepest probe's depth bar (synthesis, 25+
+// words). Reused for every probe box in the walk.
+const A_REAL_ANSWER =
+  "I thought I understood how to find the slope but I mixed up the rise and the run and then flipped my fraction the wrong way around.";
 const A_REAL_PLAN =
   "Next time I will write the rise over the run first and check which number goes on top before I divide anything.";
 
@@ -36,31 +41,50 @@ async function expectOneDecision(page: Page): Promise<void> {
 }
 
 /** Signs in as the named seed student (session-based auth), then walks the 5
- * guess screens (4 items + 1 overall). Returns the cycle screens shown. */
-async function predict(page: Page, studentName: string): Promise<number> {
+ * guess screens (4 items + 1 overall). */
+async function predict(page: Page, studentName: string): Promise<void> {
   await page.goto("/signin");
   await expect(page.getByText("Who are you?")).toBeVisible();
   await page.getByRole("button", { name: studentName }).click();
   await expect(page).toHaveURL(new RegExp(`/predict/${ASSESSMENT}`));
-  let screens = 0;
   for (let i = 1; i <= 4; i += 1) {
     await expect(page.getByText(`Your guess · question ${i} of 4`)).toBeVisible();
     await expectOneDecision(page);
-    screens += 1;
     await page.getByRole("radio", { name: "Very sure" }).click();
   }
   await expect(page.getByText("how many do you think you got right")).toBeVisible();
   await expectOneDecision(page);
-  screens += 1;
   await page.getByRole("radio", { name: "4 out of 5 or more" }).click();
   await expect(page).toHaveURL(new RegExp(`/result/${ASSESSMENT}`));
-  return screens;
 }
 
-test("overconfident-low archetype: full cycle ≤ 12 screens, gap language about the task", async ({
+/** Walks the detailed free-response probe sequence to the cause step, filling
+ * each box with a real answer. Returns how many probe screens were shown. */
+async function walkProbes(page: Page): Promise<number> {
+  let count = 0;
+  // The emotion → probes hand-off can be async (recordAffect); wait for the
+  // first probe box to mount before walking.
+  await expect(page.locator("textarea").first()).toBeVisible();
+  for (let guard = 0; guard < 12; guard += 1) {
+    const textarea = page.locator("textarea").first();
+    if (!(await textarea.isVisible().catch(() => false))) break;
+    await textarea.fill(A_REAL_ANSWER);
+    const nameReason = page.getByRole("button", { name: "Name the reason" });
+    if (await nameReason.isVisible().catch(() => false)) {
+      count += 1;
+      await nameReason.click();
+      break;
+    }
+    count += 1;
+    await page.getByRole("button", { name: "Next", exact: true }).click();
+  }
+  return count;
+}
+
+test("overconfident-low archetype: detailed item-by-item reflection, task-focused language", async ({
   page,
 }) => {
-  let screens = await predict(page, "Avery");
+  await predict(page, "Avery");
 
   // Result: what happened, then ONE plain calibration statement.
   await expect(page.getByText("What happened", { exact: true })).toBeVisible();
@@ -70,49 +94,44 @@ test("overconfident-low archetype: full cycle ≤ 12 screens, gap language about
     expect(statement.toLowerCase()).not.toContain(word);
   }
   expect(statement).not.toContain("!");
-  screens += 1;
   await page.getByRole("link", { name: "Think about it" }).click();
 
   // Feeling step — SKIP (records nothing, proceeds identically).
   await expect(page.getByText("How do you feel now?")).toBeVisible();
-  screens += 1;
   await page.getByRole("button", { name: "Skip this" }).click();
 
-  // Cause (simple pick).
-  await expect(page.getByText("What made this happen?")).toBeVisible();
-  await expectOneDecision(page);
-  screens += 1;
-  await page.getByRole("radio", { name: "The way I did it" }).click();
+  // First probe: WHAT HAPPENED, formulated from a real exam prompt Avery missed.
+  await expect(page.getByText("What happened", { exact: true })).toBeVisible();
+  await expect(page.getByText("Solve 2(x - 4) = 10.", { exact: false })).toBeVisible();
 
-  // Why — a free answer that must be REAL (depth gate blocks a thin one).
-  await expect(page.getByText("Why do you think it went this way?")).toBeVisible();
-  screens += 1;
-  const why = page.getByLabel("Why do you think it went this way?");
-  await why.fill("idk");
+  // Depth gate: a thin answer cannot move on.
+  const firstBox = page.locator("textarea").first();
+  await firstBox.fill("idk");
   await expect(page.getByRole("button", { name: "Next", exact: true })).toBeDisabled();
-  await why.fill(A_REAL_WHY);
-  await expect(page.getByRole("button", { name: "Next", exact: true })).toBeEnabled();
-  await page.getByRole("button", { name: "Next", exact: true }).click();
+
+  // Walk the whole detailed sequence (what happened ×3, why per skill ×2, synthesis).
+  const probeScreens = await walkProbes(page);
+  expect(probeScreens).toBeGreaterThanOrEqual(4);
+
+  // Cause (simple pick), informed by what they just wrote.
+  await expect(page.getByText("what mostly made this happen?")).toBeVisible();
+  await expectOneDecision(page);
+  await page.getByRole("radio", { name: "The way I did it" }).click();
 
   // Fixable? (collapses specific + controllable).
   await expect(page.getByText("Can you fix this next time")).toBeVisible();
   await expectOneDecision(page);
-  screens += 1;
   await page.getByRole("radio", { name: "Yes, I can" }).click();
 
   // One small step — free answer, depth-gated.
   await expect(
     page.getByRole("heading", { name: /one small thing you will try/ }),
   ).toBeVisible();
-  screens += 1;
   await page.getByLabel("What is one small thing you will try?").fill(A_REAL_PLAN);
   await page.getByRole("button", { name: "This is my plan" }).click();
 
   // Quiet close.
   await expect(page.getByText("That’s it for now.")).toBeVisible();
-  screens += 1;
-
-  expect(screens).toBeLessThanOrEqual(12);
 });
 
 test("emotional path when named still reaches the quiet close", async ({
@@ -125,11 +144,10 @@ test("emotional path when named still reaches the quiet close", async ({
   await page.getByRole("button", { name: "anxious" }).click();
   await page.getByRole("button", { name: "Keep going" }).click();
 
+  // Blake missed nothing → still reflects on the process (awareness > score).
+  await walkProbes(page);
+
   await page.getByRole("radio", { name: "The way I did it" }).click();
-  await page
-    .getByLabel("Why do you think it went this way?")
-    .fill("I ran out of time on the last two and just guessed, so I was not really sure what I was doing there at all.");
-  await page.getByRole("button", { name: "Next", exact: true }).click();
   await page.getByRole("radio", { name: "Yes, I can" }).click();
   await page
     .getByLabel("What is one small thing you will try?")
@@ -149,18 +167,16 @@ test("non-productive attribution re-asks and never blocks exit", async ({
   await page.getByRole("link", { name: "Think about it" }).click();
   await page.getByRole("button", { name: "Skip this" }).click();
 
+  await walkProbes(page);
+
   await page.getByRole("radio", { name: "Just me" }).click();
-  await page
-    .getByLabel("Why do you think it went this way?")
-    .fill("I feel like I am just not a math person and this stuff never really makes any sense to me at all.");
-  await page.getByRole("button", { name: "Next", exact: true }).click();
   // "Not really" → not fixable → gentle re-ask.
   await page.getByRole("radio", { name: "Not really" }).click();
 
   await expect(page.getByText("find something you can change")).toBeVisible();
   await expect(page.getByRole("link", { name: "Leave for now" })).toBeVisible();
 
-  // "Look again" returns to the free answer, does not trap.
+  // "Look again" returns to the cause step, does not trap.
   await page.getByRole("button", { name: "Look again" }).click();
-  await expect(page.getByText("Why do you think it went this way?")).toBeVisible();
+  await expect(page.getByText("what mostly made this happen?")).toBeVisible();
 });
