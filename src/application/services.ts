@@ -11,6 +11,7 @@ import {
   createReflection,
   createTransferProbe,
   granularity,
+  hasScope,
   isProductiveAttribution,
   type AffectPhase,
   type AffectSnapshot,
@@ -32,6 +33,7 @@ import type {
   AffectRepository,
   AssessmentRepository,
   Clock,
+  ConsentRepository,
   GoalRepository,
   IdGenerator,
   OutcomeRepository,
@@ -40,6 +42,7 @@ import type {
   TransferProbeRepository,
 } from "@/domain/ports";
 import {
+  AffectConsentError,
   EmptyAffectError,
   ItemCoverageError,
   NonProductiveAttributionError,
@@ -69,6 +72,11 @@ export interface ServiceDeps {
   reflections: ReflectionRepository;
   transferProbes: TransferProbeRepository;
   affects: AffectRepository;
+  /**
+   * Consent gate for affect capture (P12). When provided, affect capture refuses
+   * unless the affect scope is granted. Omitting it preserves pre-P12 behavior.
+   */
+  consent?: ConsentRepository;
 }
 
 export interface CaptureGoalInput {
@@ -274,6 +282,13 @@ export function createServices(deps: ServiceDeps): Services {
   ): Promise<CaptureAffectResult> {
     if (input.labels.length === 0) {
       throw new EmptyAffectError();
+    }
+    // P12 consent gate: affect may not be captured without a granted affect scope.
+    if (deps.consent !== undefined) {
+      const records = await deps.consent.listByStudent(input.studentId);
+      if (!hasScope(records, "affect")) {
+        throw new AffectConsentError(input.studentId);
+      }
     }
     const snapshot = createAffectSnapshot({
       id: ids.next("aff"),

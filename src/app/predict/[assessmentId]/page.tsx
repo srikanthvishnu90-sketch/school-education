@@ -1,7 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { ReactElement } from "react";
+import { getSessionStudent } from "@/app/_world/session";
 import {
-  DEFAULT_STUDENT_ID,
   DEMO_ASSESSMENT_ID,
   getWorld,
   isKnownStudent,
@@ -15,15 +15,12 @@ import PredictFlow from "./PredictFlow";
  */
 export default async function PredictPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ assessmentId: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<ReactElement> {
   const { assessmentId } = await params;
-  const sp = await searchParams;
-  const studentId =
-    typeof sp.student === "string" ? sp.student : DEFAULT_STUDENT_ID;
+  const studentId = await getSessionStudent();
+  if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
   if (assessmentId !== DEMO_ASSESSMENT_ID || !isKnownStudent(world, studentId)) {
@@ -35,11 +32,5 @@ export default async function PredictPage({
     prompt: item.prompt,
   }));
 
-  return (
-    <PredictFlow
-      assessmentId={assessmentId}
-      studentId={studentId}
-      items={items}
-    />
-  );
+  return <PredictFlow assessmentId={assessmentId} items={items} />;
 }

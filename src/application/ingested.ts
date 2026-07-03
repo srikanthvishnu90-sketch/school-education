@@ -125,7 +125,8 @@ export interface IngestedWorld extends SeededWorld {
 }
 
 export async function buildIngestedWorld(): Promise<IngestedWorld> {
-  const { repos, clock, ids, services, verification, agent } = buildWorldCore();
+  const { repos, clock, ids, services, verification, consentService, agent } =
+    buildWorldCore();
 
   // Static world — the teacher's assessment structure is known up front (that
   // is what students pre-register predictions against); grades are not.
@@ -173,8 +174,13 @@ export async function buildIngestedWorld(): Promise<IngestedWorld> {
     reports[s.id] = await ingestion.sync(s.id);
   }
 
-  // Self-reflection phase: affect is named AFTER the evidence lands.
+  // Self-reflection phase: affect is named AFTER the evidence lands — with consent.
   for (const s of SEED_STUDENTS) {
+    await consentService.grant({
+      studentId: s.id,
+      grantorType: "parent",
+      scopes: ["academic", "affect"],
+    });
     await services.captureAffect({
       studentId: s.id,
       assessmentId: ASSESSMENT_ID,
@@ -186,6 +192,7 @@ export async function buildIngestedWorld(): Promise<IngestedWorld> {
   return {
     services,
     verification,
+    consentService,
     repos,
     agent,
     clock,

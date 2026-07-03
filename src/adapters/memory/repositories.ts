@@ -6,6 +6,7 @@ import type { Outcome } from "@/domain/outcome";
 import type { Reflection } from "@/domain/reflection";
 import type { CalibrationRecord } from "@/domain/calibration";
 import type { ActionVerification } from "@/domain/verification";
+import type { ConsentRecord, DeletionReceipt } from "@/domain/consent";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "@/domain/emotion";
@@ -14,6 +15,7 @@ import type {
   ActionVerificationRepository,
   AssessmentRepository,
   CalibrationRepository,
+  ConsentRepository,
   EmotionVocabularyRepository,
   GoalRepository,
   LearningMapRepository,
@@ -44,6 +46,17 @@ class MemoryStore<E> {
 
   values(): E[] {
     return [...this.byId.values()];
+  }
+
+  deleteWhere(predicate: (entity: E) => boolean): number {
+    let count = 0;
+    for (const [id, entity] of this.byId) {
+      if (predicate(entity)) {
+        this.byId.delete(id);
+        count += 1;
+      }
+    }
+    return count;
   }
 }
 
@@ -205,6 +218,28 @@ export function createAffectRepository(): AffectRepository {
     },
     async listByStudent(studentId) {
       return store.values().filter((a) => a.studentId === studentId);
+    },
+    async deleteByStudent(studentId) {
+      return store.deleteWhere((a) => a.studentId === studentId);
+    },
+  };
+}
+
+export function createConsentRepository(): ConsentRepository {
+  const records = new MemoryStore<ConsentRecord>();
+  const receipts = new MemoryStore<DeletionReceipt>();
+  return {
+    async save(record) {
+      records.set(record.id, record);
+    },
+    async listByStudent(studentId) {
+      return records.values().filter((r) => r.studentId === studentId);
+    },
+    async recordDeletion(receipt) {
+      receipts.set(receipt.id, receipt);
+    },
+    async listReceipts(studentId) {
+      return receipts.values().filter((r) => r.studentId === studentId);
     },
   };
 }

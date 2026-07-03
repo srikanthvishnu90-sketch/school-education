@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { Primary, Stage } from "@/app/_ui/atoms";
+import { getSessionStudent } from "@/app/_world/session";
 import { calibrationStatement } from "@/app/_world/statement";
 import {
-  DEFAULT_STUDENT_ID,
   DEMO_ASSESSMENT_ID,
   SKILL_NAMES,
   getWorld,
@@ -18,15 +18,12 @@ import { accuracy, perSkill, type SkillCalibration } from "@/domain";
  */
 export default async function ResultPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ assessmentId: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<ReactElement> {
   const { assessmentId } = await params;
-  const sp = await searchParams;
-  const studentId =
-    typeof sp.student === "string" ? sp.student : DEFAULT_STUDENT_ID;
+  const studentId = await getSessionStudent();
+  if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
   if (assessmentId !== DEMO_ASSESSMENT_ID || !isKnownStudent(world, studentId)) {
@@ -68,7 +65,7 @@ export default async function ResultPage({
         })
       : null;
 
-  const reflectHref = `/reflect/${assessmentId}?student=${encodeURIComponent(studentId)}`;
+  const reflectHref = `/reflect/${assessmentId}`;
 
   return (
     <Stage

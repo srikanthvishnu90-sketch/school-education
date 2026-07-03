@@ -35,11 +35,9 @@ export interface PredictItem {
 
 export default function PredictFlow({
   assessmentId,
-  studentId,
   items,
 }: {
   assessmentId: string;
-  studentId: string;
   items: PredictItem[];
 }): ReactElement {
   const router = useRouter();
@@ -65,15 +63,8 @@ export default function PredictFlow({
   function chooseOverall(value: number): void {
     setGlobalEstimate(value);
     startTransition(async () => {
-      await recordPrediction({
-        studentId,
-        assessmentId,
-        confidences,
-        globalPredicted: value,
-      });
-      router.push(
-        `/result/${assessmentId}?student=${encodeURIComponent(studentId)}`,
-      );
+      await recordPrediction({ assessmentId, confidences, globalPredicted: value });
+      router.push(`/result/${assessmentId}`);
     });
   }
 

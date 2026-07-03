@@ -35,9 +35,13 @@ async function expectOneDecision(page: Page): Promise<void> {
   expect(groups).toBeLessThanOrEqual(1);
 }
 
-/** Walks the 5 guess screens (4 items + 1 overall). Returns screens shown. */
-async function predict(page: Page, student: string): Promise<number> {
-  await page.goto(`/predict/${ASSESSMENT}?student=${student}`);
+/** Signs in as the named seed student (session-based auth), then walks the 5
+ * guess screens (4 items + 1 overall). Returns the cycle screens shown. */
+async function predict(page: Page, studentName: string): Promise<number> {
+  await page.goto("/signin");
+  await expect(page.getByText("Who are you?")).toBeVisible();
+  await page.getByRole("button", { name: studentName }).click();
+  await expect(page).toHaveURL(new RegExp(`/predict/${ASSESSMENT}`));
   let screens = 0;
   for (let i = 1; i <= 4; i += 1) {
     await expect(page.getByText(`Your guess · question ${i} of 4`)).toBeVisible();
@@ -56,7 +60,7 @@ async function predict(page: Page, student: string): Promise<number> {
 test("overconfident-low archetype: full cycle ≤ 12 screens, gap language about the task", async ({
   page,
 }) => {
-  let screens = await predict(page, "student-avery");
+  let screens = await predict(page, "Avery");
 
   // Result: what happened, then ONE plain calibration statement.
   await expect(page.getByText("What happened", { exact: true })).toBeVisible();
@@ -114,7 +118,7 @@ test("overconfident-low archetype: full cycle ≤ 12 screens, gap language about
 test("emotional path when named still reaches the quiet close", async ({
   page,
 }) => {
-  await predict(page, "student-blake");
+  await predict(page, "Blake");
   await page.getByRole("link", { name: "Think about it" }).click();
 
   await expect(page.getByText("How do you feel now?")).toBeVisible();
@@ -134,14 +138,14 @@ test("emotional path when named still reaches the quiet close", async ({
   await expect(page.getByText("That’s it for now.")).toBeVisible();
 
   // The map reflects that a feeling WAS named for this student.
-  await page.goto("/map?student=student-blake");
+  await page.goto("/map");
   await expect(page.getByText("You also said how it felt")).toBeVisible();
 });
 
 test("non-productive attribution re-asks and never blocks exit", async ({
   page,
 }) => {
-  await predict(page, "student-casey");
+  await predict(page, "Casey");
   await page.getByRole("link", { name: "Think about it" }).click();
   await page.getByRole("button", { name: "Skip this" }).click();
 

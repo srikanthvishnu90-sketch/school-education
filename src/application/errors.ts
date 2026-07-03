@@ -61,3 +61,13 @@ export class NonProductiveAttributionError extends ApplicationError {
     this.name = "NonProductiveAttributionError";
   }
 }
+
+/** captureAffect: the student has not granted (or has revoked) the affect scope. */
+export class AffectConsentError extends ApplicationError {
+  constructor(readonly studentId: Id) {
+    super(
+      `affect capture refused for ${studentId}: the affect consent scope is not granted`,
+    );
+    this.name = "AffectConsentError";
+  }
+}

@@ -6,6 +6,7 @@ import type { Outcome } from "../outcome";
 import type { Reflection } from "../reflection";
 import type { CalibrationRecord } from "../calibration";
 import type { ActionVerification } from "../verification";
+import type { ConsentRecord, DeletionReceipt } from "../consent";
 import type { TransferProbe } from "../transferProbe";
 import type { LearningMap } from "../learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "../emotion";
@@ -84,6 +85,19 @@ export interface AffectRepository {
   ): Promise<AffectSnapshot[]>;
   /** All of a student's snapshots across assessments (for cohort covariates). */
   listByStudent(studentId: Id): Promise<AffectSnapshot[]>;
+  /** Hard-delete every snapshot for a student (consent revocation). Returns the count. */
+  deleteByStudent(studentId: Id): Promise<number>;
+}
+
+/**
+ * Consent records + the deletion receipts a revocation leaves. Consent is stored
+ * as an append-only history; the effective scopes are derived in the domain.
+ */
+export interface ConsentRepository {
+  save(record: ConsentRecord): Promise<void>;
+  listByStudent(studentId: Id): Promise<ConsentRecord[]>;
+  recordDeletion(receipt: DeletionReceipt): Promise<void>;
+  listReceipts(studentId: Id): Promise<DeletionReceipt[]>;
 }
 
 export interface EmotionVocabularyRepository {

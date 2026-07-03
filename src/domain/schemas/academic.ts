@@ -156,6 +156,20 @@ export const transferProbeSchema = z.object({
   createdAt: z.date(),
 });
 
+// --- Consent (SOPPA/COPPA lifecycle object) ----------------------------------
+
+export const consentScopeSchema = z.enum(["academic", "affect"]);
+
+export const consentRecordSchema = z.object({
+  id: idSchema,
+  studentId: idSchema,
+  grantorType: z.enum(["parent", "self"]),
+  scopes: z.array(consentScopeSchema),
+  status: z.enum(["granted", "revoked"]),
+  grantedAt: z.date(),
+  revokedAt: z.date().optional(),
+});
+
 // --- Verification cycle (closes the loop; the MATH is P7) ---------------------
 
 export const verificationVerdictSchema = z.enum([

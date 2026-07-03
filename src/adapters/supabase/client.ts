@@ -31,3 +31,36 @@ export function createPgClient(connectionString: string): PoolClient {
 
 /** The default tenant every row is stamped with until P12 introduces real tenancy. */
 export const DEFAULT_TENANT_ID = "tenant-default";
+
+// Postgres SQLSTATEs for "the object already exists" — the benign race when two
+// processes apply the same idempotent migration concurrently (e.g. parallel test
+// files). CREATE ... IF NOT EXISTS is not race-safe on the catalog unique index.
+const TRANSIENT_DDL = new Set([
+  "42P06", // duplicate_schema
+  "42710", // duplicate_object (role, policy)
+  "42P07", // duplicate_table
+  "23505", // unique_violation (pg_namespace / pg_class)
+  "42723", // duplicate_function
+]);
+
+/**
+ * Runs an idempotent migration step, retrying briefly on a concurrent-DDL race.
+ * On retry the "if not exists" guards see the object already present and pass.
+ */
+export async function runIdempotent(
+  step: () => Promise<void>,
+  attempts = 6,
+): Promise<void> {
+  for (let i = 0; ; i += 1) {
+    try {
+      await step();
+      return;
+    } catch (err) {
+      const code = (err as { code?: string }).code ?? "";
+      if (i >= attempts - 1 || !TRANSIENT_DDL.has(code)) throw err;
+      await new Promise((resolve) =>
+        setTimeout(resolve, 15 + Math.floor(Math.random() * 50)),
+      );
+    }
+  }
+}

@@ -1,11 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import {
-  DEFAULT_STUDENT_ID,
-  DEMO_ASSESSMENT_ID,
-  getWorld,
-  isKnownStudent,
-} from "@/app/_world/world";
+import { getSessionStudent } from "@/app/_world/session";
+import { DEMO_ASSESSMENT_ID, getWorld, isKnownStudent } from "@/app/_world/world";
 import ReflectFlow from "./ReflectFlow";
 
 /**
@@ -15,15 +11,12 @@ import ReflectFlow from "./ReflectFlow";
  */
 export default async function ReflectPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ assessmentId: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<ReactElement> {
   const { assessmentId } = await params;
-  const sp = await searchParams;
-  const studentId =
-    typeof sp.student === "string" ? sp.student : DEFAULT_STUDENT_ID;
+  const studentId = await getSessionStudent();
+  if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
   if (assessmentId !== DEMO_ASSESSMENT_ID || !isKnownStudent(world, studentId)) {
@@ -34,7 +27,7 @@ export default async function ReflectPage({
     studentId,
   );
   if (outcome === null) {
-    redirect(`/predict/${assessmentId}?student=${encodeURIComponent(studentId)}`);
+    redirect(`/predict/${assessmentId}`);
   }
 
   const vocabulary = world.vocabulary.terms.map((t) => ({
@@ -42,11 +35,5 @@ export default async function ReflectPage({
     valence: t.valence,
   }));
 
-  return (
-    <ReflectFlow
-      assessmentId={assessmentId}
-      studentId={studentId}
-      vocabulary={vocabulary}
-    />
-  );
+  return <ReflectFlow assessmentId={assessmentId} vocabulary={vocabulary} />;
 }

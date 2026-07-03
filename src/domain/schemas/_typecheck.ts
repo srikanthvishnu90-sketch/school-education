@@ -18,6 +18,7 @@ import type {
   SkillDrift,
   SkillMeasure,
 } from "../verification";
+import type { ConsentRecord } from "../consent";
 import type {
   AffectSnapshot,
   EmotionLabel,
@@ -34,6 +35,7 @@ import type {
   learningGoalSchema,
   learningMapSchema,
   actionVerificationSchema,
+  consentRecordSchema,
   masteryBandSchema,
   misconceptionSchema,
   nextActionSchema,
@@ -119,6 +121,9 @@ export type _SkillDriftSync = Expect<
 >;
 export type _ActionVerificationSync = Expect<
   Equal<ActionVerification, z.infer<typeof actionVerificationSchema>>
+>;
+export type _ConsentRecordSync = Expect<
+  Equal<ConsentRecord, z.infer<typeof consentRecordSchema>>
 >;
 
 // Emotional axis

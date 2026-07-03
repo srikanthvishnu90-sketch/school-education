@@ -64,6 +64,14 @@ async function build(): Promise<World> {
 
   const answerKey: Record<Id, boolean[]> = {};
   for (const student of SEED_STUDENTS) {
+    // Consent (academic + affect) is granted for the demo student up front, so
+    // the optional emotional step is permitted; a real app collects this at
+    // sign-up. Affect capture refuses without it (P12).
+    await core.consentService.grant({
+      studentId: student.id,
+      grantorType: "parent",
+      scopes: ["academic", "affect"],
+    });
     // The teacher's goal is already set; the student starts at "predict".
     await core.services.captureGoal({
       studentId: student.id,

@@ -91,10 +91,7 @@ export default function Landing(): ReactElement {
             <a className="transition hover:text-white" href="#principles">
               Principles
             </a>
-            <Link
-              className="transition hover:text-white"
-              href="/predict/assess-algebra1-u1?student=student-avery"
-            >
+            <Link className="transition hover:text-white" href="/signin">
               Try the cycle
             </Link>
           </div>

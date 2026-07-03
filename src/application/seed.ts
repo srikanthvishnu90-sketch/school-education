@@ -13,6 +13,7 @@ import {
   createAffectRepository,
   createAssessmentRepository,
   createCalibrationRepository,
+  createConsentRepository,
   createEmotionVocabularyRepository,
   createGoalRepository,
   createLearningMapRepository,
@@ -29,6 +30,7 @@ import type {
   AssessmentRepository,
   CalibrationRepository,
   Clock,
+  ConsentRepository,
   EmotionVocabularyRepository,
   GoalRepository,
   IdGenerator,
@@ -38,6 +40,7 @@ import type {
   ReflectionRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
+import { createConsentService, type ConsentService } from "./consent";
 import { createServices, type Services } from "./services";
 import {
   createVerificationService,
@@ -233,11 +236,13 @@ export interface Repos {
   affects: AffectRepository;
   emotionVocab: EmotionVocabularyRepository;
   verifications: ActionVerificationRepository;
+  consent: ConsentRepository;
 }
 
 export interface SeededWorld {
   services: Services;
   verification: VerificationService;
+  consentService: ConsentService;
   repos: Repos;
   agent: AgentLoop;
   clock: Clock;
@@ -254,6 +259,7 @@ export interface WorldCore {
   ids: IdGenerator;
   services: Services;
   verification: VerificationService;
+  consentService: ConsentService;
   agent: AgentLoop;
 }
 
@@ -275,6 +281,7 @@ export function buildWorldCore(): WorldCore {
     affects: createAffectRepository(),
     emotionVocab: createEmotionVocabularyRepository(),
     verifications: createActionVerificationRepository(),
+    consent: createConsentRepository(),
   };
 
   const clock = createSequentialClock(START_EPOCH);
@@ -289,6 +296,14 @@ export function buildWorldCore(): WorldCore {
     outcomes: repos.outcomes,
     reflections: repos.reflections,
     transferProbes: repos.transferProbes,
+    affects: repos.affects,
+    consent: repos.consent,
+  });
+
+  const consentService = createConsentService({
+    clock,
+    ids,
+    consent: repos.consent,
     affects: repos.affects,
   });
 
@@ -320,11 +335,12 @@ export function buildWorldCore(): WorldCore {
     clock,
   });
 
-  return { repos, clock, ids, services, verification, agent };
+  return { repos, clock, ids, services, verification, consentService, agent };
 }
 
 export async function buildSeededWorld(): Promise<SeededWorld> {
-  const { repos, clock, ids, services, verification, agent } = buildWorldCore();
+  const { repos, clock, ids, services, verification, consentService, agent } =
+    buildWorldCore();
 
   // Static world.
   await repos.assessments.save(buildAssessment());
@@ -333,6 +349,12 @@ export async function buildSeededWorld(): Promise<SeededWorld> {
 
   // Play the loop per student (deterministic clock guarantees predict < outcome).
   for (const s of SEED_STUDENTS) {
+    // Consent is granted before any affect is captured (P12).
+    await consentService.grant({
+      studentId: s.id,
+      grantorType: "parent",
+      scopes: ["academic", "affect"],
+    });
     await services.captureGoal({
       studentId: s.id,
       assessmentId: ASSESSMENT_ID,
@@ -369,6 +391,7 @@ export async function buildSeededWorld(): Promise<SeededWorld> {
   return {
     services,
     verification,
+    consentService,
     repos,
     agent,
     clock,

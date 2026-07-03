@@ -9,6 +9,7 @@ import {
   createPgAssessmentRepository,
   createPgCalibrationRepository,
   createPgClient,
+  createPgConsentRepository,
   createPgEmotionVocabularyRepository,
   createPgGoalRepository,
   createPgLearningMapRepository,
@@ -16,6 +17,7 @@ import {
   createPgPredictionRepository,
   createPgReflectionRepository,
   createPgTransferProbeRepository,
+  applyRls,
   runMigrations,
   type SqlClient,
 } from "@/adapters/supabase";
@@ -37,6 +39,7 @@ import {
   type SeededWorld,
   type WorldCore,
 } from "./seed";
+import { createConsentService } from "./consent";
 import { createServices } from "./services";
 import { createVerificationService } from "./verification";
 
@@ -63,6 +66,7 @@ export async function buildPersistentCore(
     opts.client ??
     createPgClient(opts.connectionString ?? process.env.DATABASE_URL ?? "");
   await runMigrations(client);
+  await applyRls(client);
 
   const clock = createSequentialClock(START_EPOCH);
   const ids = createSequentialIdGenerator();
@@ -79,6 +83,7 @@ export async function buildPersistentCore(
     affects: createPgAffectRepository(client, clock),
     emotionVocab: createPgEmotionVocabularyRepository(client, clock),
     verifications: createPgActionVerificationRepository(client, clock),
+    consent: createPgConsentRepository(client, clock),
   };
 
   const services = createServices({
@@ -90,6 +95,14 @@ export async function buildPersistentCore(
     outcomes: repos.outcomes,
     reflections: repos.reflections,
     transferProbes: repos.transferProbes,
+    affects: repos.affects,
+    consent: repos.consent,
+  });
+
+  const consentService = createConsentService({
+    clock,
+    ids,
+    consent: repos.consent,
     affects: repos.affects,
   });
 
@@ -121,7 +134,16 @@ export async function buildPersistentCore(
     clock,
   });
 
-  return { repos, clock, ids, services, verification, agent, client };
+  return {
+    repos,
+    clock,
+    ids,
+    services,
+    verification,
+    consentService,
+    agent,
+    client,
+  };
 }
 
 /**
@@ -139,6 +161,11 @@ export async function buildPersistentWorld(
   await core.repos.emotionVocab.save(buildEmotionVocabulary());
 
   for (const s of SEED_STUDENTS) {
+    await core.consentService.grant({
+      studentId: s.id,
+      grantorType: "parent",
+      scopes: ["academic", "affect"],
+    });
     await core.services.captureGoal({
       studentId: s.id,
       assessmentId: ASSESSMENT_ID,
@@ -175,6 +202,7 @@ export async function buildPersistentWorld(
   return {
     services: core.services,
     verification: core.verification,
+    consentService: core.consentService,
     repos: core.repos,
     agent: core.agent,
     clock: core.clock,

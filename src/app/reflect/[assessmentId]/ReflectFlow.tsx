@@ -40,11 +40,9 @@ export interface VocabTerm {
 
 export default function ReflectFlow({
   assessmentId,
-  studentId,
   vocabulary,
 }: {
   assessmentId: string;
-  studentId: string;
   vocabulary: VocabTerm[];
 }): ReactElement {
   const [step, setStep] = useState<Step>("emotion");
@@ -66,7 +64,7 @@ export default function ReflectFlow({
     }
     function keepGoing(): void {
       startTransition(async () => {
-        await recordAffect({ studentId, assessmentId, terms: chosenTerms });
+        await recordAffect({ assessmentId, terms: chosenTerms });
         setStep("cause");
       });
     }
@@ -260,7 +258,6 @@ export default function ReflectFlow({
       if (cause === null || !depth.ok) return;
       startTransition(async () => {
         await recordReflection({
-          studentId,
           assessmentId,
           category: cause as AttributionCategory,
           specific: true,

@@ -1,5 +1,6 @@
 export * from "./errors";
 export * from "./services";
+export * from "./consent";
 export * from "./verification";
 export * from "./connector";
 export * from "./efficacy";

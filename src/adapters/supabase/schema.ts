@@ -1,4 +1,4 @@
-import type { SqlClient } from "./client";
+import { runIdempotent, type SqlClient } from "./client";
 
 /**
  * The Postgres schema the frozen domain conforms to (the DB conforms to the
@@ -135,6 +135,24 @@ create table if not exists academic.field_maps (
   created_at timestamptz not null
 );
 
+create table if not exists academic.consent_records (
+  id text primary key,
+  tenant_id text not null default 'tenant-default',
+  student_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null,
+  seq bigserial
+);
+
+create table if not exists academic.deletion_receipts (
+  id text primary key,
+  tenant_id text not null default 'tenant-default',
+  student_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null,
+  seq bigserial
+);
+
 create table if not exists emotional.emotion_vocabularies (
   id text primary key,
   tenant_id text not null default 'tenant-default',
@@ -166,13 +184,17 @@ const ALL_TABLES = [
   "academic.cohort_assignments",
   "academic.canonical_evidence",
   "academic.field_maps",
+  "academic.consent_records",
+  "academic.deletion_receipts",
   "emotional.emotion_vocabularies",
   "emotional.affect_snapshots",
 ] as const;
 
 /** Applies the schema. Idempotent (every statement is `if not exists`). */
 export async function runMigrations(client: SqlClient): Promise<void> {
-  await client.query(SCHEMA_SQL);
+  await runIdempotent(async () => {
+    await client.query(SCHEMA_SQL);
+  });
 }
 
 /** Truncates every table — for test isolation, never production. */

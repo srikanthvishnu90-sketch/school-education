@@ -3,6 +3,7 @@ import {
   createAffectSnapshot,
   createAssessment,
   createCalibrationRecord,
+  createConsentRecord,
   createEmotionVocabulary,
   createLearningGoal,
   createLearningMap,
@@ -14,6 +15,8 @@ import {
   type AffectSnapshot,
   type Assessment,
   type CalibrationRecord,
+  type ConsentRecord,
+  type DeletionReceipt,
   type EmotionVocabulary,
   type LearningGoal,
   type LearningMap,
@@ -28,6 +31,7 @@ import type {
   AssessmentRepository,
   CalibrationRepository,
   Clock,
+  ConsentRepository,
   EmotionVocabularyRepository,
   GoalRepository,
   LearningMapRepository,
@@ -135,6 +139,13 @@ interface RawVerification
   extends Omit<ActionVerification, "openedAt" | "closedAt"> {
   openedAt: string;
   closedAt?: string;
+}
+interface RawConsent extends Omit<ConsentRecord, "grantedAt" | "revokedAt"> {
+  grantedAt: string;
+  revokedAt?: string;
+}
+interface RawReceipt extends Omit<DeletionReceipt, "deletedAt"> {
+  deletedAt: string;
 }
 
 // --- The adapters -------------------------------------------------------------
@@ -448,6 +459,65 @@ export function createPgAffectRepository(
         [studentId],
       );
       return raws.map(revive);
+    },
+    async deleteByStudent(studentId) {
+      const { rows } = await client.query<{ id: string }>(
+        "delete from emotional.affect_snapshots where student_id = $1 returning id",
+        [studentId],
+      );
+      return rows.length;
+    },
+  };
+}
+
+export function createPgConsentRepository(
+  client: SqlClient,
+  clock: Clock,
+): ConsentRepository {
+  const reviveConsent = (raw: RawConsent): ConsentRecord => {
+    const { grantedAt, revokedAt, ...rest } = raw;
+    return createConsentRecord({
+      ...rest,
+      grantedAt: d(grantedAt),
+      ...(revokedAt !== undefined && revokedAt !== null
+        ? { revokedAt: d(revokedAt) }
+        : {}),
+    });
+  };
+  return {
+    async save(record) {
+      await upsertRow(client, "academic.consent_records", {
+        ...base(record.id),
+        student_id: record.studentId,
+        data: JSON.stringify(record),
+        created_at: clock.now(),
+      });
+    },
+    async listByStudent(studentId) {
+      const raws = await selectMany<RawConsent>(
+        client,
+        "academic.consent_records",
+        "student_id = $1",
+        [studentId],
+      );
+      return raws.map(reviveConsent);
+    },
+    async recordDeletion(receipt) {
+      await upsertRow(client, "academic.deletion_receipts", {
+        ...base(receipt.id),
+        student_id: receipt.studentId,
+        data: JSON.stringify(receipt),
+        created_at: clock.now(),
+      });
+    },
+    async listReceipts(studentId) {
+      const raws = await selectMany<RawReceipt>(
+        client,
+        "academic.deletion_receipts",
+        "student_id = $1",
+        [studentId],
+      );
+      return raws.map((raw) => ({ ...raw, deletedAt: d(raw.deletedAt) }));
     },
   };
 }

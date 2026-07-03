@@ -1,11 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import {
-  DEFAULT_STUDENT_ID,
-  SKILL_NAMES,
-  getWorld,
-  isKnownStudent,
-} from "@/app/_world/world";
+import { getSessionStudent } from "@/app/_world/session";
+import { SKILL_NAMES, getWorld, isKnownStudent } from "@/app/_world/world";
 import { accuracy } from "@/domain";
 
 /**
@@ -14,14 +11,9 @@ import { accuracy } from "@/domain";
  * leaderboards, no peer data, no ranking: only this student, only their own goal.
  * The trajectory is honest about being one cycle so far.
  */
-export default async function MapPage({
-  searchParams,
-}: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}): Promise<ReactElement> {
-  const sp = await searchParams;
-  const studentId =
-    typeof sp.student === "string" ? sp.student : DEFAULT_STUDENT_ID;
+export default async function MapPage(): Promise<ReactElement> {
+  const studentId = await getSessionStudent();
+  if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
   const known = isKnownStudent(world, studentId);
@@ -125,7 +117,7 @@ export default async function MapPage({
           <p className="mt-3 text-[15px] text-secondary">
             Nothing here yet.{" "}
             <Link
-              href={`/predict/${world.assessment.id}?student=${encodeURIComponent(studentId)}`}
+              href={`/predict/${world.assessment.id}`}
               className="text-ink-tint underline-offset-4 hover:underline"
             >
               Make a guess
