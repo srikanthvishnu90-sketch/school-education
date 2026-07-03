@@ -158,7 +158,7 @@ export const transferProbeSchema = z.object({
 
 // --- Consent (SOPPA/COPPA lifecycle object) ----------------------------------
 
-export const consentScopeSchema = z.enum(["academic", "affect"]);
+export const consentScopeSchema = z.enum(["academic", "affect", "telemetry"]);
 
 export const consentRecordSchema = z.object({
   id: idSchema,

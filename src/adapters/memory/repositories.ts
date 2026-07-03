@@ -11,7 +11,9 @@ import type { FlagAcknowledgement } from "@/domain/flag";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "@/domain/emotion";
+import { createHash } from "node:crypto";
 import type { ResponseQuality } from "@/domain/responseQuality";
+import type { PilotEvent } from "@/domain/pilot";
 import type {
   AffectRepository,
   ActionVerificationRepository,
@@ -23,7 +25,9 @@ import type {
   GoalRepository,
   LearningMapRepository,
   OutcomeRepository,
+  PilotEventRepository,
   PredictionRepository,
+  PseudonymRepository,
   ReflectionRepository,
   ResponseQualityRepository,
   TransferProbeRepository,
@@ -161,6 +165,44 @@ export function createCalibrationRepository(): CalibrationRepository {
     },
     async listByStudent(studentId) {
       return store.values().filter((c) => c.studentId === studentId);
+    },
+  };
+}
+
+export function createPilotEventRepository(): PilotEventRepository {
+  const events: PilotEvent[] = [];
+  return {
+    async append(event) {
+      events.push(event);
+    },
+    async list() {
+      return [...events];
+    },
+    async listByTenant(tenantId) {
+      return events.filter((e) => e.tenantId === tenantId);
+    },
+  };
+}
+
+/**
+ * The pseudonymization table. A pseudonym is a salted hash of the real id — stable
+ * (same real id → same pseudonym) and non-reversible without this table, which is
+ * the only place the mapping is retained.
+ */
+export function createPseudonymRepository(
+  salt = "plumb-pilot",
+): PseudonymRepository {
+  const forward = new Map<string, string>();
+  return {
+    async resolve(realStudentId) {
+      const existing = forward.get(realStudentId);
+      if (existing !== undefined) return existing;
+      const pseudonym = createHash("sha256")
+        .update(`${salt}:${realStudentId}`, "utf8")
+        .digest("hex")
+        .slice(0, 16);
+      forward.set(realStudentId, pseudonym);
+      return pseudonym;
     },
   };
 }

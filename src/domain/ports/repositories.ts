@@ -12,6 +12,7 @@ import type { TransferProbe } from "../transferProbe";
 import type { LearningMap } from "../learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "../emotion";
 import type { ResponseQuality } from "../responseQuality";
+import type { PilotEvent } from "../pilot";
 
 /**
  * Repository ports — the ONLY way the application reaches persistence
@@ -118,6 +119,25 @@ export interface ResponseQualityRepository {
   save(quality: ResponseQuality): Promise<void>;
   findBySession(sessionId: Id): Promise<ResponseQuality | null>;
   listByStudent(studentId: Id): Promise<ResponseQuality[]>;
+}
+
+/**
+ * Pilot telemetry events (P17). Append-only, mechanics-only. Written only when the
+ * telemetry consent scope is granted; every stored event carries a PSEUDONYM.
+ */
+export interface PilotEventRepository {
+  append(event: PilotEvent): Promise<void>;
+  list(): Promise<PilotEvent[]>;
+  listByTenant(tenantId: Id): Promise<PilotEvent[]>;
+}
+
+/**
+ * The pseudonymization table — the ONLY place the real↔pseudonym mapping lives,
+ * separate from the events and reachable by the service role only. `resolve`
+ * returns a stable pseudonym for a real id, minting one on first use.
+ */
+export interface PseudonymRepository {
+  resolve(realStudentId: Id): Promise<string>;
 }
 
 export interface EmotionVocabularyRepository {

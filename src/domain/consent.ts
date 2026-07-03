@@ -9,7 +9,7 @@ import { consentRecordSchema } from "./schemas/academic";
  * unless the affect scope is currently granted.
  */
 
-export type ConsentScope = "academic" | "affect";
+export type ConsentScope = "academic" | "affect" | "telemetry";
 export type ConsentGrantor = "parent" | "self";
 export type ConsentStatus = "granted" | "revoked";
 

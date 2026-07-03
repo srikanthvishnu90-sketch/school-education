@@ -9,3 +9,4 @@ export * from "./agent";
 export * from "./seed";
 export * from "./ingest";
 export * from "./ingested";
+export * from "./pilot";
