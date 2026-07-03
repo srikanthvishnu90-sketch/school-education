@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState, type ReactElement } from "react";
 import GetStarted from "./GetStarted";
 import HeroCarousel from "./HeroCarousel";
@@ -90,6 +91,12 @@ export default function Landing(): ReactElement {
             <a className="transition hover:text-white" href="#principles">
               Principles
             </a>
+            <Link
+              className="transition hover:text-white"
+              href="/predict/assess-algebra1-u1?student=student-avery"
+            >
+              Try the cycle
+            </Link>
           </div>
           <a
             href="#access"
