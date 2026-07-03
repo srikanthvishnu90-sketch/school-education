@@ -6,6 +6,7 @@ export * from "./prediction";
 export * from "./outcome";
 export * from "./reflection";
 export * from "./reflectionProbe";
+export * from "./grading";
 export * from "./responseQuality";
 export * from "./learningMap";
 export * from "./calibration";

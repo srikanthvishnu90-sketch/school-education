@@ -28,6 +28,7 @@ export const assessmentItemSchema = z.object({
   skillId: idSchema,
   prompt: z.string().min(1),
   maxPoints: nonNegativeSchema.refine((n) => n > 0, "maxPoints must be > 0"),
+  answer: z.string().min(1).optional(),
   misconceptionIds: z.array(idSchema).optional(),
 });
 

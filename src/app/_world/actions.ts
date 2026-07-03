@@ -1,6 +1,12 @@
 "use server";
 
-import type { AttributionCategory, EmotionLabel, Id, PilotEventType } from "@/domain";
+import {
+  gradeAnswer,
+  type AttributionCategory,
+  type EmotionLabel,
+  type Id,
+  type PilotEventType,
+} from "@/domain";
 import { getSessionStudent } from "./session";
 import { assessmentById, cycleNumberOf, getWorld, type World } from "./world";
 
@@ -40,6 +46,8 @@ async function requireStudent(): Promise<Id> {
 
 export interface SubmitPredictionInput {
   assessmentId: Id;
+  /** The student's actual answer per item, in the assessment's item order. */
+  answers: string[];
   /** One confidence per item, in the assessment's item order. */
   confidences: number[];
   globalPredicted: number;
@@ -84,15 +92,21 @@ export async function recordPrediction(
     // never interrupt the cycle
   }
 
-  const key = world.answerKey[input.assessmentId]?.[studentId] ?? [];
+  // Grade the student's ACTUAL answers server-side (the answer key never leaves
+  // the server). The outcome — and therefore calibration — is real performance.
   await world.services.recordOutcome({
     studentId,
     assessmentId: input.assessmentId,
-    itemOutcomes: items.map((item, i) => ({
-      itemId: item.id,
-      correct: key[i] === true,
-      pointsAwarded: key[i] === true ? 1 : 0,
-    })),
+    itemOutcomes: items.map((item, i) => {
+      const correct =
+        item.answer !== undefined &&
+        gradeAnswer(input.answers[i] ?? "", item.answer);
+      return {
+        itemId: item.id,
+        correct,
+        pointsAwarded: correct ? item.maxPoints : 0,
+      };
+    }),
   });
 }
 

@@ -20,8 +20,9 @@ test("tier_1 crisis text in reflection shows the resource screen", async ({
   await page.getByRole("button", { name: "Avery" }).click();
   await expect(page).toHaveURL(new RegExp(`/predict/${ASSESSMENT}`));
 
-  // Walk the prediction quickly.
+  // Walk the prediction quickly (answer each item, then rate confidence).
   for (let i = 1; i <= 4; i += 1) {
+    await page.getByLabel("Your answer").fill("0");
     await page.getByRole("radio", { name: "Very sure" }).click();
   }
   await page.getByRole("radio", { name: "4 out of 5 or more" }).click();

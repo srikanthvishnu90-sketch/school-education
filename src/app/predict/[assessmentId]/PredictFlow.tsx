@@ -7,9 +7,11 @@ import { Dots, QuietLink, Stage } from "@/app/_ui/atoms";
 import { TapScale, type TapOption } from "@/app/_ui/controls";
 
 /**
- * The prediction flow — one item per screen, a coarse five-point tap for
- * confidence (never a precision slider), then one global estimate. Progress is
- * quiet dots. Every screen holds exactly one decision.
+ * The performance + prediction flow — one item per screen. The student SOLVES the
+ * item (their real answer, graded server-side) and, before seeing any grade, taps
+ * a coarse five-point confidence (never a precision slider). Answering is the
+ * performance; the confidence is the pre-registered belief. Then one global
+ * estimate. Progress is quiet dots; every screen holds one item.
  */
 
 const CONFIDENCE: readonly TapOption[] = [
@@ -42,16 +44,31 @@ export default function PredictFlow({
 }): ReactElement {
   const router = useRouter();
   const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState<string[]>(() => items.map(() => ""));
   const [confidences, setConfidences] = useState<number[]>(
     () => items.map(() => Number.NaN),
   );
   const [globalEstimate, setGlobalEstimate] = useState<number | null>(null);
+  const [needAnswer, setNeedAnswer] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const totalSteps = items.length + 1;
   const onItemStep = step < items.length;
 
+  function setAnswer(value: string): void {
+    setNeedAnswer(false);
+    setAnswers((prev) => {
+      const next = [...prev];
+      next[step] = value;
+      return next;
+    });
+  }
+
   function chooseConfidence(value: number): void {
+    if (answers[step].trim().length === 0) {
+      setNeedAnswer(true);
+      return;
+    }
     setConfidences((prev) => {
       const next = [...prev];
       next[step] = value;
@@ -63,7 +80,12 @@ export default function PredictFlow({
   function chooseOverall(value: number): void {
     setGlobalEstimate(value);
     startTransition(async () => {
-      await recordPrediction({ assessmentId, confidences, globalPredicted: value });
+      await recordPrediction({
+        assessmentId,
+        answers,
+        confidences,
+        globalPredicted: value,
+      });
       router.push(`/result/${assessmentId}`);
     });
   }
@@ -86,7 +108,7 @@ export default function PredictFlow({
     const current = confidences[step];
     return (
       <Stage
-        eyebrow={`Your guess · question ${step + 1} of ${items.length}`}
+        eyebrow={`Question ${step + 1} of ${items.length}`}
         question={item.prompt}
         footer={
           <div className="flex items-center justify-between">
@@ -95,22 +117,38 @@ export default function PredictFlow({
           </div>
         }
       >
-        <p className="mb-5 text-[15px] text-secondary">
-          You didn&rsquo;t see the answer yet. How sure are you that you got this
-          one right?
+        <label htmlFor="answer" className="text-[15px] text-secondary">
+          Work it out and write your answer:
+        </label>
+        <input
+          id="answer"
+          type="text"
+          value={answers[step]}
+          onChange={(e) => setAnswer(e.target.value)}
+          aria-label="Your answer"
+          placeholder="Your answer"
+          className="mt-2 w-full rounded-control border border-ink-wash bg-white px-4 py-3 text-[15px] text-ink-black outline-none transition-colors focus:border-ink-tint"
+        />
+        <p className="mb-3 mt-6 text-[15px] text-secondary">
+          Before you see if it&rsquo;s right — how sure are you?
         </p>
         <TapScale
           options={CONFIDENCE}
           value={Number.isNaN(current) ? null : current}
           onChange={chooseConfidence}
         />
+        {needAnswer && (
+          <p className="mt-3 text-[13px] text-secondary">
+            Write your answer first, then say how sure you are.
+          </p>
+        )}
       </Stage>
     );
   }
 
   return (
     <Stage
-      eyebrow="Your guess · all together"
+      eyebrow="All together"
       question="All together, how many do you think you got right?"
       footer={
         <div className="flex items-center justify-between">
@@ -125,7 +163,7 @@ export default function PredictFlow({
         onChange={chooseOverall}
       />
       {pending && (
-        <p className="mt-6 text-sm text-secondary">Saving your guess…</p>
+        <p className="mt-6 text-sm text-secondary">Checking your work…</p>
       )}
     </Stage>
   );

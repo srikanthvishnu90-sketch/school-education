@@ -32,6 +32,12 @@ export interface AssessmentItem {
   prompt: string;
   /** Maximum points the item is worth; must be > 0. */
   maxPoints: number;
+  /**
+   * The correct answer, for deterministic grading of the student's response. Held
+   * server-side only — never sent to the client with the prompt. Absent for items
+   * that are not auto-gradable (graded by a teacher or an imported grade instead).
+   */
+  answer?: string;
   misconceptionIds?: Id[];
 }
 

@@ -10,6 +10,7 @@ import { expect, test, type Page } from "@playwright/test";
 async function predictThroughResult(page: Page, assessment: string): Promise<void> {
   await expect(page).toHaveURL(new RegExp(`/predict/${assessment}`));
   for (let i = 1; i <= 4; i += 1) {
+    await page.getByLabel("Your answer").fill("0");
     await page.getByRole("radio", { name: "Very sure" }).click();
   }
   await page.getByRole("radio", { name: "4 out of 5 or more" }).click();

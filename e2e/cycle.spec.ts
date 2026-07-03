@@ -47,9 +47,13 @@ async function predict(page: Page, studentName: string): Promise<void> {
   await expect(page.getByText("Or try a demo account")).toBeVisible();
   await page.getByRole("button", { name: studentName }).click();
   await expect(page).toHaveURL(new RegExp(`/predict/${ASSESSMENT}`));
+  // Answer item 1 correctly and miss the rest, all with high confidence — a real,
+  // graded overconfident-low run (item answers: 5, 9, 3, 3).
+  const answers = ["5", "0", "0", "0"];
   for (let i = 1; i <= 4; i += 1) {
-    await expect(page.getByText(`Your guess · question ${i} of 4`)).toBeVisible();
+    await expect(page.getByText(`Question ${i} of 4`)).toBeVisible();
     await expectOneDecision(page);
+    await page.getByLabel("Your answer").fill(answers[i - 1]);
     await page.getByRole("radio", { name: "Very sure" }).click();
   }
   await expect(page.getByText("how many do you think you got right")).toBeVisible();

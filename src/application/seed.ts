@@ -183,6 +183,7 @@ export function buildAssessment(): Assessment {
         skillId: SKILL_LINEAR,
         prompt: "Solve 3x + 5 = 20.",
         maxPoints: 1,
+        answer: "5",
       },
       {
         id: ITEM_IDS[1],
@@ -190,6 +191,7 @@ export function buildAssessment(): Assessment {
         skillId: SKILL_LINEAR,
         prompt: "Solve 2(x - 4) = 10.",
         maxPoints: 1,
+        answer: "9",
       },
       {
         id: ITEM_IDS[2],
@@ -197,13 +199,15 @@ export function buildAssessment(): Assessment {
         skillId: SKILL_SLOPE,
         prompt: "Find the slope through (1, 2) and (3, 8).",
         maxPoints: 1,
+        answer: "3",
       },
       {
         id: ITEM_IDS[3],
         assessmentId: ASSESSMENT_ID,
         skillId: SKILL_SLOPE,
-        prompt: "What does the slope mean in context?",
+        prompt: "Find the slope through (0, 1) and (2, 7).",
         maxPoints: 1,
+        answer: "3",
       },
     ],
   });
@@ -222,6 +226,7 @@ export function buildSecondAssessment(): Assessment {
         skillId: SKILL_LINEAR,
         prompt: "Solve 4x - 7 = 13.",
         maxPoints: 1,
+        answer: "5",
       },
       {
         id: ITEM_IDS_2[1],
@@ -229,6 +234,7 @@ export function buildSecondAssessment(): Assessment {
         skillId: SKILL_LINEAR,
         prompt: "Solve 3(x + 2) = 21.",
         maxPoints: 1,
+        answer: "5",
       },
       {
         id: ITEM_IDS_2[2],
@@ -236,6 +242,7 @@ export function buildSecondAssessment(): Assessment {
         skillId: SKILL_SLOPE,
         prompt: "Find the slope through (2, 3) and (6, 11).",
         maxPoints: 1,
+        answer: "2",
       },
       {
         id: ITEM_IDS_2[3],
@@ -243,6 +250,7 @@ export function buildSecondAssessment(): Assessment {
         skillId: SKILL_SLOPE,
         prompt: "A line rises 6 for every 2 across — what is its slope?",
         maxPoints: 1,
+        answer: "3",
       },
     ],
   });

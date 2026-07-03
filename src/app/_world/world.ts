@@ -43,8 +43,6 @@ export interface World {
   assessments: Assessment[];
   vocabulary: EmotionVocabulary;
   learningMap: LearningMap;
-  /** assessmentId → studentId → per-item correctness (revealed after prediction). */
-  answerKey: Record<Id, Record<Id, boolean[]>>;
   students: { id: Id; archetype: string }[];
 }
 
@@ -81,10 +79,6 @@ async function build(): Promise<World> {
   await core.repos.learningMaps.save(learningMap);
   await core.repos.emotionVocab.save(vocabulary);
 
-  const answerKey: Record<Id, Record<Id, boolean[]>> = {
-    [ASSESSMENT_ID]: {},
-    [SECOND_ASSESSMENT_ID]: {},
-  };
   for (const student of SEED_STUDENTS) {
     // Consent (academic + affect + telemetry) is granted for the demo student up
     // front, so the optional emotional step is permitted and pilot events may be
@@ -96,7 +90,8 @@ async function build(): Promise<World> {
       scopes: ["academic", "affect", "telemetry"],
     });
     // The teacher's goals are already set for both cycles; the student starts at
-    // "predict" and returns for the second check after completing the first.
+    // "predict" and returns for the second check after completing the first. The
+    // outcome is graded from the student's real answers (no seeded answer key).
     for (const assessmentId of [ASSESSMENT_ID, SECOND_ASSESSMENT_ID]) {
       await core.services.captureGoal({
         studentId: student.id,
@@ -106,8 +101,6 @@ async function build(): Promise<World> {
         successCriteriaRef: student.successCriteriaRef,
       });
     }
-    answerKey[ASSESSMENT_ID][student.id] = [...student.corrects];
-    answerKey[SECOND_ASSESSMENT_ID][student.id] = [...student.corrects2];
   }
 
   return {
@@ -120,7 +113,6 @@ async function build(): Promise<World> {
     assessments: [assessment, secondAssessment],
     vocabulary,
     learningMap,
-    answerKey,
     students: SEED_STUDENTS.map((s) => ({ id: s.id, archetype: s.archetype })),
   };
 }
