@@ -117,36 +117,37 @@ export default function Landing(): ReactElement {
         {/* Platform capabilities */}
         <section
           id="platform"
-          className="relative scroll-mt-16 border-t border-white/10 bg-[#050506]"
+          className="relative scroll-mt-16 border-y border-[#1B3A5B]/15 bg-white text-[#0F1B26]"
         >
           <div className="mx-auto max-w-7xl px-6 py-28">
             <Reveal>
-              <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-white/50">
+              <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-[#1B3A5B]">
                 The platform
               </p>
-              <h2 className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight sm:text-4xl">
+              <h2 className="mt-5 max-w-3xl text-3xl font-medium leading-tight tracking-tight text-[#0F1B26] sm:text-4xl">
                 One instrument, from raw evidence to the next action.
               </h2>
-              <p className="mt-5 max-w-2xl text-white/65">
+              <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-[#536878]">
                 plumb is built on strict ports-and-adapters foundations — the
                 business logic runs without a browser, a database, or a network
                 call. Every capability below is real and under test.
               </p>
             </Reveal>
 
-            <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2">
+            <div className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-[#1B3A5B]/15 bg-[#1B3A5B]/10 sm:grid-cols-2">
               {CAPABILITIES.map((c, i) => (
                 <Reveal key={c.k} delay={(i % 2) * 90}>
-                  <div className="group h-full bg-[#080809] p-8 transition-colors hover:bg-[#0d0e10]">
-                    <div className="flex items-baseline gap-4">
-                      <span className="text-[13px] font-medium tabular-nums text-white/40">
+                  <div className="group h-full bg-white p-8 transition-colors hover:bg-[#F6F8FA]">
+                    <span className="block h-px w-8 bg-[#1B3A5B]/40" />
+                    <div className="mt-6 flex items-baseline gap-4">
+                      <span className="text-[13px] font-semibold tabular-nums text-[#1B3A5B]">
                         {c.k}
                       </span>
-                      <h3 className="text-lg font-medium tracking-tight">
+                      <h3 className="text-lg font-medium tracking-tight text-[#0F1B26]">
                         {c.t}
                       </h3>
                     </div>
-                    <p className="mt-4 text-[15px] leading-relaxed text-white/65">
+                    <p className="mt-4 text-[15px] leading-relaxed text-[#536878]">
                       {c.b}
                     </p>
                   </div>
