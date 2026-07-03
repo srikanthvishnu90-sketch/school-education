@@ -57,11 +57,17 @@ export const DEFAULT_STUDENT_ID = "student-avery";
 export const DEMO_ASSESSMENT_ID = ASSESSMENT_ID;
 
 async function build(): Promise<World> {
-  // Selectable backend: Postgres (Supabase) when configured, else in-memory.
-  const core =
-    process.env.WORLD_BACKEND === "postgres"
-      ? await buildPersistentCore({ connectionString: process.env.DATABASE_URL })
-      : buildWorldCore();
+  // Persistence by default: whenever a database is configured (DATABASE_URL, or an
+  // explicit WORLD_BACKEND=postgres), use Postgres — buildPersistentCore
+  // self-provisions (idempotent migrations + RLS), so an empty DB just works and
+  // state survives restarts. With no DB configured, fall back to the zero-infra
+  // in-memory world so `pnpm dev` runs anywhere.
+  const usePostgres =
+    process.env.WORLD_BACKEND === "postgres" ||
+    (process.env.DATABASE_URL ?? "").length > 0;
+  const core = usePostgres
+    ? await buildPersistentCore({ connectionString: process.env.DATABASE_URL })
+    : buildWorldCore();
   const assessment = buildAssessment();
   const secondAssessment = buildSecondAssessment();
   const learningMap = buildLearningMap();
