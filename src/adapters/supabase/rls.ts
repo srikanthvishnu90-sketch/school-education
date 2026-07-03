@@ -14,10 +14,31 @@ import { runIdempotent, type SqlClient } from "./client";
  *                    reflections' free text or affect (no policy → no access).
  *   · school_admin — cohort-level aggregates only; zero row-level student access,
  *                    zero affect access.
+ *   · counselor    — crisis escalations for their tenant ONLY (P16); nothing else —
+ *                    no predictions, reflections, affect, or aggregates.
  *   · no role ever crosses tenant_id.
  */
 export const RLS_SQL = `
 create schema if not exists app;
+create schema if not exists safety;
+grant usage on schema safety to authenticated;
+
+-- Crisis escalations (P16) — the ONE sanctioned exception to data-flows-to-student,
+-- readable ONLY by the tenant's designated counselor. text_ref is ciphertext.
+create table if not exists safety.crisis_escalations (
+  id text primary key,
+  student_id text not null,
+  tenant_id text not null,
+  tier text not null,
+  text_ref text not null,
+  detector_version text not null,
+  created_at timestamptz not null,
+  delivered_to jsonb not null default '[]'::jsonb,
+  delivered_at timestamptz,
+  acknowledged_at timestamptz,
+  undelivered boolean not null default false
+);
+grant select on safety.crisis_escalations to authenticated;
 
 -- The application role every signed-in user connects as (Supabase's convention).
 -- Given a login + password here so tests connect AS this non-superuser role,
@@ -162,6 +183,16 @@ function tablePolicies(): string {
   out.push(
     `create policy admin_read on academic.cohort_reports for select to authenticated ` +
       `using (app.role() = 'school_admin' and tenant_id = app.tenant());`,
+  );
+
+  // counselor: crisis escalations for their tenant ONLY (P16). No other role has a
+  // policy on this table, so teacher/admin/student can never read it; and the
+  // counselor role appears in no other policy, so it can read nothing else.
+  out.push(enable("safety.crisis_escalations"));
+  out.push(drop("safety.crisis_escalations", "counselor_read"));
+  out.push(
+    `create policy counselor_read on safety.crisis_escalations for select to authenticated ` +
+      `using (app.role() = 'counselor' and tenant_id = app.tenant());`,
   );
 
   return out.join("\n");

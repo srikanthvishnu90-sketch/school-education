@@ -12,7 +12,7 @@ export interface AuthClaims {
   /** The user's id (student/teacher/admin id). */
   sub: string;
   /** The application role. */
-  user_role: "student" | "teacher" | "school_admin";
+  user_role: "student" | "teacher" | "school_admin" | "counselor";
   /** The school tenant. */
   tenant_id: string;
 }

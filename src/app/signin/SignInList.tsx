@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useTransition, type ReactElement } from "react";
 import { signIn } from "@/app/_world/session";
 import { Stage } from "@/app/_ui/atoms";
+import { CRISIS_DISCLOSURE } from "@/compliance/disclosure";
 
 /**
  * Pick-who-you-are sign-in (no passwords in this pre-infra build). Choosing sets
@@ -50,6 +51,9 @@ export default function SignInList({
           </button>
         ))}
       </div>
+      <p className="mt-6 text-[13px] leading-relaxed text-secondary">
+        {CRISIS_DISCLOSURE}
+      </p>
     </Stage>
   );
 }

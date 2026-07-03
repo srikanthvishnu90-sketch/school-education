@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useState, useTransition, type ReactElement } from "react";
 import { recordAffect, recordReflection } from "@/app/_world/actions";
+import { screenReflectionText } from "@/app/_world/safetyActions";
 import { assessDepth } from "@/app/_world/depth";
 import { Dots, Primary, QuietLink, Stage } from "@/app/_ui/atoms";
 import { BigChoice, type ChoiceOption } from "@/app/_ui/controls";
 import type { AttributionCategory, ReflectionProbe } from "@/domain";
+import CrisisResources from "./CrisisResources";
 
 /**
  * The self-reflection flow — plumb is an emotional AND academic AWARENESS
@@ -59,10 +61,26 @@ export default function ReflectFlow({
   const [cause, setCause] = useState<AttributionCategory | null>(null);
   const [actionText, setActionText] = useState("");
   const [dueBy, setDueBy] = useState(defaultDueDate());
+  const [crisis, setCrisis] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const total = probes.length + 4; // emotion + probes + cause + fixable + commit
   const leave = <QuietLink href="/map">Leave for now</QuietLink>;
+
+  // Safety screening runs at every free-text capture boundary (P16). On a hit,
+  // the calm resource screen takes over; `onSafe` is the normal advance.
+  function screenThen(text: string, onSafe: () => void): void {
+    startTransition(async () => {
+      const { crisis: hit } = await screenReflectionText(text);
+      if (hit) setCrisis(true);
+      else onSafe();
+    });
+  }
+
+  // The crisis resource moment takes over everything else while shown.
+  if (crisis) {
+    return <CrisisResources onExit={() => setCrisis(false)} />;
+  }
 
   function setAnswer(value: string): void {
     setAnswers((prev) => prev.map((a, i) => (i === probeIndex ? value : a)));
@@ -169,6 +187,9 @@ export default function ReflectFlow({
       else setProbeIndex((i) => i - 1);
     }
     function next(): void {
+      // Crisis screening happens on blur (a capture boundary that isn't gated by
+      // the depth rule); advancing here stays synchronous. If the blur screen
+      // detects a crisis, `setCrisis` takes over regardless of the step.
       if (isLast) setStep("cause");
       else setProbeIndex((i) => i + 1);
     }
@@ -201,6 +222,7 @@ export default function ReflectFlow({
         <textarea
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
+          onBlur={() => screenThen(answer, () => {})}
           rows={5}
           aria-label={probe.question}
           placeholder="When I read it, I first…"
@@ -315,6 +337,14 @@ export default function ReflectFlow({
     function commit(): void {
       if (cause === null || !depth.ok) return;
       startTransition(async () => {
+        // Screen the full reflection text at this final capture boundary (P16).
+        const { crisis: hit } = await screenReflectionText(
+          `${combinedNote()}\n${actionText}`,
+        );
+        if (hit) {
+          setCrisis(true);
+          return;
+        }
         await recordReflection({
           assessmentId,
           category: cause as AttributionCategory,

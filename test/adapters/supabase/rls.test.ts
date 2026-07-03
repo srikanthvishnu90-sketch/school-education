@@ -30,6 +30,8 @@ const AS: Record<string, AuthClaims> = {
   studentC: { sub: "stu-C", user_role: "student", tenant_id: "school-2" },
   teacher: { sub: "tea-1", user_role: "teacher", tenant_id: "school-1" },
   admin: { sub: "adm-1", user_role: "school_admin", tenant_id: "school-1" },
+  counselor: { sub: "cou-1", user_role: "counselor", tenant_id: "school-1" },
+  counselor2: { sub: "cou-2", user_role: "counselor", tenant_id: "school-2" },
 };
 
 suite("RLS policies — forbidden access fails at the database", () => {
@@ -86,6 +88,14 @@ suite("RLS policies — forbidden access fails at the database", () => {
     await service.query(
       `insert into app.class_teachers (teacher_id, class_id, tenant_id) values ('tea-1','class-1','school-1')
        on conflict do nothing`,
+    );
+    // Crisis escalations (P16): one per tenant. text_ref is ciphertext in prod.
+    await service.query(
+      `insert into safety.crisis_escalations
+        (id, student_id, tenant_id, tier, text_ref, detector_version, created_at) values
+        ('esc-1','stu-A','school-1','tier_1','sealed-1','2026.07.03','2026-01-01'),
+        ('esc-2','stu-C','school-2','tier_2','sealed-2','2026.07.03','2026-01-01')
+       on conflict (id) do nothing`,
     );
   });
 
@@ -145,6 +155,32 @@ suite("RLS policies — forbidden access fails at the database", () => {
     expect(
       await idsAs(AS.admin, "select id from emotional.affect_snapshots"),
     ).toEqual([]);
+  });
+
+  it("counselor reads crisis escalations for their tenant ONLY — nothing else (P16)", async () => {
+    // The counselor sees their tenant's escalations.
+    expect(
+      await idsAs(AS.counselor, "select id from safety.crisis_escalations order by id"),
+    ).toEqual(["esc-1"]);
+    // Never another tenant's escalation.
+    expect(
+      await idsAs(AS.counselor, "select id from safety.crisis_escalations where id = $1", [
+        "esc-2",
+      ]),
+    ).toEqual([]);
+    // The counselor can read NOTHING else — not predictions, reflections, affect, cohorts.
+    expect(await idsAs(AS.counselor, "select id from academic.predictions")).toEqual([]);
+    expect(await idsAs(AS.counselor, "select id from academic.reflections")).toEqual([]);
+    expect(
+      await idsAs(AS.counselor, "select id from emotional.affect_snapshots"),
+    ).toEqual([]);
+    expect(await idsAs(AS.counselor, "select id from academic.cohort_reports")).toEqual([]);
+  });
+
+  it("teacher, admin, and student CANNOT read crisis escalations", async () => {
+    for (const who of [AS.teacher, AS.admin, AS.studentA]) {
+      expect(await idsAs(who, "select id from safety.crisis_escalations")).toEqual([]);
+    }
   });
 
   it("no service-role leak: authenticated cannot disable the policies", async () => {
