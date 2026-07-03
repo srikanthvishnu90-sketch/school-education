@@ -8,6 +8,7 @@ export * from "./reflection";
 export * from "./learningMap";
 export * from "./calibration";
 export * from "./verification";
+export * from "./cohort";
 export * from "./evidence";
 export * from "./transferProbe";
 export * from "./emotion";

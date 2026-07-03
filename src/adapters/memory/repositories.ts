@@ -203,6 +203,9 @@ export function createAffectRepository(): AffectRepository {
           (a) => a.assessmentId === assessmentId && a.studentId === studentId,
         );
     },
+    async listByStudent(studentId) {
+      return store.values().filter((a) => a.studentId === studentId);
+    },
   };
 }
 

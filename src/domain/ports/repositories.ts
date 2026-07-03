@@ -82,6 +82,8 @@ export interface AffectRepository {
     assessmentId: Id,
     studentId: Id,
   ): Promise<AffectSnapshot[]>;
+  /** All of a student's snapshots across assessments (for cohort covariates). */
+  listByStudent(studentId: Id): Promise<AffectSnapshot[]>;
 }
 
 export interface EmotionVocabularyRepository {
