@@ -44,7 +44,7 @@ async function expectOneDecision(page: Page): Promise<void> {
  * guess screens (4 items + 1 overall). */
 async function predict(page: Page, studentName: string): Promise<void> {
   await page.goto("/signin");
-  await expect(page.getByText("Who are you?")).toBeVisible();
+  await expect(page.getByText("Or try a demo account")).toBeVisible();
   await page.getByRole("button", { name: studentName }).click();
   await expect(page).toHaveURL(new RegExp(`/predict/${ASSESSMENT}`));
   for (let i = 1; i <= 4; i += 1) {
