@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import {
   createActionVerification,
   createAffectSnapshot,
@@ -8,6 +9,7 @@ import {
   createLearningGoal,
   createLearningMap,
   createOutcome,
+  createPilotEvent,
   createPrediction,
   createReflection,
   createTransferProbe,
@@ -22,8 +24,10 @@ import {
   type LearningGoal,
   type LearningMap,
   type Outcome,
+  type PilotEvent,
   type Prediction,
   type Reflection,
+  type ResponseQuality,
   type TransferProbe,
 } from "@/domain";
 import type {
@@ -38,8 +42,11 @@ import type {
   GoalRepository,
   LearningMapRepository,
   OutcomeRepository,
+  PilotEventRepository,
   PredictionRepository,
+  PseudonymRepository,
   ReflectionRepository,
+  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 import { DEFAULT_TENANT_ID, type SqlClient } from "./client";
@@ -628,6 +635,119 @@ export function createPgActionVerificationRepository(
         [studentId],
       );
       return raws.map(revive);
+    },
+  };
+}
+
+// --- Pilot metadata (P15/P17): service-role-only, PG-backed for durability ----
+
+interface RawResponseQuality extends Omit<ResponseQuality, "at"> {
+  at: string;
+}
+interface RawPilotEvent extends Omit<PilotEvent, "at"> {
+  at: string;
+}
+
+export function createPgResponseQualityRepository(
+  client: SqlClient,
+  clock: Clock,
+): ResponseQualityRepository {
+  const revive = (raw: RawResponseQuality): ResponseQuality => ({
+    ...raw,
+    at: d(raw.at),
+  });
+  return {
+    async save(q) {
+      await upsertRow(
+        client,
+        "pilot.response_quality",
+        {
+          session_id: q.sessionId,
+          student_id: q.studentId,
+          data: JSON.stringify(q),
+          created_at: clock.now(),
+        },
+        "session_id",
+      );
+    },
+    async findBySession(sessionId) {
+      const raw = await selectOne<RawResponseQuality>(
+        client,
+        "pilot.response_quality",
+        "session_id = $1",
+        [sessionId],
+      );
+      return raw === null ? null : revive(raw);
+    },
+    async listByStudent(studentId) {
+      const raws = await selectMany<RawResponseQuality>(
+        client,
+        "pilot.response_quality",
+        "student_id = $1",
+        [studentId],
+      );
+      return raws.map(revive);
+    },
+  };
+}
+
+export function createPgPilotEventRepository(
+  client: SqlClient,
+  clock: Clock,
+): PilotEventRepository {
+  const revive = (raw: RawPilotEvent): PilotEvent =>
+    createPilotEvent({ ...raw, at: d(raw.at) });
+  return {
+    async append(event) {
+      // Append-only: a plain insert (no natural key, ordered by seq).
+      await client.query(
+        "insert into pilot.events (tenant_id, data, created_at) values ($1, $2, $3)",
+        [event.tenantId, JSON.stringify(event), clock.now()],
+      );
+    },
+    async list() {
+      const { rows } = await client.query<{ data: RawPilotEvent }>(
+        "select data from pilot.events order by seq asc",
+      );
+      return rows.map((r) => revive(r.data));
+    },
+    async listByTenant(tenantId) {
+      const { rows } = await client.query<{ data: RawPilotEvent }>(
+        "select data from pilot.events where tenant_id = $1 order by seq asc",
+        [tenantId],
+      );
+      return rows.map((r) => revive(r.data));
+    },
+  };
+}
+
+/**
+ * The pseudonym table — service-role only. A pseudonym is a salted hash of the
+ * real id (stable across restarts), stored so re-identification is possible only
+ * here. `resolve` mints on first use, idempotently.
+ */
+export function createPgPseudonymRepository(
+  client: SqlClient,
+  clock: Clock,
+  salt = "plumb-pilot",
+): PseudonymRepository {
+  return {
+    async resolve(realStudentId) {
+      const existing = await client.query<{ pseudonym: string }>(
+        "select pseudonym from pilot.pseudonyms where real_id = $1",
+        [realStudentId],
+      );
+      if (existing.rows.length > 0) return existing.rows[0].pseudonym;
+      const pseudonym = createHash("sha256")
+        .update(`${salt}:${realStudentId}`, "utf8")
+        .digest("hex")
+        .slice(0, 16);
+      await client.query(
+        "insert into pilot.pseudonyms (real_id, pseudonym, created_at) values ($1, $2, $3) " +
+          "on conflict (real_id) do nothing",
+        [realStudentId, pseudonym, clock.now()],
+      );
+      return pseudonym;
     },
   };
 }

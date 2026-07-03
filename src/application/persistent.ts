@@ -1,8 +1,5 @@
 import { createDeterministicLanguageCapability } from "@/adapters/language";
 import {
-  createPilotEventRepository,
-  createPseudonymRepository,
-  createResponseQualityRepository,
   createSequentialClock,
   createSequentialIdGenerator,
 } from "@/adapters/memory";
@@ -18,8 +15,11 @@ import {
   createPgGoalRepository,
   createPgLearningMapRepository,
   createPgOutcomeRepository,
+  createPgPilotEventRepository,
   createPgPredictionRepository,
+  createPgPseudonymRepository,
   createPgReflectionRepository,
+  createPgResponseQualityRepository,
   createPgTransferProbeRepository,
   applyRls,
   runMigrations,
@@ -90,10 +90,10 @@ export async function buildPersistentCore(
     verifications: createPgActionVerificationRepository(client, clock),
     consent: createPgConsentRepository(client, clock),
     flagAcks: createPgFlagAcknowledgementRepository(client, clock),
-    // Response-quality + pilot events are ephemeral pilot metadata (no PG table
-    // yet); the in-memory adapters are used under both backends.
-    responseQuality: createResponseQualityRepository(),
-    pilotEvents: createPilotEventRepository(),
+    // Pilot metadata is now PG-backed too, so it survives restarts under Postgres
+    // (service-role-only tables; never reachable from any signed-in surface).
+    responseQuality: createPgResponseQualityRepository(client, clock),
+    pilotEvents: createPgPilotEventRepository(client, clock),
   };
 
   const services = createServices({
@@ -150,7 +150,7 @@ export async function buildPersistentCore(
   const telemetry = createPilotTelemetry({
     clock,
     consent: repos.consent,
-    pseudonyms: createPseudonymRepository(),
+    pseudonyms: createPgPseudonymRepository(client, clock),
     events: repos.pilotEvents,
     responseQuality: repos.responseQuality,
   });

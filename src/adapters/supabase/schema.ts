@@ -16,6 +16,31 @@ import { runIdempotent, type SqlClient } from "./client";
 export const SCHEMA_SQL = `
 create schema if not exists academic;
 create schema if not exists emotional;
+create schema if not exists pilot;
+
+-- Pilot metadata (P15/P17). SERVICE-ROLE ONLY: never granted to authenticated, so
+-- these are unreachable from any signed-in surface. Events carry PSEUDONYMS; the
+-- real<->pseudonym mapping lives only in pilot.pseudonyms.
+create table if not exists pilot.events (
+  seq bigserial primary key,
+  tenant_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null
+);
+
+create table if not exists pilot.response_quality (
+  session_id text primary key,
+  student_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null,
+  seq bigserial
+);
+
+create table if not exists pilot.pseudonyms (
+  real_id text primary key,
+  pseudonym text not null,
+  created_at timestamptz not null
+);
 
 create table if not exists academic.assessments (
   id text primary key,
@@ -198,6 +223,9 @@ const ALL_TABLES = [
   "academic.flag_acknowledgements",
   "emotional.emotion_vocabularies",
   "emotional.affect_snapshots",
+  "pilot.events",
+  "pilot.response_quality",
+  "pilot.pseudonyms",
 ] as const;
 
 /** Applies the schema. Idempotent (every statement is `if not exists`). */
