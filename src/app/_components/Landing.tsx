@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactElement } from "react";
 import GetStarted from "./GetStarted";
 import HeroCarousel from "./HeroCarousel";
 import Reveal from "./Reveal";
+import ScrollDrawHero from "./ScrollDrawHero";
 
 /**
  * The plumb marketing landing page — a Palantir-register, dark, full-bleed site.
@@ -100,7 +101,10 @@ export default function Landing(): ReactElement {
       </header>
 
       <main id="top">
-        {/* Opening slide sequence */}
+        {/* Scroll-driven opening: prediction and evidence lines converge */}
+        <ScrollDrawHero />
+
+        {/* Slide sequence */}
         <HeroCarousel />
 
         {/* Platform capabilities */}
