@@ -7,6 +7,7 @@ import {
   worstOverconfidentSkill,
   LOW_GRANULARITY_MAX,
   PERSISTENT_GAP_MIN,
+  QUARANTINE_REENGAGE_MIN,
   SEVERE_GLOBAL_GAP,
   POLICY_EPS,
   type AgentObservation,
@@ -175,6 +176,28 @@ describe("interventionPolicy — each priority branch", () => {
     expect(interventionPolicy(baseObservation()).intervention).toBe(
       "schedule_reengagement",
     );
+  });
+});
+
+describe("interventionPolicy — P15 quarantine (honesty architecture)", () => {
+  it("a quarantined session never acts on the gap — re-engages, never flags", () => {
+    const o = baseObservation();
+    // A severe gap that would normally flag_to_teacher...
+    o.calibration = calibration({ globalGap: -SEVERE_GLOBAL_GAP });
+    o.priorGapCount = PERSISTENT_GAP_MIN;
+    // ...but this session is bad data.
+    o.sessionQuarantined = true;
+    const decision = interventionPolicy(o);
+    expect(decision.intervention).toBe("schedule_reengagement");
+  });
+
+  it("repeated quarantine reads as disengagement (re-engage), never a teacher flag", () => {
+    const o = baseObservation();
+    o.calibration = calibration({ globalGap: -SEVERE_GLOBAL_GAP });
+    o.priorGapCount = PERSISTENT_GAP_MIN;
+    o.sessionQuarantined = false;
+    o.quarantineCount = QUARANTINE_REENGAGE_MIN;
+    expect(interventionPolicy(o).intervention).toBe("schedule_reengagement");
   });
 });
 

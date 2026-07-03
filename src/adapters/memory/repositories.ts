@@ -11,6 +11,7 @@ import type { FlagAcknowledgement } from "@/domain/flag";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "@/domain/emotion";
+import type { ResponseQuality } from "@/domain/responseQuality";
 import type {
   AffectRepository,
   ActionVerificationRepository,
@@ -24,6 +25,7 @@ import type {
   OutcomeRepository,
   PredictionRepository,
   ReflectionRepository,
+  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 
@@ -159,6 +161,21 @@ export function createCalibrationRepository(): CalibrationRepository {
     },
     async listByStudent(studentId) {
       return store.values().filter((c) => c.studentId === studentId);
+    },
+  };
+}
+
+export function createResponseQualityRepository(): ResponseQualityRepository {
+  const store = new MemoryStore<ResponseQuality>();
+  return {
+    async save(quality) {
+      store.set(quality.sessionId, quality);
+    },
+    async findBySession(sessionId) {
+      return store.get(sessionId);
+    },
+    async listByStudent(studentId) {
+      return store.values().filter((q) => q.studentId === studentId);
     },
   };
 }

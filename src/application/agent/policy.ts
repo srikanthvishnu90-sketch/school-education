@@ -30,6 +30,8 @@ export const PERSISTENT_GAP_MIN = 2;
 export const SEVERE_GLOBAL_GAP = 0.9;
 /** How many regressed verifications on a skill before the policy changes tack. */
 export const REPEATED_REGRESSION_MIN = 2;
+/** Quarantined sessions before repeated quarantine reads as disengagement. */
+export const QUARANTINE_REENGAGE_MIN = 2;
 
 /** The overconfident skill with the largest positive bias, or null if none. */
 export function worstOverconfidentSkill(
@@ -65,6 +67,21 @@ export function widestGapSkill(
 export function interventionPolicy(
   observation: AgentObservation,
 ): AgentDecision {
+  // 0. Low-quality (quarantined) session — NO intervention fires on garbage data
+  //    (docs/honesty-and-data-integrity.md). A quarantined session's gap is not
+  //    real, and repeated quarantine is DISENGAGEMENT, never grounds for a teacher
+  //    flag. Either way, the only move is a quiet re-engagement about the work.
+  if (
+    observation.sessionQuarantined === true ||
+    (observation.quarantineCount ?? 0) >= QUARANTINE_REENGAGE_MIN
+  ) {
+    return {
+      intervention: "schedule_reengagement",
+      rationale:
+        "session quarantined for low response quality; do not act on the gap — re-engage quietly about the work (never a teacher flag)",
+    };
+  }
+
   // 1. Non-productive reflection — must be re-decomposed to a controllable cause.
   if (
     observation.reflection !== null &&

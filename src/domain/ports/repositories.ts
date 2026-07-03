@@ -11,6 +11,7 @@ import type { FlagAcknowledgement } from "../flag";
 import type { TransferProbe } from "../transferProbe";
 import type { LearningMap } from "../learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "../emotion";
+import type { ResponseQuality } from "../responseQuality";
 
 /**
  * Repository ports — the ONLY way the application reaches persistence
@@ -106,6 +107,17 @@ export interface FlagAcknowledgementRepository {
   save(ack: FlagAcknowledgement): Promise<void>;
   find(flagId: Id): Promise<FlagAcknowledgement | null>;
   list(): Promise<FlagAcknowledgement[]>;
+}
+
+/**
+ * Response-quality records (honesty architecture). One per capture session, keyed
+ * by session id. Written at capture, read only by the exclusion + agent paths —
+ * never by any student/teacher surface.
+ */
+export interface ResponseQualityRepository {
+  save(quality: ResponseQuality): Promise<void>;
+  findBySession(sessionId: Id): Promise<ResponseQuality | null>;
+  listByStudent(studentId: Id): Promise<ResponseQuality[]>;
 }
 
 export interface EmotionVocabularyRepository {

@@ -15,6 +15,7 @@ import type {
   OutcomeRepository,
   PredictionRepository,
   ReflectionRepository,
+  ResponseQualityRepository,
 } from "@/domain/ports";
 import { flagIdFor, type Id } from "@/domain";
 import { NotFoundError } from "../errors";
@@ -41,6 +42,8 @@ export interface ObserverDeps {
   verifications?: ActionVerificationRepository;
   /** P13 teacher flag acknowledgements — optional so pre-P13 wirings still observe. */
   flagAcks?: FlagAcknowledgementRepository;
+  /** P15 response-quality quarantine — optional so pre-P15 wirings still observe. */
+  responseQuality?: ResponseQualityRepository;
 }
 
 export interface Observer {
@@ -125,6 +128,19 @@ export function createObserver(deps: ObserverDeps): Observer {
         deps.flagAcks !== undefined &&
         (await deps.flagAcks.find(flagIdFor(studentId))) !== null;
 
+      // P15: this session's quarantine, and how often this student has been
+      // quarantined. Keyed by prediction id (the capture session id).
+      let sessionQuarantined = false;
+      let quarantineCount = 0;
+      if (deps.responseQuality !== undefined) {
+        sessionQuarantined =
+          (await deps.responseQuality.findBySession(prediction.id))
+            ?.quarantined === true;
+        quarantineCount = (
+          await deps.responseQuality.listByStudent(studentId)
+        ).filter((q) => q.quarantined).length;
+      }
+
       return {
         assessmentId,
         studentId,
@@ -138,6 +154,8 @@ export function createObserver(deps: ObserverDeps): Observer {
         priorGapCount,
         verificationEscalations,
         teacherFlagAcknowledged,
+        sessionQuarantined,
+        quarantineCount,
       };
     },
   };

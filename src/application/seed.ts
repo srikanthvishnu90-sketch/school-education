@@ -21,6 +21,7 @@ import {
   createOutcomeRepository,
   createPredictionRepository,
   createReflectionRepository,
+  createResponseQualityRepository,
   createSequentialClock,
   createSequentialIdGenerator,
   createTransferProbeRepository,
@@ -40,6 +41,7 @@ import type {
   OutcomeRepository,
   PredictionRepository,
   ReflectionRepository,
+  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 import { createConsentService, type ConsentService } from "./consent";
@@ -98,7 +100,9 @@ export const SEED_STUDENTS: SeedStudent[] = [
     targetScore: 0.7,
     whyItMatters: "I want to place into honors next year.",
     successCriteriaRef: "exemplar:two-step-linear-worked",
-    confidences: [0.9, 0.9, 0.9, 0.9],
+    // Uniformly high but not flat — a genuine overconfident student, not a
+    // straight-liner (P15: perfectly identical confidences would quarantine).
+    confidences: [0.9, 0.95, 0.9, 0.85],
     globalPredicted: 0.8,
     corrects: [true, false, false, false],
     labels: [{ term: "good", valence: 0.6, arousal: 0.5 }],
@@ -110,7 +114,8 @@ export const SEED_STUDENTS: SeedStudent[] = [
     targetScore: 0.6,
     whyItMatters: "I want to stop freezing on tests.",
     successCriteriaRef: "exemplar:slope-from-table-worked",
-    confidences: [0.3, 0.3, 0.3, 0.3],
+    // Uniformly low but not flat — genuinely underconfident, not a straight-liner.
+    confidences: [0.3, 0.25, 0.35, 0.3],
     globalPredicted: 0.4,
     corrects: [true, true, true, true],
     labels: [
@@ -240,6 +245,7 @@ export interface Repos {
   verifications: ActionVerificationRepository;
   consent: ConsentRepository;
   flagAcks: FlagAcknowledgementRepository;
+  responseQuality: ResponseQualityRepository;
 }
 
 export interface SeededWorld {
@@ -286,6 +292,7 @@ export function buildWorldCore(): WorldCore {
     verifications: createActionVerificationRepository(),
     consent: createConsentRepository(),
     flagAcks: createFlagAcknowledgementRepository(),
+    responseQuality: createResponseQualityRepository(),
   };
 
   const clock = createSequentialClock(START_EPOCH);
@@ -302,6 +309,7 @@ export function buildWorldCore(): WorldCore {
     transferProbes: repos.transferProbes,
     affects: repos.affects,
     consent: repos.consent,
+    responseQuality: repos.responseQuality,
   });
 
   const consentService = createConsentService({
@@ -332,6 +340,7 @@ export function buildWorldCore(): WorldCore {
       calibrations: repos.calibrations,
       verifications: repos.verifications,
       flagAcks: repos.flagAcks,
+      responseQuality: repos.responseQuality,
     }),
     policy: interventionPolicy,
     services,

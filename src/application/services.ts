@@ -10,6 +10,7 @@ import {
   createPrediction,
   createReflection,
   createTransferProbe,
+  assessResponseQuality,
   granularity,
   hasScope,
   isProductiveAttribution,
@@ -39,6 +40,7 @@ import type {
   OutcomeRepository,
   PredictionRepository,
   ReflectionRepository,
+  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 import {
@@ -77,6 +79,12 @@ export interface ServiceDeps {
    * unless the affect scope is granted. Omitting it preserves pre-P12 behavior.
    */
   consent?: ConsentRepository;
+  /**
+   * Response-quality quarantine (P15, honesty architecture). When provided, a
+   * capture session is assessed for low-quality signals and recorded. Omitting it
+   * preserves pre-P15 behavior; the quarantine never confronts or blocks capture.
+   */
+  responseQuality?: ResponseQualityRepository;
 }
 
 export interface CaptureGoalInput {
@@ -92,6 +100,11 @@ export interface CapturePredictionInput {
   assessmentId: Id;
   itemPredictions: ItemPrediction[];
   globalPredicted: number;
+  /**
+   * Per-screen response times in ms, in screen order (P15 quality signal). The
+   * surface may supply these; absent, the latency signal simply doesn't fire.
+   */
+  screenLatenciesMs?: number[];
 }
 
 export interface RecordOutcomeInput {
@@ -200,6 +213,21 @@ export function createServices(deps: ServiceDeps): Services {
       createdAt: clock.now(),
     });
     await deps.predictions.save(prediction);
+
+    // P15: assess and record this session's response quality. A quarantined
+    // session is excluded from metrics downstream; capture is never blocked and
+    // the student is never told (docs/honesty-and-data-integrity.md).
+    if (deps.responseQuality !== undefined) {
+      const quality = assessResponseQuality({
+        sessionId: prediction.id,
+        studentId: input.studentId,
+        at: clock.now(),
+        confidences: input.itemPredictions.map((p) => p.confidence),
+        screenLatenciesMs: input.screenLatenciesMs,
+      });
+      await deps.responseQuality.save(quality);
+    }
+
     return prediction;
   }
 

@@ -55,6 +55,16 @@ export interface AgentObservation {
    * intervention.
    */
   teacherFlagAcknowledged?: boolean;
+  /**
+   * The CURRENT session was quarantined for low quality (P15). Its gap is bad
+   * data; the policy must not act on it — no probe, no flag, only re-engagement.
+   */
+  sessionQuarantined?: boolean;
+  /**
+   * How many of this student's sessions have been quarantined (P15). Repeated
+   * quarantine is a DISENGAGEMENT signal (re-engage), never a disciplinary one.
+   */
+  quarantineCount?: number;
 }
 
 export interface AgentDecision {

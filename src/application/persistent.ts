@@ -1,5 +1,6 @@
 import { createDeterministicLanguageCapability } from "@/adapters/language";
 import {
+  createResponseQualityRepository,
   createSequentialClock,
   createSequentialIdGenerator,
 } from "@/adapters/memory";
@@ -86,6 +87,9 @@ export async function buildPersistentCore(
     verifications: createPgActionVerificationRepository(client, clock),
     consent: createPgConsentRepository(client, clock),
     flagAcks: createPgFlagAcknowledgementRepository(client, clock),
+    // Response-quality quarantine is ephemeral pilot metadata (no PG table yet);
+    // the in-memory adapter is used under both backends.
+    responseQuality: createResponseQualityRepository(),
   };
 
   const services = createServices({
@@ -99,6 +103,7 @@ export async function buildPersistentCore(
     transferProbes: repos.transferProbes,
     affects: repos.affects,
     consent: repos.consent,
+    responseQuality: repos.responseQuality,
   });
 
   const consentService = createConsentService({
@@ -129,6 +134,7 @@ export async function buildPersistentCore(
       calibrations: repos.calibrations,
       verifications: repos.verifications,
       flagAcks: repos.flagAcks,
+      responseQuality: repos.responseQuality,
     }),
     policy: interventionPolicy,
     services,
