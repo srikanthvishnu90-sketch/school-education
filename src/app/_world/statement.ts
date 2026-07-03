@@ -31,14 +31,14 @@ export function calibrationStatement(
   if (Math.abs(input.bias) <= eps) {
     return {
       tone: "aligned",
-      text: `Your confidence and your results lined up on ${input.skillName}.`,
+      text: `Your guess and what happened lined up on ${input.skillName}.`,
     };
   }
-  const direction = input.bias > 0 ? "ran ahead of" : "fell behind";
+  const direction = input.bias > 0 ? "higher than" : "lower than";
   return {
     tone: "gap",
     text:
-      `Your confidence and your results were far apart on ${input.skillName}. ` +
-      `Here, your confidence ${direction} the evidence.`,
+      `Your guess and what happened were far apart on ${input.skillName}. ` +
+      `Your guess was ${direction} what really happened.`,
   };
 }

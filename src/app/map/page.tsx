@@ -99,10 +99,10 @@ export default async function MapPage({
         })}
       </div>
 
-      {/* Trajectory — a single calm line from belief to reality. */}
+      {/* Trajectory — a single calm line from guess to reality. */}
       <div className="mt-10 rounded-card border border-ink-wash bg-white p-6">
         <p className="text-[13px] uppercase tracking-[0.16em] text-secondary">
-          Belief → reality
+          Your guess vs. what really happened
         </p>
         {hasCycle && predicted !== null && achieved !== null ? (
           <>
@@ -112,23 +112,23 @@ export default async function MapPage({
               tone={tone}
             />
             <p className="mt-4 text-[14px] leading-relaxed text-secondary">
-              One cycle so far. The line grows into a trajectory as you go — a
-              trend is worth more than any single point.
+              Just one time so far. The line grows as you do more. One time
+              doesn&rsquo;t say much — the pattern does.
             </p>
             {namedFeeling && (
               <p className="mt-2 text-[13px] text-secondary">
-                You also named how it felt.
+                You also said how it felt.
               </p>
             )}
           </>
         ) : (
           <p className="mt-3 text-[15px] text-secondary">
-            No cycle yet.{" "}
+            Nothing here yet.{" "}
             <Link
               href={`/predict/${world.assessment.id}?student=${encodeURIComponent(studentId)}`}
               className="text-ink-tint underline-offset-4 hover:underline"
             >
-              Predict this assessment
+              Make a guess
             </Link>{" "}
             to draw your first line.
           </p>
@@ -158,16 +158,16 @@ function BeliefRealityLine({
       viewBox={`0 0 ${w} ${h}`}
       className="mt-4 w-full"
       role="img"
-      aria-label={`You predicted ${Math.round(predicted * 100)} percent; the result was ${Math.round(achieved * 100)} percent.`}
+      aria-label={`You guessed ${Math.round(predicted * 100)} percent; you really got ${Math.round(achieved * 100)} percent.`}
     >
       <line x1={140} y1={y(predicted)} x2={380} y2={y(achieved)} stroke={stroke} strokeWidth={2} />
       <circle cx={140} cy={y(predicted)} r={5} fill="#FFFFFF" stroke={stroke} strokeWidth={2} />
       <circle cx={380} cy={y(achieved)} r={5} fill={stroke} />
       <text x={140} y={y(predicted) - 12} textAnchor="middle" className="fill-secondary text-[11px]">
-        You predicted {Math.round(predicted * 100)}%
+        You guessed {Math.round(predicted * 100)}%
       </text>
       <text x={380} y={y(achieved) + 22} textAnchor="middle" className="fill-secondary text-[11px]">
-        Result {Math.round(achieved * 100)}%
+        Real: {Math.round(achieved * 100)}%
       </text>
     </svg>
   );

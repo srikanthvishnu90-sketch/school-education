@@ -13,19 +13,19 @@ import { TapScale, type TapOption } from "@/app/_ui/controls";
  */
 
 const CONFIDENCE: readonly TapOption[] = [
-  { label: "Not confident", value: 0.1 },
-  { label: "A little confident", value: 0.3 },
-  { label: "Somewhat confident", value: 0.5 },
-  { label: "Fairly confident", value: 0.7 },
-  { label: "Very confident", value: 0.9 },
+  { label: "Not sure at all", value: 0.1 },
+  { label: "A little sure", value: 0.3 },
+  { label: "Kind of sure", value: 0.5 },
+  { label: "Pretty sure", value: 0.7 },
+  { label: "Very sure", value: 0.9 },
 ];
 
 const OVERALL: readonly TapOption[] = [
-  { label: "About 1 in 5", value: 0.2 },
-  { label: "About 2 in 5", value: 0.4 },
+  { label: "About 1 out of 5", value: 0.2 },
+  { label: "About 2 out of 5", value: 0.4 },
   { label: "About half", value: 0.5 },
-  { label: "About 3 in 5", value: 0.6 },
-  { label: "4 in 5 or more", value: 0.8 },
+  { label: "About 3 out of 5", value: 0.6 },
+  { label: "4 out of 5 or more", value: 0.8 },
 ];
 
 export interface PredictItem {
@@ -95,7 +95,7 @@ export default function PredictFlow({
     const current = confidences[step];
     return (
       <Stage
-        eyebrow={`Predict · question ${step + 1} of ${items.length}`}
+        eyebrow={`Your guess · question ${step + 1} of ${items.length}`}
         question={item.prompt}
         footer={
           <div className="flex items-center justify-between">
@@ -105,8 +105,8 @@ export default function PredictFlow({
         }
       >
         <p className="mb-5 text-[15px] text-secondary">
-          Before you see the result — how sure are you that you got this one
-          right?
+          You didn&rsquo;t see the answer yet. How sure are you that you got this
+          one right?
         </p>
         <TapScale
           options={CONFIDENCE}
@@ -119,8 +119,8 @@ export default function PredictFlow({
 
   return (
     <Stage
-      eyebrow="Predict · your overall estimate"
-      question="Across all of it, how much do you think you got right?"
+      eyebrow="Your guess · all together"
+      question="All together, how many do you think you got right?"
       footer={
         <div className="flex items-center justify-between">
           {back}
@@ -134,7 +134,7 @@ export default function PredictFlow({
         onChange={chooseOverall}
       />
       {pending && (
-        <p className="mt-6 text-sm text-secondary">Recording your prediction…</p>
+        <p className="mt-6 text-sm text-secondary">Saving your guess…</p>
       )}
     </Stage>
   );

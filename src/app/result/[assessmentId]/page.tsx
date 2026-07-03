@@ -72,26 +72,26 @@ export default async function ResultPage({
 
   return (
     <Stage
-      eyebrow="Where you really are"
-      footer={<Primary href={reflectHref}>Reflect on this</Primary>}
+      eyebrow="What really happened"
+      footer={<Primary href={reflectHref}>Think about it</Primary>}
     >
       {/* Evidence first — the score against the student's own goal. */}
       <div className="rounded-card border border-ink-wash bg-white p-6">
         <p className="text-[13px] uppercase tracking-[0.16em] text-secondary">
-          The evidence
+          What happened
         </p>
         <p className="mt-3 text-3xl font-medium tracking-tight text-ink-black">
-          {correct} of {total} correct
+          You got {correct} out of {total}
         </p>
         {target !== null && (
           <p className="mt-2 text-[15px] text-secondary">
-            Your goal was {Math.round(target * 100)}%. The result is{" "}
+            You hoped for {Math.round(target * 100)}%. You got{" "}
             {Math.round(achieved * 100)}%.
           </p>
         )}
       </div>
 
-      {/* The one calibration statement, in task language. */}
+      {/* The one calibration statement, in plain task language. */}
       {statement !== null && (
         <div className="mt-5 flex gap-4 rounded-card border border-ink-wash bg-white p-6">
           <span
@@ -104,14 +104,14 @@ export default async function ResultPage({
           />
           <div>
             <p className="text-[13px] uppercase tracking-[0.16em] text-secondary">
-              {statement.tone === "gap" ? "A gap to close" : "In alignment"}
+              {statement.tone === "gap" ? "A gap" : "Lined up"}
             </p>
             <p className="mt-2 text-[17px] leading-relaxed text-ink-black">
               {statement.text}
             </p>
             <p className="mt-3 text-[14px] leading-relaxed text-secondary">
-              This is about the work on the page, not about you. Next, you&rsquo;ll
-              name one controllable cause and one thing to try.
+              This is about the work, not about you. Next, you&rsquo;ll say why —
+              in your own words — and pick one small thing to try.
             </p>
           </div>
         </div>

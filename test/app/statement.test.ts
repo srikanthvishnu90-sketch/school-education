@@ -40,16 +40,16 @@ describe("calibrationStatement — task-focused, never self-focused", () => {
     const s = calibrationStatement({ skillName: "interpreting slope", bias: 0.65 });
     expect(s.tone).toBe("gap");
     expect(s.text).toBe(
-      "Your confidence and your results were far apart on interpreting slope. " +
-        "Here, your confidence ran ahead of the evidence.",
+      "Your guess and what happened were far apart on interpreting slope. " +
+        "Your guess was higher than what really happened.",
     );
     assertTaskFocused(s.text);
   });
 
-  it("underconfident: still task-focused, 'fell behind' not a self-judgment", () => {
+  it("underconfident: still task-focused, plain 'lower than' language", () => {
     const s = calibrationStatement({ skillName: "linear equations", bias: -0.6 });
     expect(s.tone).toBe("gap");
-    expect(s.text).toContain("fell behind the evidence");
+    expect(s.text).toContain("lower than what really happened");
     assertTaskFocused(s.text);
   });
 
