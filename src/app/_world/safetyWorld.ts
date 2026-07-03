@@ -3,12 +3,14 @@ import {
   createAesCipher,
   createCrisisEscalationRepository,
   createCrisisSafetyService,
+  createPgCrisisEscalationRepository,
   createRecordingDeliveryChannel,
   createRecordingOperatorChannel,
   createTenantProtocolRepository,
   type CrisisEscalationRepository,
   type CrisisSafetyService,
 } from "@/safety";
+import { createPgClient, runMigrations, applyRls } from "@/adapters/supabase";
 
 /**
  * The process-lifetime crisis safety world (P16). This is one of the TWO sanctioned
@@ -37,7 +39,18 @@ let safetyPromise: Promise<SafetyWorld> | null = null;
 export function getSafetyWorld(): Promise<SafetyWorld> {
   if (safetyPromise === null) {
     safetyPromise = (async () => {
-      const escalations = createCrisisEscalationRepository();
+      // Persistence by default: PG-backed escalations when a database is configured
+      // (so escalations + retry state survive restarts), else in-memory.
+      let escalations: CrisisEscalationRepository;
+      const dbUrl = process.env.DATABASE_URL;
+      if (dbUrl !== undefined && dbUrl.length > 0) {
+        const client = createPgClient(dbUrl);
+        await runMigrations(client);
+        await applyRls(client);
+        escalations = createPgCrisisEscalationRepository(client);
+      } else {
+        escalations = createCrisisEscalationRepository();
+      }
       const protocols = createTenantProtocolRepository();
       await protocols.save({
         tenantId: CRISIS_TENANT,

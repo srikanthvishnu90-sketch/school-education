@@ -36,7 +36,10 @@ create table if not exists safety.crisis_escalations (
   delivered_to jsonb not null default '[]'::jsonb,
   delivered_at timestamptz,
   acknowledged_at timestamptz,
-  undelivered boolean not null default false
+  acknowledged_by text,
+  undelivered boolean not null default false,
+  attempts integer not null default 0,
+  last_attempt_at timestamptz
 );
 grant select on safety.crisis_escalations to authenticated;
 
