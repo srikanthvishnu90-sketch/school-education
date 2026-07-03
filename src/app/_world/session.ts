@@ -2,24 +2,20 @@
 
 import { cookies } from "next/headers";
 import type { Id } from "@/domain";
+import { TEACHER_ID } from "./teacher";
 
 /**
- * The sign-in session — the app's link between a browser and a student identity.
- * There are no passwords in this pre-infra build: signing in picks a seeded
- * student and stores their id in an http-only cookie. Every scoped query and
- * every write derives the student from HERE, server-side — the client never gets
- * to name which student it is (so one student cannot act as another).
+ * The sign-in session — the app's link between a browser and an identity. No
+ * passwords in this pre-infra build: signing in picks a seeded user and stores
+ * their id in an http-only cookie. Role is derived server-side; the client never
+ * gets to name who it is (so one user cannot act as another).
  */
 
 const COOKIE = "plumb_session";
 
-export async function signIn(studentId: Id): Promise<void> {
+export async function signIn(userId: Id): Promise<void> {
   const store = await cookies();
-  store.set(COOKIE, studentId, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-  });
+  store.set(COOKIE, userId, { httpOnly: true, sameSite: "lax", path: "/" });
 }
 
 export async function signOut(): Promise<void> {
@@ -27,8 +23,18 @@ export async function signOut(): Promise<void> {
   store.delete(COOKIE);
 }
 
-/** The signed-in student id, or null when there is no session. */
-export async function getSessionStudent(): Promise<Id | null> {
+export async function getSessionUser(): Promise<{
+  id: Id;
+  role: "student" | "teacher";
+} | null> {
   const store = await cookies();
-  return store.get(COOKIE)?.value ?? null;
+  const id = store.get(COOKIE)?.value ?? null;
+  if (id === null) return null;
+  return { id, role: id === TEACHER_ID ? "teacher" : "student" };
+}
+
+/** The signed-in STUDENT id (null when there is no session, or it's a teacher). */
+export async function getSessionStudent(): Promise<Id | null> {
+  const user = await getSessionUser();
+  return user !== null && user.role === "student" ? user.id : null;
 }

@@ -15,6 +15,7 @@ import {
   createCalibrationRepository,
   createConsentRepository,
   createEmotionVocabularyRepository,
+  createFlagAcknowledgementRepository,
   createGoalRepository,
   createLearningMapRepository,
   createOutcomeRepository,
@@ -32,6 +33,7 @@ import type {
   Clock,
   ConsentRepository,
   EmotionVocabularyRepository,
+  FlagAcknowledgementRepository,
   GoalRepository,
   IdGenerator,
   LearningMapRepository,
@@ -237,6 +239,7 @@ export interface Repos {
   emotionVocab: EmotionVocabularyRepository;
   verifications: ActionVerificationRepository;
   consent: ConsentRepository;
+  flagAcks: FlagAcknowledgementRepository;
 }
 
 export interface SeededWorld {
@@ -282,6 +285,7 @@ export function buildWorldCore(): WorldCore {
     emotionVocab: createEmotionVocabularyRepository(),
     verifications: createActionVerificationRepository(),
     consent: createConsentRepository(),
+    flagAcks: createFlagAcknowledgementRepository(),
   };
 
   const clock = createSequentialClock(START_EPOCH);
@@ -327,6 +331,7 @@ export function buildWorldCore(): WorldCore {
       reflections: repos.reflections,
       calibrations: repos.calibrations,
       verifications: repos.verifications,
+      flagAcks: repos.flagAcks,
     }),
     policy: interventionPolicy,
     services,

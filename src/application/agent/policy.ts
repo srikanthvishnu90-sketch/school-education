@@ -47,6 +47,21 @@ export function worstOverconfidentSkill(
   return worst;
 }
 
+/** The skill with the largest ABSOLUTE bias (over or under), or null. */
+export function widestGapSkill(
+  perSkill: readonly SkillCalibration[],
+): SkillCalibration | null {
+  let worst: SkillCalibration | null = null;
+  for (const skill of perSkill) {
+    if (skill.bias !== null) {
+      if (worst === null || Math.abs(skill.bias) > Math.abs(worst.bias as number)) {
+        worst = skill;
+      }
+    }
+  }
+  return worst;
+}
+
 export function interventionPolicy(
   observation: AgentObservation,
 ): AgentDecision {
@@ -62,7 +77,26 @@ export function interventionPolicy(
     };
   }
 
-  // 2. Academic overconfidence — puncture the fluency illusion with a probe.
+  // 2. Severe or persistent gap — involve the teacher as an ally (support, not
+  //    surveillance), OUTRANKING the automated probe: when the gap is severe or
+  //    has persisted across cycles, a human should see it. Once the teacher
+  //    acknowledges the flag, this yields and the agent resumes its own moves.
+  const severe =
+    observation.calibration.globalGap !== null &&
+    Math.abs(observation.calibration.globalGap) >= SEVERE_GLOBAL_GAP;
+  const persistentOrSevere =
+    observation.priorGapCount >= PERSISTENT_GAP_MIN || severe;
+  if (persistentOrSevere && observation.teacherFlagAcknowledged !== true) {
+    const skill = widestGapSkill(observation.perSkill);
+    return {
+      intervention: "flag_to_teacher",
+      ...(skill !== null ? { targetSkillId: skill.skillId } : {}),
+      rationale:
+        "persistent or severe belief↔reality gap; involve the teacher as an ally (support, not surveillance)",
+    };
+  }
+
+  // 3. Academic overconfidence — puncture the fluency illusion with a probe.
   const worst = worstOverconfidentSkill(observation.perSkill);
   if (worst !== null) {
     // If prior actions on this skill have REPEATEDLY regressed (P7), re-serving
@@ -111,19 +145,7 @@ export function interventionPolicy(
     };
   }
 
-  // 6. Persistent or severe gap — route help through the teacher (as an ally).
-  const severe =
-    observation.calibration.globalGap !== null &&
-    Math.abs(observation.calibration.globalGap) >= SEVERE_GLOBAL_GAP;
-  if (observation.priorGapCount >= PERSISTENT_GAP_MIN || severe) {
-    return {
-      intervention: "flag_to_teacher",
-      rationale:
-        "persistent or severe belief↔reality gap; involve the teacher as an ally (support, not surveillance)",
-    };
-  }
-
-  // 7. Nothing acute — keep the loop warm.
+  // Nothing acute — keep the loop warm.
   return {
     intervention: "schedule_reengagement",
     rationale: "no acute gap; schedule a low-stakes re-engagement",

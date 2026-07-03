@@ -95,12 +95,12 @@ export default function Landing(): ReactElement {
               Try the cycle
             </Link>
           </div>
-          <a
-            href="#access"
+          <Link
+            href="/signin"
             className="rounded-full bg-white px-4 py-1.5 text-[13px] font-medium text-[#050506] transition hover:bg-white/85"
           >
             Get Started
-          </a>
+          </Link>
         </nav>
       </header>
 

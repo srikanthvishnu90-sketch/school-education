@@ -7,6 +7,7 @@ import type { Reflection } from "../reflection";
 import type { CalibrationRecord } from "../calibration";
 import type { ActionVerification } from "../verification";
 import type { ConsentRecord, DeletionReceipt } from "../consent";
+import type { FlagAcknowledgement } from "../flag";
 import type { TransferProbe } from "../transferProbe";
 import type { LearningMap } from "../learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "../emotion";
@@ -98,6 +99,13 @@ export interface ConsentRepository {
   listByStudent(studentId: Id): Promise<ConsentRecord[]>;
   recordDeletion(receipt: DeletionReceipt): Promise<void>;
   listReceipts(studentId: Id): Promise<DeletionReceipt[]>;
+}
+
+/** Teacher acknowledgements of agent flags. One standing flag per student. */
+export interface FlagAcknowledgementRepository {
+  save(ack: FlagAcknowledgement): Promise<void>;
+  find(flagId: Id): Promise<FlagAcknowledgement | null>;
+  list(): Promise<FlagAcknowledgement[]>;
 }
 
 export interface EmotionVocabularyRepository {

@@ -18,6 +18,7 @@ import {
   type ConsentRecord,
   type DeletionReceipt,
   type EmotionVocabulary,
+  type FlagAcknowledgement,
   type LearningGoal,
   type LearningMap,
   type Outcome,
@@ -33,6 +34,7 @@ import type {
   Clock,
   ConsentRepository,
   EmotionVocabularyRepository,
+  FlagAcknowledgementRepository,
   GoalRepository,
   LearningMapRepository,
   OutcomeRepository,
@@ -146,6 +148,9 @@ interface RawConsent extends Omit<ConsentRecord, "grantedAt" | "revokedAt"> {
 }
 interface RawReceipt extends Omit<DeletionReceipt, "deletedAt"> {
   deletedAt: string;
+}
+interface RawAck extends Omit<FlagAcknowledgement, "at"> {
+  at: string;
 }
 
 // --- The adapters -------------------------------------------------------------
@@ -518,6 +523,42 @@ export function createPgConsentRepository(
         [studentId],
       );
       return raws.map((raw) => ({ ...raw, deletedAt: d(raw.deletedAt) }));
+    },
+  };
+}
+
+export function createPgFlagAcknowledgementRepository(
+  client: SqlClient,
+  clock: Clock,
+): FlagAcknowledgementRepository {
+  const revive = (raw: RawAck): FlagAcknowledgement => ({
+    ...raw,
+    at: d(raw.at),
+  });
+  return {
+    async save(ack) {
+      await upsertRow(client, "academic.flag_acknowledgements", {
+        id: ack.flagId,
+        tenant_id: DEFAULT_TENANT_ID,
+        teacher_id: ack.teacherId,
+        data: JSON.stringify(ack),
+        created_at: clock.now(),
+      });
+    },
+    async find(flagId) {
+      const raw = await selectOne<RawAck>(
+        client,
+        "academic.flag_acknowledgements",
+        "id = $1",
+        [flagId],
+      );
+      return raw === null ? null : revive(raw);
+    },
+    async list() {
+      const { rows } = await client.query<{ data: RawAck }>(
+        "select data from academic.flag_acknowledgements order by seq asc",
+      );
+      return rows.map((r) => revive(r.data));
     },
   };
 }

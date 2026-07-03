@@ -53,37 +53,39 @@ suite("RLS policies — forbidden access fails at the database", () => {
     service = createPgClient(DB as string);
     await runMigrations(service);
     await applyRls(service);
-    await service.query(
-      "truncate academic.predictions, academic.reflections, academic.cohort_reports, " +
-        "emotional.affect_snapshots, app.class_enrollments, app.class_teachers restart identity",
-    );
     // Seeded as the service role (superuser bypasses RLS). Two schools; class-1
     // has students A and B; teacher tea-1 teaches class-1; student C is school-2.
+    // Idempotent inserts (no truncate) so this coexists with the contract suite
+    // running in parallel against the same DB — RLS isolates these reads anyway.
     await service.query(
       `insert into academic.predictions (id, tenant_id, student_id, assessment_id, data, created_at) values
         ('pred-A','school-1','stu-A','a1','{}','2026-01-01'),
         ('pred-B','school-1','stu-B','a1','{}','2026-01-01'),
-        ('pred-C','school-2','stu-C','a1','{}','2026-01-01')`,
+        ('pred-C','school-2','stu-C','a1','{}','2026-01-01')
+       on conflict (id) do nothing`,
     );
     await service.query(
       `insert into academic.reflections (id, tenant_id, student_id, assessment_id, data, created_at)
-       values ('ref-A','school-1','stu-A','a1','{}','2026-01-01')`,
+       values ('ref-A','school-1','stu-A','a1','{}','2026-01-01') on conflict (id) do nothing`,
     );
     await service.query(
       `insert into emotional.affect_snapshots (id, tenant_id, student_id, assessment_id, data, created_at)
-       values ('aff-A','school-1','stu-A','a1','{}','2026-01-01')`,
+       values ('aff-A','school-1','stu-A','a1','{}','2026-01-01') on conflict (id) do nothing`,
     );
     await service.query(
       `insert into academic.cohort_reports (id, tenant_id, cohort_id, data, created_at) values
         ('rep-1','school-1','cohort-1','{}','2026-01-01'),
-        ('rep-2','school-2','cohort-2','{}','2026-01-01')`,
+        ('rep-2','school-2','cohort-2','{}','2026-01-01')
+       on conflict (id) do nothing`,
     );
     await service.query(
       `insert into app.class_enrollments (student_id, class_id, tenant_id) values
-        ('stu-A','class-1','school-1'),('stu-B','class-1','school-1'),('stu-C','class-2','school-2')`,
+        ('stu-A','class-1','school-1'),('stu-B','class-1','school-1'),('stu-C','class-2','school-2')
+       on conflict do nothing`,
     );
     await service.query(
-      `insert into app.class_teachers (teacher_id, class_id, tenant_id) values ('tea-1','class-1','school-1')`,
+      `insert into app.class_teachers (teacher_id, class_id, tenant_id) values ('tea-1','class-1','school-1')
+       on conflict do nothing`,
     );
   });
 

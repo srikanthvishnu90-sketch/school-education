@@ -7,6 +7,7 @@ import type { Reflection } from "@/domain/reflection";
 import type { CalibrationRecord } from "@/domain/calibration";
 import type { ActionVerification } from "@/domain/verification";
 import type { ConsentRecord, DeletionReceipt } from "@/domain/consent";
+import type { FlagAcknowledgement } from "@/domain/flag";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "@/domain/emotion";
@@ -17,6 +18,7 @@ import type {
   CalibrationRepository,
   ConsentRepository,
   EmotionVocabularyRepository,
+  FlagAcknowledgementRepository,
   GoalRepository,
   LearningMapRepository,
   OutcomeRepository,
@@ -240,6 +242,21 @@ export function createConsentRepository(): ConsentRepository {
     },
     async listReceipts(studentId) {
       return receipts.values().filter((r) => r.studentId === studentId);
+    },
+  };
+}
+
+export function createFlagAcknowledgementRepository(): FlagAcknowledgementRepository {
+  const store = new MemoryStore<FlagAcknowledgement>();
+  return {
+    async save(ack) {
+      store.set(ack.flagId, ack);
+    },
+    async find(flagId) {
+      return store.get(flagId);
+    },
+    async list() {
+      return store.values();
     },
   };
 }

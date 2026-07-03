@@ -4,6 +4,7 @@ export * from "./consent";
 export * from "./verification";
 export * from "./connector";
 export * from "./efficacy";
+export * from "./teacher";
 export * from "./agent";
 export * from "./seed";
 export * from "./ingest";

@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {
   useCallback,
   useEffect,
@@ -166,12 +167,12 @@ export default function HeroCarousel(): ReactElement {
       {/* Persistent call-to-action, fixed above the sliding frames. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-24 flex justify-center px-6">
         <div className="pointer-events-auto flex items-center gap-3">
-          <a
-            href="#access"
+          <Link
+            href="/signin"
             className="rounded-full bg-white px-6 py-2.5 text-sm font-medium text-[#050506] transition hover:bg-white/85"
           >
             Get Started
-          </a>
+          </Link>
           <a
             href="#platform"
             className="rounded-full border border-white/25 px-6 py-2.5 text-sm font-medium text-white/90 transition hover:border-white/50 hover:bg-white/5"

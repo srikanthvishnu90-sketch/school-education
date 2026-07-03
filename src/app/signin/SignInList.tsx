@@ -6,24 +6,28 @@ import { signIn } from "@/app/_world/session";
 import { Stage } from "@/app/_ui/atoms";
 
 /**
- * Pick-your-name sign-in (no passwords in this pre-infra build). Choosing sets an
- * http-only session cookie server-side, then starts the cycle. From here on the
- * surface knows who you are from the session alone.
+ * Pick-who-you-are sign-in (no passwords in this pre-infra build). Choosing sets
+ * an http-only session cookie server-side, then routes to that role's surface.
  */
+export interface SignInEntry {
+  id: string;
+  name: string;
+  role: string;
+  href: string;
+}
+
 export default function SignInList({
-  students,
-  assessmentId,
+  entries,
 }: {
-  students: { id: string; name: string }[];
-  assessmentId: string;
+  entries: SignInEntry[];
 }): ReactElement {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  function pick(id: string): void {
+  function pick(entry: SignInEntry): void {
     startTransition(async () => {
-      await signIn(id);
-      router.push(`/predict/${assessmentId}`);
+      await signIn(entry.id);
+      router.push(entry.href);
     });
   }
 
@@ -31,15 +35,18 @@ export default function SignInList({
     <Stage eyebrow="Sign in" question="Who are you?">
       <p className="mb-5 text-[15px] text-secondary">Pick your name to start.</p>
       <div className="grid gap-2">
-        {students.map((s) => (
+        {entries.map((entry) => (
           <button
-            key={s.id}
+            key={entry.id}
             type="button"
-            onClick={() => pick(s.id)}
+            onClick={() => pick(entry)}
             disabled={pending}
-            className="w-full rounded-control border border-ink-wash bg-white px-4 py-3 text-left text-[15px] text-ink-black transition-colors hover:border-ink-tint/50 disabled:opacity-50"
+            className="flex w-full items-center justify-between rounded-control border border-ink-wash bg-white px-4 py-3 text-left text-[15px] text-ink-black transition-colors hover:border-ink-tint/50 disabled:opacity-50"
           >
-            {s.name}
+            <span>{entry.name}</span>
+            <span className="text-[12px] uppercase tracking-[0.16em] text-secondary">
+              {entry.role}
+            </span>
           </button>
         ))}
       </div>

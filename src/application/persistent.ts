@@ -11,6 +11,7 @@ import {
   createPgClient,
   createPgConsentRepository,
   createPgEmotionVocabularyRepository,
+  createPgFlagAcknowledgementRepository,
   createPgGoalRepository,
   createPgLearningMapRepository,
   createPgOutcomeRepository,
@@ -84,6 +85,7 @@ export async function buildPersistentCore(
     emotionVocab: createPgEmotionVocabularyRepository(client, clock),
     verifications: createPgActionVerificationRepository(client, clock),
     consent: createPgConsentRepository(client, clock),
+    flagAcks: createPgFlagAcknowledgementRepository(client, clock),
   };
 
   const services = createServices({
@@ -126,6 +128,7 @@ export async function buildPersistentCore(
       reflections: repos.reflections,
       calibrations: repos.calibrations,
       verifications: repos.verifications,
+      flagAcks: repos.flagAcks,
     }),
     policy: interventionPolicy,
     services,

@@ -10,12 +10,13 @@ import type {
   AssessmentRepository,
   CalibrationRepository,
   Clock,
+  FlagAcknowledgementRepository,
   GoalRepository,
   OutcomeRepository,
   PredictionRepository,
   ReflectionRepository,
 } from "@/domain/ports";
-import type { Id } from "@/domain";
+import { flagIdFor, type Id } from "@/domain";
 import { NotFoundError } from "../errors";
 import { repeatedlyRegressedSkills } from "../verification";
 import { POLICY_EPS, REPEATED_REGRESSION_MIN } from "./policy";
@@ -38,6 +39,8 @@ export interface ObserverDeps {
   calibrations: CalibrationRepository;
   /** P7 verification history — optional so pre-P7 wirings still observe. */
   verifications?: ActionVerificationRepository;
+  /** P13 teacher flag acknowledgements — optional so pre-P13 wirings still observe. */
+  flagAcks?: FlagAcknowledgementRepository;
 }
 
 export interface Observer {
@@ -118,6 +121,10 @@ export function createObserver(deps: ObserverDeps): Observer {
             )
           : [];
 
+      const teacherFlagAcknowledged =
+        deps.flagAcks !== undefined &&
+        (await deps.flagAcks.find(flagIdFor(studentId))) !== null;
+
       return {
         assessmentId,
         studentId,
@@ -130,6 +137,7 @@ export function createObserver(deps: ObserverDeps): Observer {
         action,
         priorGapCount,
         verificationEscalations,
+        teacherFlagAcknowledged,
       };
     },
   };

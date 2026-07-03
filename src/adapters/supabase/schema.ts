@@ -153,6 +153,15 @@ create table if not exists academic.deletion_receipts (
   seq bigserial
 );
 
+create table if not exists academic.flag_acknowledgements (
+  id text primary key,
+  tenant_id text not null default 'tenant-default',
+  teacher_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null,
+  seq bigserial
+);
+
 create table if not exists emotional.emotion_vocabularies (
   id text primary key,
   tenant_id text not null default 'tenant-default',
@@ -186,6 +195,7 @@ const ALL_TABLES = [
   "academic.field_maps",
   "academic.consent_records",
   "academic.deletion_receipts",
+  "academic.flag_acknowledgements",
   "emotional.emotion_vocabularies",
   "emotional.affect_snapshots",
 ] as const;

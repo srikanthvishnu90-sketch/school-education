@@ -49,6 +49,12 @@ export interface AgentObservation {
    * same probe. Absent/empty when there is no such history.
    */
   verificationEscalations?: Id[];
+  /**
+   * Whether a teacher has acknowledged the standing flag for this student (P13).
+   * Once acknowledged, the agent stops re-raising the flag and resumes its own
+   * intervention.
+   */
+  teacherFlagAcknowledged?: boolean;
 }
 
 export interface AgentDecision {
