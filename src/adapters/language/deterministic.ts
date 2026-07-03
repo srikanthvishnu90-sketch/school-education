@@ -55,5 +55,16 @@ export function createDeterministicLanguageCapability(): LanguageCapability {
         })
         .map((skill) => skill.id);
     },
+
+    renderQuestion(
+      template: string,
+      slots: Readonly<Record<string, string>>,
+    ): string {
+      // Plain, referentially-transparent slot substitution. An unfilled slot is
+      // left as its literal `{name}` marker rather than guessed at.
+      return template.replace(/\{(\w+)\}/g, (whole, key: string) =>
+        Object.prototype.hasOwnProperty.call(slots, key) ? slots[key] : whole,
+      );
+    },
   };
 }

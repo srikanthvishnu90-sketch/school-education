@@ -19,4 +19,13 @@ export interface LanguageCapability {
   classifyAttribution(note: string): AttributionCategory;
   /** Tag which of the given skills a free-text passage refers to. */
   tagSkills(text: string, skills: readonly SkillRef[]): Id[];
+  /**
+   * Render a reflection question from a fixed template and named slots (e.g. the
+   * exam item's prompt and skill). This is DRAFTING labor: the template and slots
+   * are chosen by deterministic domain code (see `reflectionProbe`); the language
+   * layer only phrases the sentence. It never decides WHICH question to ask. A
+   * rendered question must reduce to plain slot substitution if the model is
+   * unavailable — the closed template is the contract, the phrasing is a nicety.
+   */
+  renderQuestion(template: string, slots: Readonly<Record<string, string>>): string;
 }
