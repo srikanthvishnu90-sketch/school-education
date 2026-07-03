@@ -10,6 +10,7 @@ import {
   type Repos,
   type Services,
 } from "@/application";
+import { buildPersistentCore } from "@/application/persistent";
 import type { Assessment, EmotionVocabulary, Id, LearningMap } from "@/domain";
 import type { Clock } from "@/domain/ports";
 
@@ -48,7 +49,11 @@ export const DEFAULT_STUDENT_ID = "student-avery";
 export const DEMO_ASSESSMENT_ID = ASSESSMENT_ID;
 
 async function build(): Promise<World> {
-  const core = buildWorldCore();
+  // Selectable backend: Postgres (Supabase) when configured, else in-memory.
+  const core =
+    process.env.WORLD_BACKEND === "postgres"
+      ? await buildPersistentCore({ connectionString: process.env.DATABASE_URL })
+      : buildWorldCore();
   const assessment = buildAssessment();
   const learningMap = buildLearningMap();
   const vocabulary = buildEmotionVocabulary();
