@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useState, useTransition, type ReactElement } from "react";
-import { recordAffect, recordReflection } from "@/app/_world/actions";
+import {
+  recordAffect,
+  recordAffectSkip,
+  recordReflection,
+} from "@/app/_world/actions";
 import { screenReflectionText } from "@/app/_world/safetyActions";
 import { assessDepth } from "@/app/_world/depth";
 import { Dots, Primary, QuietLink, Stage } from "@/app/_ui/atoms";
@@ -146,7 +150,12 @@ export default function ReflectFlow({
         <div className="mt-8 flex gap-3">
           <button
             type="button"
-            onClick={() => setStep("probes")}
+            onClick={() =>
+              startTransition(async () => {
+                await recordAffectSkip(assessmentId);
+                setStep("probes");
+              })
+            }
             className="flex-1 rounded-control border border-ink-wash bg-white px-5 py-2.5 text-sm font-medium text-ink-black transition-colors hover:border-ink-tint/50"
           >
             Skip this

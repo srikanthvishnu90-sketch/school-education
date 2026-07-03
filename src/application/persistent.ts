@@ -1,5 +1,7 @@
 import { createDeterministicLanguageCapability } from "@/adapters/language";
 import {
+  createPilotEventRepository,
+  createPseudonymRepository,
   createResponseQualityRepository,
   createSequentialClock,
   createSequentialIdGenerator,
@@ -42,6 +44,7 @@ import {
   type WorldCore,
 } from "./seed";
 import { createConsentService } from "./consent";
+import { createPilotTelemetry } from "./pilot";
 import { createServices } from "./services";
 import { createVerificationService } from "./verification";
 
@@ -87,9 +90,10 @@ export async function buildPersistentCore(
     verifications: createPgActionVerificationRepository(client, clock),
     consent: createPgConsentRepository(client, clock),
     flagAcks: createPgFlagAcknowledgementRepository(client, clock),
-    // Response-quality quarantine is ephemeral pilot metadata (no PG table yet);
-    // the in-memory adapter is used under both backends.
+    // Response-quality + pilot events are ephemeral pilot metadata (no PG table
+    // yet); the in-memory adapters are used under both backends.
     responseQuality: createResponseQualityRepository(),
+    pilotEvents: createPilotEventRepository(),
   };
 
   const services = createServices({
@@ -143,6 +147,14 @@ export async function buildPersistentCore(
     clock,
   });
 
+  const telemetry = createPilotTelemetry({
+    clock,
+    consent: repos.consent,
+    pseudonyms: createPseudonymRepository(),
+    events: repos.pilotEvents,
+    responseQuality: repos.responseQuality,
+  });
+
   return {
     repos,
     clock,
@@ -151,6 +163,7 @@ export async function buildPersistentCore(
     verification,
     consentService,
     agent,
+    telemetry,
     client,
   };
 }

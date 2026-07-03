@@ -1,8 +1,29 @@
 "use server";
 
-import type { AttributionCategory, EmotionLabel, Id } from "@/domain";
+import type { AttributionCategory, EmotionLabel, Id, PilotEventType } from "@/domain";
 import { getSessionStudent } from "./session";
-import { assessmentById, getWorld } from "./world";
+import { assessmentById, cycleNumberOf, getWorld, type World } from "./world";
+
+const DEFAULT_TENANT = "school-1";
+
+/**
+ * Emit one pilot telemetry event (P17). Mechanics only, consent-gated and
+ * pseudonymized inside the recorder — a no-op without the telemetry scope. Never
+ * carries free text; failures never break the student flow.
+ */
+async function emit(
+  world: World,
+  studentId: Id,
+  assessmentId: Id,
+  type: PilotEventType,
+): Promise<void> {
+  const cycleN = cycleNumberOf(world, assessmentId) ?? 1;
+  try {
+    await world.telemetry.record({ studentId, tenantId: DEFAULT_TENANT, type, cycleN });
+  } catch {
+    // Telemetry must never interrupt the student's cycle.
+  }
+}
 
 /**
  * Server actions — the ONLY way the student surface reaches the P4 services. The
@@ -37,7 +58,9 @@ export async function recordPrediction(
   if (assessment === null) throw new Error(`unknown assessment ${input.assessmentId}`);
   const items = assessment.items;
 
-  await world.services.capturePrediction({
+  await emit(world, studentId, input.assessmentId, "cycle_started");
+
+  const prediction = await world.services.capturePrediction({
     studentId,
     assessmentId: input.assessmentId,
     itemPredictions: items.map((item, i) => ({
@@ -46,6 +69,20 @@ export async function recordPrediction(
     })),
     globalPredicted: input.globalPredicted,
   });
+  await emit(world, studentId, input.assessmentId, "prediction_completed");
+
+  // The quarantine mechanic (P15→P17) is emitted from the application layer, which
+  // reads ResponseQuality; the student surface never touches it.
+  try {
+    await world.telemetry.noteQuarantine({
+      studentId,
+      tenantId: DEFAULT_TENANT,
+      sessionId: prediction.id,
+      cycleN: cycleNumberOf(world, input.assessmentId) ?? 1,
+    });
+  } catch {
+    // never interrupt the cycle
+  }
 
   const key = world.answerKey[input.assessmentId]?.[studentId] ?? [];
   await world.services.recordOutcome({
@@ -88,6 +125,18 @@ export async function recordAffect(input: RecordAffectInput): Promise<void> {
     labels,
     phase: "post_evidence",
   });
+  await emit(world, studentId, input.assessmentId, "affect_completed");
+}
+
+/**
+ * Records that the OPTIONAL emotional step was SKIPPED (P17 telemetry only). Skip
+ * is a healthy pressure-release valve — tracked, never fought. Nothing about the
+ * feeling is stored; only the mechanic that the step was skipped.
+ */
+export async function recordAffectSkip(assessmentId: Id): Promise<void> {
+  const studentId = await requireStudent();
+  const world = await getWorld();
+  await emit(world, studentId, assessmentId, "affect_skipped");
 }
 
 export interface RecordReflectionInput {
@@ -126,4 +175,8 @@ export async function recordReflection(
     },
     exemplarReviewed: true,
   });
+  // The reflection and its committed action close the cycle (P17 mechanics).
+  await emit(world, studentId, input.assessmentId, "reflection_completed");
+  await emit(world, studentId, input.assessmentId, "action_committed");
+  await emit(world, studentId, input.assessmentId, "cycle_completed");
 }

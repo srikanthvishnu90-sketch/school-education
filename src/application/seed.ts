@@ -20,6 +20,8 @@ import {
   createLearningMapRepository,
   createOutcomeRepository,
   createPredictionRepository,
+  createPilotEventRepository,
+  createPseudonymRepository,
   createReflectionRepository,
   createResponseQualityRepository,
   createSequentialClock,
@@ -39,12 +41,14 @@ import type {
   IdGenerator,
   LearningMapRepository,
   OutcomeRepository,
+  PilotEventRepository,
   PredictionRepository,
   ReflectionRepository,
   ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 import { createConsentService, type ConsentService } from "./consent";
+import { createPilotTelemetry, type PilotTelemetry } from "./pilot";
 import { createServices, type Services } from "./services";
 import {
   createVerificationService,
@@ -293,6 +297,7 @@ export interface Repos {
   consent: ConsentRepository;
   flagAcks: FlagAcknowledgementRepository;
   responseQuality: ResponseQualityRepository;
+  pilotEvents: PilotEventRepository;
 }
 
 export interface SeededWorld {
@@ -317,6 +322,7 @@ export interface WorldCore {
   verification: VerificationService;
   consentService: ConsentService;
   agent: AgentLoop;
+  telemetry: PilotTelemetry;
 }
 
 /**
@@ -340,6 +346,7 @@ export function buildWorldCore(): WorldCore {
     consent: createConsentRepository(),
     flagAcks: createFlagAcknowledgementRepository(),
     responseQuality: createResponseQualityRepository(),
+    pilotEvents: createPilotEventRepository(),
   };
 
   const clock = createSequentialClock(START_EPOCH);
@@ -396,7 +403,25 @@ export function buildWorldCore(): WorldCore {
     clock,
   });
 
-  return { repos, clock, ids, services, verification, consentService, agent };
+  // Pilot telemetry recorder — consent-gated, pseudonymizing (P17).
+  const telemetry = createPilotTelemetry({
+    clock,
+    consent: repos.consent,
+    pseudonyms: createPseudonymRepository(),
+    events: repos.pilotEvents,
+    responseQuality: repos.responseQuality,
+  });
+
+  return {
+    repos,
+    clock,
+    ids,
+    services,
+    verification,
+    consentService,
+    agent,
+    telemetry,
+  };
 }
 
 export async function buildSeededWorld(): Promise<SeededWorld> {

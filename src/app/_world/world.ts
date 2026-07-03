@@ -9,6 +9,7 @@ import {
   buildLearningMap,
   buildSecondAssessment,
   buildWorldCore,
+  type PilotTelemetry,
   type Repos,
   type Services,
 } from "@/application";
@@ -31,6 +32,8 @@ export interface World {
   services: Services;
   repos: Repos;
   clock: Clock;
+  /** Consent-gated, pseudonymizing pilot telemetry recorder (P17). */
+  telemetry: PilotTelemetry;
   /** The primary (cycle-1) assessment; kept for back-compat. */
   assessment: Assessment;
   /** Every assessment, in cycle order — index + 1 is the cycle number. */
@@ -102,6 +105,7 @@ async function build(): Promise<World> {
     services: core.services,
     repos: core.repos,
     clock: core.clock,
+    telemetry: core.telemetry,
     assessment,
     assessments: [assessment, secondAssessment],
     vocabulary,
