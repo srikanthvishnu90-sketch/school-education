@@ -5,6 +5,7 @@ import {
   getTeacherWorld,
   studentDisplayName,
 } from "@/app/_world/teacher";
+import { COUNSELOR_ID, COUNSELOR_NAME } from "@/app/_world/roles";
 import SignInList from "./SignInList";
 
 export default async function SignInPage(): Promise<ReactElement> {
@@ -23,6 +24,12 @@ export default async function SignInPage(): Promise<ReactElement> {
       name: TEACHER_NAME,
       role: "Teacher",
       href: `/class/${teacher.classId}`,
+    },
+    {
+      id: COUNSELOR_ID,
+      name: COUNSELOR_NAME,
+      role: "Counselor",
+      href: "/escalations",
     },
   ];
 

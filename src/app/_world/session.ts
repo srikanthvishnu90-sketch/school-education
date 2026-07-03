@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import type { Id } from "@/domain";
 import { TEACHER_ID } from "./teacher";
+import { COUNSELOR_ID } from "./roles";
 
 /**
  * The sign-in session — the app's link between a browser and an identity. No
@@ -25,12 +26,14 @@ export async function signOut(): Promise<void> {
 
 export async function getSessionUser(): Promise<{
   id: Id;
-  role: "student" | "teacher";
+  role: "student" | "teacher" | "counselor";
 } | null> {
   const store = await cookies();
   const id = store.get(COOKIE)?.value ?? null;
   if (id === null) return null;
-  return { id, role: id === TEACHER_ID ? "teacher" : "student" };
+  const role =
+    id === TEACHER_ID ? "teacher" : id === COUNSELOR_ID ? "counselor" : "student";
+  return { id, role };
 }
 
 /** The signed-in STUDENT id (null when there is no session, or it's a teacher). */
