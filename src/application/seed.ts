@@ -94,9 +94,9 @@ export interface SeedStudent {
   successCriteriaRef: string;
   confidences: [number, number, number, number];
   globalPredicted: number;
+  /** The archetype's cycle-1 correctness, for the SEEDED snapshot demos only.
+   * (Live students are graded from their real answers; there is no live key.) */
   corrects: [boolean, boolean, boolean, boolean];
-  /** The cycle-2 answer key (the return cycle), revealed after a live prediction. */
-  corrects2: [boolean, boolean, boolean, boolean];
   labels: EmotionLabel[];
 }
 
@@ -114,7 +114,6 @@ export const SEED_STUDENTS: SeedStudent[] = [
     confidences: [0.9, 0.95, 0.9, 0.85],
     globalPredicted: 0.8,
     corrects: [true, false, false, false],
-    corrects2: [true, true, false, false], // cycle 2: 2/4 — honestly improving
     labels: [{ term: "good", valence: 0.6, arousal: 0.5 }],
   },
   {
@@ -128,7 +127,6 @@ export const SEED_STUDENTS: SeedStudent[] = [
     confidences: [0.3, 0.25, 0.35, 0.3],
     globalPredicted: 0.4,
     corrects: [true, true, true, true],
-    corrects2: [true, true, true, true], // cycle 2: still strong
     labels: [
       { term: "anxious", valence: -0.6, arousal: 0.8 },
       { term: "drained", valence: -0.4, arousal: 0.3 },
@@ -144,7 +142,6 @@ export const SEED_STUDENTS: SeedStudent[] = [
     confidences: [0.8, 0.8, 0.7, 0.7],
     globalPredicted: 0.75,
     corrects: [true, true, true, false],
-    corrects2: [true, true, true, false], // cycle 2: consistent
     labels: [
       { term: "content", valence: 0.3, arousal: 0.3 },
       { term: "focused", valence: 0.1, arousal: 0.6 },
