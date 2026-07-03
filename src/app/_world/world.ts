@@ -16,6 +16,7 @@ import {
 import { buildPersistentCore } from "@/application/persistent";
 import type { Assessment, EmotionVocabulary, Id, LearningMap } from "@/domain";
 import type { Clock } from "@/domain/ports";
+import { createImportedGradeStore, type ImportedGradeStore } from "./importedGrades";
 
 /**
  * The single in-memory world the student surface is wired to. There is no
@@ -34,6 +35,8 @@ export interface World {
   clock: Clock;
   /** Consent-gated, pseudonymizing pilot telemetry recorder (P17). */
   telemetry: PilotTelemetry;
+  /** Gradebook grades imported via /ingest, surfaced to the student (p7). */
+  importedGrades: ImportedGradeStore;
   /** The primary (cycle-1) assessment; kept for back-compat. */
   assessment: Assessment;
   /** Every assessment, in cycle order — index + 1 is the cycle number. */
@@ -112,6 +115,7 @@ async function build(): Promise<World> {
     repos: core.repos,
     clock: core.clock,
     telemetry: core.telemetry,
+    importedGrades: createImportedGradeStore(),
     assessment,
     assessments: [assessment, secondAssessment],
     vocabulary,

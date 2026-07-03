@@ -61,6 +61,12 @@ export default async function MapPage(): Promise<ReactElement> {
       (a) => a.phase === "post_evidence",
     );
 
+  // Teacher-recorded grades imported from the gradebook (p7) — a separate record,
+  // never folded into the belief↔reality trajectory.
+  const importedGrades = world.importedGrades
+    .listByStudent(studentId)
+    .filter((g) => g.totalScore !== undefined && g.totalMax !== undefined);
+
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-16">
       <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
@@ -136,6 +142,34 @@ export default async function MapPage(): Promise<ReactElement> {
           </p>
         )}
       </div>
+
+      {/* What your teacher recorded — imported grades, kept separate from the
+          self-prediction trajectory. */}
+      {importedGrades.length > 0 && (
+        <div className="mt-5 rounded-card border border-ink-wash bg-white p-6">
+          <p className="text-[13px] uppercase tracking-[0.16em] text-secondary">
+            What your teacher recorded
+          </p>
+          <ul className="mt-3 space-y-2">
+            {importedGrades.map((g) => (
+              <li
+                key={g.assessmentRef}
+                className="flex items-baseline justify-between text-[15px]"
+              >
+                <span className="text-ink-black">
+                  {g.assessmentTitle ?? g.assessmentRef}
+                </span>
+                <span className="tabular-nums text-secondary">
+                  {g.totalScore} out of {g.totalMax}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-[13px] leading-relaxed text-secondary">
+            This is your teacher&rsquo;s record, separate from your own guesses.
+          </p>
+        </div>
+      )}
 
       {/* The return invitation — the behavior the pilot measures. */}
       {nextUnstarted !== null && points.length > 0 && (

@@ -6,6 +6,7 @@ import {
   parseOneRosterBundle,
 } from "@/adapters/provider";
 import { getSessionUser } from "./session";
+import { getWorld } from "./world";
 
 /**
  * The operator ingestion action — the ONLY way a gradebook export enters the
@@ -56,6 +57,11 @@ export async function ingestOneRoster(
     // The OneRoster preset is a CONFIRMED map (the operator chose this format);
     // an unconfirmed map would refuse here (P8), re-asserted by the provider path.
     const report = buildCsvIngestionReport(rows, oneRosterFieldMap("confirmed"));
+
+    // Persist accepted grades so the student can see their own record (p7).
+    const world = await getWorld();
+    world.importedGrades.add(report.accepted);
+
     return {
       ok: true,
       totalRows: report.totalRows,
