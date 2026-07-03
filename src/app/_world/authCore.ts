@@ -87,25 +87,81 @@ export interface EmailSender {
   send(to: string, link: string): Promise<void>;
 }
 
-/**
- * The default dev sender: it logs the link (no SMTP required) so the flow is
- * usable locally. Production swaps in a real sender via `setEmailSender`.
- */
-let sender: EmailSender = {
+/** The dev sender: logs the link (no key/SMTP), so the flow works locally. */
+const devSender: EmailSender = {
   async send(to, link) {
     console.log(`[magic-link] ${to} -> ${link}`);
   },
 };
 
+/**
+ * The real sender (Resend HTTP API), used automatically when RESEND_API_KEY and
+ * EMAIL_FROM are set — no code change needed once the key is provided. The link is
+ * made absolute against APP_URL so it works from an email client.
+ */
+export function createResendSender(
+  apiKey: string,
+  from: string,
+  fetchImpl: typeof fetch = fetch,
+): EmailSender {
+  return {
+    async send(to, link) {
+      const appUrl = process.env.APP_URL;
+      const href =
+        appUrl !== undefined && appUrl.length > 0
+          ? new URL(link, appUrl).toString()
+          : link;
+      const res = await fetchImpl("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${apiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          from,
+          to,
+          subject: "Your plumb sign-in link",
+          html:
+            `<p>Click to sign in to plumb:</p>` +
+            `<p><a href="${href}">${href}</a></p>` +
+            `<p>This link works once and expires in 15 minutes. If you didn't ask to sign in, you can ignore this.</p>`,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`email send failed: ${res.status}`);
+      }
+    },
+  };
+}
+
+let override: EmailSender | null = null;
+
+/** Override the sender (tests). */
 export function setEmailSender(next: EmailSender): void {
-  sender = next;
+  override = next;
 }
 
+/**
+ * The active sender: an explicit override, else Resend when configured, else the
+ * dev logger. Selected per call so setting the env at runtime takes effect.
+ */
 export function getEmailSender(): EmailSender {
-  return sender;
+  if (override !== null) return override;
+  const key = process.env.RESEND_API_KEY;
+  const from = process.env.EMAIL_FROM;
+  if (key !== undefined && key.length > 0 && from !== undefined && from.length > 0) {
+    return createResendSender(key, from);
+  }
+  return devSender;
 }
 
-/** True in non-production, where the link may be surfaced on-screen for the demo. */
+/**
+ * True when the link may be surfaced on-screen for the demo — only when no real
+ * email transport is configured (so a real deployment never leaks the link).
+ */
 export function devLinksVisible(): boolean {
-  return process.env.NODE_ENV !== "production";
+  const hasRealSender =
+    (process.env.RESEND_API_KEY ?? "").length > 0 &&
+    (process.env.EMAIL_FROM ?? "").length > 0;
+  return !hasRealSender && process.env.NODE_ENV !== "production";
 }
