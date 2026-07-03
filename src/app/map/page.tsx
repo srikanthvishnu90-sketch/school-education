@@ -63,9 +63,9 @@ export default async function MapPage(): Promise<ReactElement> {
 
   // Teacher-recorded grades imported from the gradebook (p7) — a separate record,
   // never folded into the belief↔reality trajectory.
-  const importedGrades = world.importedGrades
-    .listByStudent(studentId)
-    .filter((g) => g.totalScore !== undefined && g.totalMax !== undefined);
+  const importedGrades = (await world.importedGrades.listByStudent(studentId)).filter(
+    (g) => g.totalScore !== undefined && g.totalMax !== undefined,
+  );
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-16">

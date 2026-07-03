@@ -71,6 +71,10 @@ suite("RLS policies — forbidden access fails at the database", () => {
        values ('ref-A','school-1','stu-A','a1','{}','2026-01-01') on conflict (id) do nothing`,
     );
     await service.query(
+      `insert into academic.imported_grades (student_id, assessment_ref, tenant_id, data, created_at)
+       values ('stu-A','ig-1','school-1','{}','2026-01-01') on conflict do nothing`,
+    );
+    await service.query(
       `insert into emotional.affect_snapshots (id, tenant_id, student_id, assessment_id, data, created_at)
        values ('aff-A','school-1','stu-A','a1','{}','2026-01-01') on conflict (id) do nothing`,
     );
@@ -175,6 +179,20 @@ suite("RLS policies — forbidden access fails at the database", () => {
       await idsAs(AS.counselor, "select id from emotional.affect_snapshots"),
     ).toEqual([]);
     expect(await idsAs(AS.counselor, "select id from academic.cohort_reports")).toEqual([]);
+  });
+
+  it("a student reads only their OWN imported grades; teacher/admin/other cannot", async () => {
+    expect(
+      await idsAs(
+        AS.studentA,
+        "select assessment_ref as id from academic.imported_grades",
+      ),
+    ).toEqual(["ig-1"]);
+    for (const who of [AS.teacher, AS.admin, AS.studentC]) {
+      expect(
+        await idsAs(who, "select assessment_ref as id from academic.imported_grades"),
+      ).toEqual([]);
+    }
   });
 
   it("teacher, admin, and student CANNOT read crisis escalations", async () => {

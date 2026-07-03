@@ -128,11 +128,13 @@ function tablePolicies(): string {
     "academic.calibration_records",
     "academic.action_verifications",
   ];
-  // Per-student tables NO teacher/admin may ever read (free text + affect).
+  // Per-student tables NO teacher/admin may ever read (free text, affect, and the
+  // student's own imported-grade record).
   const studentOnly = [
     "academic.reflections",
     "academic.consent_records",
     "academic.deletion_receipts",
+    "academic.imported_grades",
     "emotional.affect_snapshots",
   ];
   // Shared, tenant-scoped reference data every member may read.

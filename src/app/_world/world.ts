@@ -16,7 +16,12 @@ import {
 import { buildPersistentCore } from "@/application/persistent";
 import type { Assessment, EmotionVocabulary, Id, LearningMap } from "@/domain";
 import type { Clock } from "@/domain/ports";
-import { createImportedGradeStore, type ImportedGradeStore } from "./importedGrades";
+import type { SqlClient } from "@/adapters/supabase";
+import {
+  createImportedGradeStore,
+  createPgImportedGradeStore,
+  type ImportedGradeStore,
+} from "./importedGrades";
 
 /**
  * The single in-memory world the student surface is wired to. There is no
@@ -69,6 +74,14 @@ async function build(): Promise<World> {
   const core = usePostgres
     ? await buildPersistentCore({ connectionString: process.env.DATABASE_URL })
     : buildWorldCore();
+  // Under Postgres the persistent core exposes its client; use it so imported
+  // grades persist too. In-memory otherwise.
+  const pgClient: SqlClient | null =
+    "client" in core ? (core as { client: SqlClient }).client : null;
+  const importedGrades =
+    pgClient !== null
+      ? createPgImportedGradeStore(pgClient, core.clock)
+      : createImportedGradeStore();
   const assessment = buildAssessment();
   const secondAssessment = buildSecondAssessment();
   const learningMap = buildLearningMap();
@@ -108,7 +121,7 @@ async function build(): Promise<World> {
     repos: core.repos,
     clock: core.clock,
     telemetry: core.telemetry,
-    importedGrades: createImportedGradeStore(),
+    importedGrades,
     assessment,
     assessments: [assessment, secondAssessment],
     vocabulary,

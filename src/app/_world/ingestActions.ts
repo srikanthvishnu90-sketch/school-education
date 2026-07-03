@@ -60,7 +60,7 @@ export async function ingestOneRoster(
 
     // Persist accepted grades so the student can see their own record (p7).
     const world = await getWorld();
-    world.importedGrades.add(report.accepted);
+    await world.importedGrades.add(report.accepted);
 
     return {
       ok: true,

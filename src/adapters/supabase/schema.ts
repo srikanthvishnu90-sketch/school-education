@@ -160,6 +160,15 @@ create table if not exists academic.field_maps (
   created_at timestamptz not null
 );
 
+create table if not exists academic.imported_grades (
+  student_id text not null,
+  assessment_ref text not null,
+  tenant_id text not null default 'tenant-default',
+  data jsonb not null,
+  created_at timestamptz not null,
+  primary key (student_id, assessment_ref)
+);
+
 create table if not exists academic.consent_records (
   id text primary key,
   tenant_id text not null default 'tenant-default',
@@ -217,6 +226,7 @@ const ALL_TABLES = [
   "academic.action_verifications",
   "academic.cohort_assignments",
   "academic.canonical_evidence",
+  "academic.imported_grades",
   "academic.field_maps",
   "academic.consent_records",
   "academic.deletion_receipts",
