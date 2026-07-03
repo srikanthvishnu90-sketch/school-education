@@ -3,8 +3,9 @@ import type { ReactElement } from "react";
 import { createDeterministicLanguageCapability } from "@/adapters/language";
 import { getSessionStudent } from "@/app/_world/session";
 import {
-  DEMO_ASSESSMENT_ID,
+  assessmentById,
   getWorld,
+  isKnownAssessment,
   isKnownStudent,
   SKILL_NAMES,
 } from "@/app/_world/world";
@@ -30,7 +31,12 @@ export default async function ReflectPage({
   if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
-  if (assessmentId !== DEMO_ASSESSMENT_ID || !isKnownStudent(world, studentId)) {
+  const assessment = assessmentById(world, assessmentId);
+  if (
+    assessment === null ||
+    !isKnownAssessment(world, assessmentId) ||
+    !isKnownStudent(world, studentId)
+  ) {
     notFound();
   }
   const outcome = await world.repos.outcomes.findByAssessmentAndStudent(
@@ -45,7 +51,7 @@ export default async function ReflectPage({
   const missed = new Set(
     outcome.itemOutcomes.filter((o) => !o.correct).map((o) => o.itemId),
   );
-  const wrongItems: WrongItem[] = world.assessment.items
+  const wrongItems: WrongItem[] = assessment.items
     .filter((item) => missed.has(item.id))
     .map((item) => ({
       prompt: item.prompt,

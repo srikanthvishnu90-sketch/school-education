@@ -7,10 +7,19 @@ import { accuracy } from "@/domain";
 
 /**
  * The learning map — the externalized progression the student locates themselves
- * on, and a single calm line from belief to reality for this cycle. No
+ * on, and the honest belief↔reality trajectory across their cycles. No
  * leaderboards, no peer data, no ranking: only this student, only their own goal.
- * The trajectory is honest about being one cycle so far.
+ * When a next check is available and unstarted, it invites the RETURN — the single
+ * behavior the pilot exists to measure. The trajectory grows one honest line per
+ * completed cycle.
  */
+
+interface CyclePoint {
+  cycleN: number;
+  predicted: number;
+  achieved: number;
+}
+
 export default async function MapPage(): Promise<ReactElement> {
   const studentId = await getSessionStudent();
   if (studentId === null) redirect("/signin");
@@ -20,27 +29,31 @@ export default async function MapPage(): Promise<ReactElement> {
   const map = world.learningMap;
   const bands = [...map.bands].sort((a, b) => a.order - b.order);
 
-  const prediction = known
-    ? await world.repos.predictions.findByAssessmentAndStudent(
-        world.assessment.id,
+  // Every completed cycle, in order — a belief↔reality point each.
+  const points: CyclePoint[] = [];
+  let nextUnstarted: { id: string; cycleN: number } | null = null;
+  if (known) {
+    for (let i = 0; i < world.assessments.length; i += 1) {
+      const a = world.assessments[i];
+      const prediction = await world.repos.predictions.findByAssessmentAndStudent(
+        a.id,
         studentId,
-      )
-    : null;
-  const outcome = known
-    ? await world.repos.outcomes.findByAssessmentAndStudent(
-        world.assessment.id,
+      );
+      const outcome = await world.repos.outcomes.findByAssessmentAndStudent(
+        a.id,
         studentId,
-      )
-    : null;
-
-  const hasCycle = prediction !== null && outcome !== null;
-  const predicted = prediction?.globalPredicted ?? null;
-  const achieved = hasCycle ? (accuracy(prediction, outcome) ?? null) : null;
-  const gap =
-    predicted !== null && achieved !== null
-      ? Math.abs(predicted - achieved)
-      : null;
-  const tone = gap !== null && gap > 0.15 ? "gap" : "aligned";
+      );
+      if (prediction !== null && outcome !== null) {
+        points.push({
+          cycleN: i + 1,
+          predicted: prediction.globalPredicted,
+          achieved: accuracy(prediction, outcome) ?? 0,
+        });
+      } else if (nextUnstarted === null) {
+        nextUnstarted = { id: a.id, cycleN: i + 1 };
+      }
+    }
+  }
 
   const namedFeeling =
     known &&
@@ -91,21 +104,18 @@ export default async function MapPage(): Promise<ReactElement> {
         })}
       </div>
 
-      {/* Trajectory — a single calm line from guess to reality. */}
+      {/* Trajectory — one honest line per completed cycle. */}
       <div className="mt-10 rounded-card border border-ink-wash bg-white p-6">
         <p className="text-[13px] uppercase tracking-[0.16em] text-secondary">
           Your guess vs. what really happened
         </p>
-        {hasCycle && predicted !== null && achieved !== null ? (
+        {points.length > 0 ? (
           <>
-            <BeliefRealityLine
-              predicted={predicted}
-              achieved={achieved}
-              tone={tone}
-            />
+            <Trajectory points={points} />
             <p className="mt-4 text-[14px] leading-relaxed text-secondary">
-              Just one time so far. The line grows as you do more. One time
-              doesn&rsquo;t say much — the pattern does.
+              {points.length === 1
+                ? "Just one time so far. The line grows as you do more. One time doesn’t say much — the pattern does."
+                : "Two lines: your guess and what really happened. Watch whether they move closer over time — that closeness is the whole point."}
             </p>
             {namedFeeling && (
               <p className="mt-2 text-[13px] text-secondary">
@@ -117,7 +127,7 @@ export default async function MapPage(): Promise<ReactElement> {
           <p className="mt-3 text-[15px] text-secondary">
             Nothing here yet.{" "}
             <Link
-              href={`/predict/${world.assessment.id}`}
+              href={`/predict/${world.assessments[0].id}`}
               className="text-ink-tint underline-offset-4 hover:underline"
             >
               Make a guess
@@ -126,40 +136,84 @@ export default async function MapPage(): Promise<ReactElement> {
           </p>
         )}
       </div>
+
+      {/* The return invitation — the behavior the pilot measures. */}
+      {nextUnstarted !== null && points.length > 0 && (
+        <div className="mt-5 flex items-center justify-between rounded-card border border-ink-wash bg-paper p-6">
+          <div>
+            <p className="text-[15px] font-medium text-ink-black">
+              Ready for your next check?
+            </p>
+            <p className="mt-1 text-[14px] text-secondary">
+              A fresh set of questions. See if your guess lands closer this time.
+            </p>
+          </div>
+          <Link
+            href={`/predict/${nextUnstarted.id}`}
+            className="shrink-0 rounded-control bg-ink px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-ink-tint"
+          >
+            Start check {nextUnstarted.cycleN}
+          </Link>
+        </div>
+      )}
     </main>
   );
 }
 
-function BeliefRealityLine({
-  predicted,
-  achieved,
-  tone,
-}: {
-  predicted: number;
-  achieved: number;
-  tone: "gap" | "aligned";
-}): ReactElement {
-  // Two points on a 0–100% vertical scale, joined by one calm segment.
+/**
+ * Two polylines across the cycles — the guess (open) and the reality (filled) —
+ * with each cycle's gap drawn as the segment between them, tinted by tone. Never
+ * red/green: alignment is ink-tint, a gap is the warm accent.
+ */
+function Trajectory({ points }: { points: CyclePoint[] }): ReactElement {
   const w = 520;
-  const h = 160;
-  const pad = 28;
+  const h = 180;
+  const pad = 34;
   const y = (v: number): number => pad + (1 - v) * (h - 2 * pad);
-  const stroke = tone === "gap" ? "var(--color-gap)" : "var(--color-aligned)";
+  const x = (i: number): number =>
+    points.length === 1
+      ? w / 2
+      : pad + 40 + (i * (w - 2 * pad - 80)) / (points.length - 1);
+
   return (
-    <svg
-      viewBox={`0 0 ${w} ${h}`}
-      className="mt-4 w-full"
-      role="img"
-      aria-label={`You guessed ${Math.round(predicted * 100)} percent; you really got ${Math.round(achieved * 100)} percent.`}
-    >
-      <line x1={140} y1={y(predicted)} x2={380} y2={y(achieved)} stroke={stroke} strokeWidth={2} />
-      <circle cx={140} cy={y(predicted)} r={5} fill="#FFFFFF" stroke={stroke} strokeWidth={2} />
-      <circle cx={380} cy={y(achieved)} r={5} fill={stroke} />
-      <text x={140} y={y(predicted) - 12} textAnchor="middle" className="fill-secondary text-[11px]">
-        You guessed {Math.round(predicted * 100)}%
-      </text>
-      <text x={380} y={y(achieved) + 22} textAnchor="middle" className="fill-secondary text-[11px]">
-        Real: {Math.round(achieved * 100)}%
+    <svg viewBox={`0 0 ${w} ${h}`} className="mt-4 w-full" role="img" aria-label="Your guess versus what really happened, across your checks.">
+      {/* Per-cycle gap segments, tinted by tone. */}
+      {points.map((p, i) => {
+        const tone = Math.abs(p.predicted - p.achieved) > 0.15 ? "gap" : "aligned";
+        const stroke = tone === "gap" ? "var(--color-gap)" : "var(--color-aligned)";
+        return (
+          <line
+            key={`gap-${p.cycleN}`}
+            x1={x(i)}
+            y1={y(p.predicted)}
+            x2={x(i)}
+            y2={y(p.achieved)}
+            stroke={stroke}
+            strokeWidth={2}
+          />
+        );
+      })}
+      {/* The reality trajectory (filled) — faint connecting line. */}
+      {points.length > 1 && (
+        <polyline
+          points={points.map((p, i) => `${x(i)},${y(p.achieved)}`).join(" ")}
+          fill="none"
+          stroke="var(--color-aligned)"
+          strokeWidth={1.5}
+          opacity={0.5}
+        />
+      )}
+      {points.map((p, i) => (
+        <g key={`pt-${p.cycleN}`}>
+          <circle cx={x(i)} cy={y(p.predicted)} r={4.5} fill="#FFFFFF" stroke="var(--color-secondary)" strokeWidth={2} />
+          <circle cx={x(i)} cy={y(p.achieved)} r={4.5} fill="var(--color-aligned)" />
+          <text x={x(i)} y={h - 10} textAnchor="middle" className="fill-secondary text-[10px]">
+            Check {p.cycleN}
+          </text>
+        </g>
+      ))}
+      <text x={pad - 6} y={y(0.95)} className="fill-secondary text-[10px]">
+        guess ○ · real ●
       </text>
     </svg>
   );

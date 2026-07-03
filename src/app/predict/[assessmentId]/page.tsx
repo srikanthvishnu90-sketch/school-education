@@ -2,8 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { getSessionStudent } from "@/app/_world/session";
 import {
-  DEMO_ASSESSMENT_ID,
+  assessmentById,
   getWorld,
+  isKnownAssessment,
   isKnownStudent,
 } from "@/app/_world/world";
 import PredictFlow from "./PredictFlow";
@@ -23,11 +24,16 @@ export default async function PredictPage({
   if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
-  if (assessmentId !== DEMO_ASSESSMENT_ID || !isKnownStudent(world, studentId)) {
+  const assessment = assessmentById(world, assessmentId);
+  if (
+    assessment === null ||
+    !isKnownAssessment(world, assessmentId) ||
+    !isKnownStudent(world, studentId)
+  ) {
     notFound();
   }
 
-  const items = world.assessment.items.map((item) => ({
+  const items = assessment.items.map((item) => ({
     id: item.id,
     prompt: item.prompt,
   }));

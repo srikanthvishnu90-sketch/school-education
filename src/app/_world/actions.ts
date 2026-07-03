@@ -2,7 +2,7 @@
 
 import type { AttributionCategory, EmotionLabel, Id } from "@/domain";
 import { getSessionStudent } from "./session";
-import { getWorld } from "./world";
+import { assessmentById, getWorld } from "./world";
 
 /**
  * Server actions — the ONLY way the student surface reaches the P4 services. The
@@ -33,7 +33,9 @@ export async function recordPrediction(
 ): Promise<void> {
   const studentId = await requireStudent();
   const world = await getWorld();
-  const items = world.assessment.items;
+  const assessment = assessmentById(world, input.assessmentId);
+  if (assessment === null) throw new Error(`unknown assessment ${input.assessmentId}`);
+  const items = assessment.items;
 
   await world.services.capturePrediction({
     studentId,
@@ -45,7 +47,7 @@ export async function recordPrediction(
     globalPredicted: input.globalPredicted,
   });
 
-  const key = world.answerKey[studentId] ?? [];
+  const key = world.answerKey[input.assessmentId]?.[studentId] ?? [];
   await world.services.recordOutcome({
     studentId,
     assessmentId: input.assessmentId,

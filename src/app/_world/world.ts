@@ -1,11 +1,13 @@
 import {
   ASSESSMENT_ID,
+  SECOND_ASSESSMENT_ID,
   SEED_STUDENTS,
   SKILL_LINEAR,
   SKILL_SLOPE,
   buildAssessment,
   buildEmotionVocabulary,
   buildLearningMap,
+  buildSecondAssessment,
   buildWorldCore,
   type Repos,
   type Services,
@@ -29,11 +31,14 @@ export interface World {
   services: Services;
   repos: Repos;
   clock: Clock;
+  /** The primary (cycle-1) assessment; kept for back-compat. */
   assessment: Assessment;
+  /** Every assessment, in cycle order — index + 1 is the cycle number. */
+  assessments: Assessment[];
   vocabulary: EmotionVocabulary;
   learningMap: LearningMap;
-  /** studentId → per-item correctness (the outcome revealed after prediction). */
-  answerKey: Record<Id, boolean[]>;
+  /** assessmentId → studentId → per-item correctness (revealed after prediction). */
+  answerKey: Record<Id, Record<Id, boolean[]>>;
   students: { id: Id; archetype: string }[];
 }
 
@@ -55,32 +60,42 @@ async function build(): Promise<World> {
       ? await buildPersistentCore({ connectionString: process.env.DATABASE_URL })
       : buildWorldCore();
   const assessment = buildAssessment();
+  const secondAssessment = buildSecondAssessment();
   const learningMap = buildLearningMap();
   const vocabulary = buildEmotionVocabulary();
 
   await core.repos.assessments.save(assessment);
+  await core.repos.assessments.save(secondAssessment);
   await core.repos.learningMaps.save(learningMap);
   await core.repos.emotionVocab.save(vocabulary);
 
-  const answerKey: Record<Id, boolean[]> = {};
+  const answerKey: Record<Id, Record<Id, boolean[]>> = {
+    [ASSESSMENT_ID]: {},
+    [SECOND_ASSESSMENT_ID]: {},
+  };
   for (const student of SEED_STUDENTS) {
-    // Consent (academic + affect) is granted for the demo student up front, so
-    // the optional emotional step is permitted; a real app collects this at
-    // sign-up. Affect capture refuses without it (P12).
+    // Consent (academic + affect + telemetry) is granted for the demo student up
+    // front, so the optional emotional step is permitted and pilot events may be
+    // recorded; a real app collects this at sign-up. Each capture refuses without
+    // its scope (P12/P17).
     await core.consentService.grant({
       studentId: student.id,
       grantorType: "parent",
-      scopes: ["academic", "affect"],
+      scopes: ["academic", "affect", "telemetry"],
     });
-    // The teacher's goal is already set; the student starts at "predict".
-    await core.services.captureGoal({
-      studentId: student.id,
-      assessmentId: ASSESSMENT_ID,
-      targetScore: student.targetScore,
-      whyItMatters: student.whyItMatters,
-      successCriteriaRef: student.successCriteriaRef,
-    });
-    answerKey[student.id] = [...student.corrects];
+    // The teacher's goals are already set for both cycles; the student starts at
+    // "predict" and returns for the second check after completing the first.
+    for (const assessmentId of [ASSESSMENT_ID, SECOND_ASSESSMENT_ID]) {
+      await core.services.captureGoal({
+        studentId: student.id,
+        assessmentId,
+        targetScore: student.targetScore,
+        whyItMatters: student.whyItMatters,
+        successCriteriaRef: student.successCriteriaRef,
+      });
+    }
+    answerKey[ASSESSMENT_ID][student.id] = [...student.corrects];
+    answerKey[SECOND_ASSESSMENT_ID][student.id] = [...student.corrects2];
   }
 
   return {
@@ -88,6 +103,7 @@ async function build(): Promise<World> {
     repos: core.repos,
     clock: core.clock,
     assessment,
+    assessments: [assessment, secondAssessment],
     vocabulary,
     learningMap,
     answerKey,
@@ -106,4 +122,20 @@ export function getWorld(): Promise<World> {
 /** True when the student has a known goal (i.e. is a seeded archetype). */
 export function isKnownStudent(world: World, studentId: Id): boolean {
   return world.students.some((s) => s.id === studentId);
+}
+
+/** The assessment with this id, or null. */
+export function assessmentById(world: World, assessmentId: Id): Assessment | null {
+  return world.assessments.find((a) => a.id === assessmentId) ?? null;
+}
+
+/** True when this is one of the world's known assessments (a real cycle). */
+export function isKnownAssessment(world: World, assessmentId: Id): boolean {
+  return world.assessments.some((a) => a.id === assessmentId);
+}
+
+/** The 1-based cycle number of an assessment, or null if unknown. */
+export function cycleNumberOf(world: World, assessmentId: Id): number | null {
+  const idx = world.assessments.findIndex((a) => a.id === assessmentId);
+  return idx === -1 ? null : idx + 1;
 }

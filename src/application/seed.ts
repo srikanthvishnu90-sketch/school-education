@@ -71,10 +71,13 @@ export const START_EPOCH = Date.UTC(2026, 0, 5, 9, 0, 0);
 
 export const CLASS_ID = "class-algebra1-p3";
 export const ASSESSMENT_ID = "assess-algebra1-u1";
+/** The second cycle — the return path the pilot's core metric measures (P17). */
+export const SECOND_ASSESSMENT_ID = "assess-algebra1-u2";
 export const SKILL_LINEAR = "skill-linear-equations";
 export const SKILL_SLOPE = "skill-interpreting-slope";
 
 export const ITEM_IDS = ["item-1", "item-2", "item-3", "item-4"] as const;
+export const ITEM_IDS_2 = ["item-5", "item-6", "item-7", "item-8"] as const;
 
 export type Archetype =
   "overconfident-low" | "underconfident-high" | "calibrated";
@@ -88,6 +91,8 @@ export interface SeedStudent {
   confidences: [number, number, number, number];
   globalPredicted: number;
   corrects: [boolean, boolean, boolean, boolean];
+  /** The cycle-2 answer key (the return cycle), revealed after a live prediction. */
+  corrects2: [boolean, boolean, boolean, boolean];
   labels: EmotionLabel[];
 }
 
@@ -105,6 +110,7 @@ export const SEED_STUDENTS: SeedStudent[] = [
     confidences: [0.9, 0.95, 0.9, 0.85],
     globalPredicted: 0.8,
     corrects: [true, false, false, false],
+    corrects2: [true, true, false, false], // cycle 2: 2/4 — honestly improving
     labels: [{ term: "good", valence: 0.6, arousal: 0.5 }],
   },
   {
@@ -118,6 +124,7 @@ export const SEED_STUDENTS: SeedStudent[] = [
     confidences: [0.3, 0.25, 0.35, 0.3],
     globalPredicted: 0.4,
     corrects: [true, true, true, true],
+    corrects2: [true, true, true, true], // cycle 2: still strong
     labels: [
       { term: "anxious", valence: -0.6, arousal: 0.8 },
       { term: "drained", valence: -0.4, arousal: 0.3 },
@@ -133,6 +140,7 @@ export const SEED_STUDENTS: SeedStudent[] = [
     confidences: [0.8, 0.8, 0.7, 0.7],
     globalPredicted: 0.75,
     corrects: [true, true, true, false],
+    corrects2: [true, true, true, false], // cycle 2: consistent
     labels: [
       { term: "content", valence: 0.3, arousal: 0.3 },
       { term: "focused", valence: 0.1, arousal: 0.6 },
@@ -191,6 +199,45 @@ export function buildAssessment(): Assessment {
         assessmentId: ASSESSMENT_ID,
         skillId: SKILL_SLOPE,
         prompt: "What does the slope mean in context?",
+        maxPoints: 1,
+      },
+    ],
+  });
+}
+
+/** The second cycle's assessment — same skills, fresh items (the return check). */
+export function buildSecondAssessment(): Assessment {
+  return createAssessment({
+    id: SECOND_ASSESSMENT_ID,
+    title: "Algebra I — Unit 2 check",
+    createdAt: new Date(START_EPOCH),
+    items: [
+      {
+        id: ITEM_IDS_2[0],
+        assessmentId: SECOND_ASSESSMENT_ID,
+        skillId: SKILL_LINEAR,
+        prompt: "Solve 4x - 7 = 13.",
+        maxPoints: 1,
+      },
+      {
+        id: ITEM_IDS_2[1],
+        assessmentId: SECOND_ASSESSMENT_ID,
+        skillId: SKILL_LINEAR,
+        prompt: "Solve 3(x + 2) = 21.",
+        maxPoints: 1,
+      },
+      {
+        id: ITEM_IDS_2[2],
+        assessmentId: SECOND_ASSESSMENT_ID,
+        skillId: SKILL_SLOPE,
+        prompt: "Find the slope through (2, 3) and (6, 11).",
+        maxPoints: 1,
+      },
+      {
+        id: ITEM_IDS_2[3],
+        assessmentId: SECOND_ASSESSMENT_ID,
+        skillId: SKILL_SLOPE,
+        prompt: "A line rises 6 for every 2 across — what is its slope?",
         maxPoints: 1,
       },
     ],

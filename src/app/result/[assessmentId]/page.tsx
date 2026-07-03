@@ -4,9 +4,10 @@ import { Primary, Stage } from "@/app/_ui/atoms";
 import { getSessionStudent } from "@/app/_world/session";
 import { calibrationStatement } from "@/app/_world/statement";
 import {
-  DEMO_ASSESSMENT_ID,
   SKILL_NAMES,
+  assessmentById,
   getWorld,
+  isKnownAssessment,
   isKnownStudent,
 } from "@/app/_world/world";
 import { accuracy, perSkill, type SkillCalibration } from "@/domain";
@@ -26,7 +27,12 @@ export default async function ResultPage({
   if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
-  if (assessmentId !== DEMO_ASSESSMENT_ID || !isKnownStudent(world, studentId)) {
+  const assessment = assessmentById(world, assessmentId);
+  if (
+    assessment === null ||
+    !isKnownAssessment(world, assessmentId) ||
+    !isKnownStudent(world, studentId)
+  ) {
     notFound();
   }
 
@@ -50,7 +56,7 @@ export default async function ResultPage({
     .at(-1);
   const target = goal?.targetScore ?? null;
 
-  const bySkill = perSkill(prediction, outcome, world.assessment.items);
+  const bySkill = perSkill(prediction, outcome, assessment.items);
   const widest = bySkill.reduce<SkillCalibration | null>((worst, s) => {
     if (s.bias === null) return worst;
     if (worst === null || Math.abs(s.bias) > Math.abs(worst.bias ?? 0)) return s;
