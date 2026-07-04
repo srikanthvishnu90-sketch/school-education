@@ -4,16 +4,29 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type ReactElement } from "react";
 import GetStarted from "./GetStarted";
-import HeroCarousel from "./HeroCarousel";
+import HeroRotator, { type HeroMedia } from "./HeroRotator";
 import Reveal from "./Reveal";
 import ScrollDrawHero from "./ScrollDrawHero";
 
 /**
+ * The hero media sequence — the two new field renders (a single line resolving to
+ * a point of truth; a learner located on their own contour) interleaved with the
+ * existing frames. All ambient images; the headline stays pinned across them.
+ */
+const HERO_MEDIA: readonly HeroMedia[] = [
+  { type: "image", src: "/landing/05-beam.png", alt: "A single line of light resolving to a point" },
+  { type: "image", src: "/landing/01-brain.png", alt: "An abstract rendering of cognition" },
+  { type: "image", src: "/landing/06-topography.png", alt: "A learner located on a field of contour lines" },
+  { type: "image", src: "/landing/03-beams.png", alt: "Converging beams of light" },
+  { type: "image", src: "/landing/04-mind.png", alt: "An abstract rendering of a settled mind" },
+];
+
+/**
  * The plumb marketing landing page — a Palantir-register, dark, full-bleed site.
- * The opening is a timed three-frame slide sequence (HeroCarousel); everything
- * below settles into place on scroll (Reveal). The content maps 1:1 to what is
- * actually built: evidence ingestion, the calibration engine, the two-axis gap,
- * and the deterministic intervention agent.
+ * The opening is a full-bleed media rotator (HeroRotator) that slow-crossfades
+ * field renders under a pinned headline; everything below settles into place on
+ * scroll (Reveal). The content maps 1:1 to what is actually built: evidence
+ * ingestion, the calibration engine, the two-axis gap, and the intervention agent.
  */
 
 const CAPABILITIES: readonly { k: string; t: string; b: string }[] = [
@@ -56,6 +69,7 @@ const PRINCIPLES: readonly { t: string; b: string }[] = [
 
 export default function Landing(): ReactElement {
   const [scrolled, setScrolled] = useState(false);
+  const [announce, setAnnounce] = useState(true);
 
   useEffect(() => {
     const onScroll = (): void => setScrolled(window.scrollY > 24);
@@ -69,47 +83,99 @@ export default function Landing(): ReactElement {
       {/* Dark backdrop so rubber-band overscroll never flashes the light body */}
       <div className="fixed inset-0 -z-10 bg-[#050506]" aria-hidden />
 
-      {/* Top navigation */}
-      <header
-        className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
-          scrolled
-            ? "border-b border-white/10 bg-[#050506]/80 backdrop-blur-md"
-            : "border-b border-transparent"
-        }`}
-      >
-        <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <a href="#top" className="flex items-center gap-2.5">
-            <span className="grid h-6 w-6 place-items-center rounded-[5px] bg-white text-[13px] font-semibold text-[#050506]">
-              p
-            </span>
-            <span className="text-[15px] font-medium tracking-tight">plumb</span>
-          </a>
-          <div className="hidden items-center gap-8 text-[13px] text-white/70 md:flex">
-            <a className="transition hover:text-white" href="#platform">
-              Platform
-            </a>
-            <a className="transition hover:text-white" href="#principles">
-              Principles
-            </a>
-            <Link className="transition hover:text-white" href="/signin">
-              Try the cycle
-            </Link>
+      {/* Top navigation, with a dismissible announcement strip above it */}
+      <header className="fixed inset-x-0 top-0 z-50">
+        {announce && (
+          <div className="border-b border-white/10 bg-[#050506]/85 backdrop-blur-md">
+            <div className="mx-auto flex h-10 max-w-7xl items-center justify-between gap-4 px-6 text-[13px]">
+              <p className="truncate text-white/75">
+                <span className="text-white/45">New</span>{" "}
+                Read how plumb closes the calibration gap —{" "}
+                <a href="#principles" className="underline decoration-white/30 underline-offset-4 hover:decoration-white">
+                  the principles
+                </a>
+              </p>
+              <button
+                type="button"
+                onClick={() => setAnnounce(false)}
+                aria-label="Dismiss announcement"
+                className="shrink-0 text-white/45 transition hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
           </div>
-          <Link
-            href="/signin"
-            className="rounded-full bg-white px-4 py-1.5 text-[13px] font-medium text-[#050506] transition hover:bg-white/85"
-          >
-            Get Started
-          </Link>
-        </nav>
+        )}
+        <div
+          className={`transition-colors duration-300 ${
+            scrolled
+              ? "border-b border-white/10 bg-[#050506]/80 backdrop-blur-md"
+              : "border-b border-transparent"
+          }`}
+        >
+          <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
+            <a href="#top" className="flex items-center gap-2.5">
+              <span className="grid h-6 w-6 place-items-center rounded-[5px] bg-white text-[13px] font-semibold text-[#050506]">
+                p
+              </span>
+              <span className="text-[15px] font-medium tracking-tight">plumb</span>
+            </a>
+            <div className="hidden items-center gap-8 text-[13px] text-white/70 md:flex">
+              <a className="transition hover:text-white" href="#platform">
+                Platform
+              </a>
+              <a className="transition hover:text-white" href="#principles">
+                Principles
+              </a>
+              <Link className="transition hover:text-white" href="/signin">
+                Try the cycle
+              </Link>
+            </div>
+            <Link
+              href="/signin"
+              className="rounded-md bg-white px-5 py-2 text-[13px] font-medium text-[#050506] transition hover:bg-white/85"
+            >
+              Get Started
+            </Link>
+          </nav>
+        </div>
       </header>
 
       <main id="top">
         {/* Scroll-driven opening: prediction and evidence lines converge */}
         <ScrollDrawHero />
 
-        {/* Slide sequence */}
-        <HeroCarousel />
+        {/* Full-bleed hero: crossfading field renders, headline pinned center */}
+        <HeroRotator media={HERO_MEDIA}>
+          <div className="w-full max-w-4xl text-center">
+            <p className="mb-6 text-[12px] font-medium uppercase tracking-[0.22em] text-white/60">
+              The calibration instrument
+            </p>
+            <h1 className="text-balance text-4xl font-medium leading-[1.03] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+              Accurate self-knowledge
+              <br className="hidden sm:block" /> for every learner
+            </h1>
+            <p className="mx-auto mt-7 max-w-xl text-pretty text-[15px] leading-relaxed text-white/75 md:text-base">
+              plumb moves judgment from the institution to the learner — closing
+              the gap between what a student believes about their competence and
+              what is objectively true, in either direction.
+            </p>
+            <div className="mt-9 flex items-center justify-center gap-3">
+              <Link
+                href="/signin"
+                className="rounded-md bg-white px-7 py-3 text-[15px] font-medium text-[#050506] transition hover:bg-white/85"
+              >
+                Get Started
+              </Link>
+              <a
+                href="#platform"
+                className="rounded-md border border-white/25 px-7 py-3 text-[15px] font-medium text-white/90 transition hover:border-white/50 hover:bg-white/5"
+              >
+                See the platform
+              </a>
+            </div>
+          </div>
+        </HeroRotator>
 
         {/* Platform capabilities */}
         <section
