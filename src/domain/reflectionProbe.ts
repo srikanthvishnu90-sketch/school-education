@@ -86,7 +86,10 @@ export function derivePriorContext(
   const byRecency = [...reflections].sort(
     (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
   );
-  const lastAction = byRecency[0]?.nextAction.text.trim() || null;
+  // Strip trailing sentence punctuation: the action is embedded mid-sentence in
+  // the follow-through template, which supplies its own period.
+  const lastAction =
+    byRecency[0]?.nextAction.text.trim().replace(/[.!?\s]+$/, "") || null;
 
   // Count only controllable causes; the most frequent that clears 2 wins, ties
   // broken toward the more RECENT occurrence (scan newest-first).

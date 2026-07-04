@@ -125,6 +125,16 @@ describe("derivePriorContext", () => {
     expect(ctx.priorCycles).toBe(2);
   });
 
+  it("strips trailing punctuation so the template supplies the only period", () => {
+    const ctx = derivePriorContext([
+      reflection({ at: "2026-03-01", action: "check each answer by substituting it back in." }),
+    ]);
+    expect(ctx.lastAction).toBe("check each answer by substituting it back in");
+    const { probes } = buildReflectionProbes([], render, ctx);
+    const follow = probes.find((p) => p.kind === "follow_through");
+    expect(follow?.question).not.toMatch(/\.\./); // no double period
+  });
+
   it("names a controllable cause the student repeated at least twice", () => {
     const ctx = derivePriorContext([
       reflection({ at: "2026-01-01", category: "strategy" }),
