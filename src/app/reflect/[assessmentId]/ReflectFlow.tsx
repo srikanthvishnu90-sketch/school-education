@@ -185,11 +185,13 @@ export default function ReflectFlow({
     const isLast = probeIndex === probes.length - 1;
 
     const eyebrow =
-      probe.kind === "what_happened"
-        ? "What happened"
-        : probe.kind === "why_wrong"
-          ? "Where it turned"
-          : "What changed";
+      probe.kind === "follow_through"
+        ? "Last time"
+        : probe.kind === "what_happened"
+          ? "What happened"
+          : probe.kind === "why_wrong"
+            ? "Where it turned"
+            : "What changed";
 
     function back(): void {
       if (isFirst) setStep("emotion");

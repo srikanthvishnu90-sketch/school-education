@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { buildReflectionProbes, MAX_ITEM_PROBES, type WrongItem } from "@/domain";
+import {
+  buildReflectionProbes,
+  derivePriorContext,
+  EMPTY_PRIOR_CONTEXT,
+  MAX_ITEM_PROBES,
+  type AttributionCategory,
+  type Reflection,
+  type WrongItem,
+} from "@/domain";
 
 /**
  * Reflection probes are FORMULATED from the teacher's exam items and always read
@@ -75,5 +83,102 @@ describe("buildReflectionProbes", () => {
     for (const p of probes) {
       expect(p.question.toLowerCase()).not.toMatch(/\b(bad at|smart|dumb|stupid|gifted)\b/);
     }
+  });
+});
+
+// --- Personalization from prior data ---------------------------------------
+
+const reflection = (
+  overrides: {
+    category?: AttributionCategory;
+    action?: string;
+    at: string;
+    controllable?: boolean;
+    specific?: boolean;
+  },
+): Reflection => ({
+  id: `r-${overrides.at}`,
+  assessmentId: "a-prior",
+  studentId: "s-1",
+  attribution: {
+    category: overrides.category ?? "strategy",
+    specific: overrides.specific ?? true,
+    controllable: overrides.controllable ?? true,
+    note: "n",
+  },
+  nextAction: { text: overrides.action ?? "do the thing", dueBy: new Date(overrides.at) },
+  exemplarReviewed: true,
+  createdAt: new Date(overrides.at),
+});
+
+describe("derivePriorContext", () => {
+  it("returns the empty context when there is no history", () => {
+    expect(derivePriorContext([])).toEqual(EMPTY_PRIOR_CONTEXT);
+  });
+
+  it("takes the MOST RECENT committed action as the follow-through anchor", () => {
+    const ctx = derivePriorContext([
+      reflection({ at: "2026-01-01", action: "write out every step" }),
+      reflection({ at: "2026-03-01", action: "sketch the graph first" }),
+    ]);
+    expect(ctx.lastAction).toBe("sketch the graph first");
+    expect(ctx.priorCycles).toBe(2);
+  });
+
+  it("names a controllable cause the student repeated at least twice", () => {
+    const ctx = derivePriorContext([
+      reflection({ at: "2026-01-01", category: "strategy" }),
+      reflection({ at: "2026-02-01", category: "strategy" }),
+      reflection({ at: "2026-03-01", category: "misconception" }),
+    ]);
+    expect(ctx.recurringCause).toBe("strategy");
+  });
+
+  it("does NOT surface a pattern from a single occurrence", () => {
+    const ctx = derivePriorContext([
+      reflection({ at: "2026-01-01", category: "strategy" }),
+      reflection({ at: "2026-02-01", category: "misconception" }),
+    ]);
+    expect(ctx.recurringCause).toBeNull();
+  });
+});
+
+describe("buildReflectionProbes — personalized", () => {
+  it("opens with a follow-through probe carrying the student's own last action", () => {
+    const prior = derivePriorContext([
+      reflection({ at: "2026-02-01", action: "redo two practice problems out loud" }),
+    ]);
+    const { probes } = buildReflectionProbes(
+      [wrong("Solve 3x + 5 = 20.", "linear equations")],
+      render,
+      prior,
+    );
+    expect(probes[0].kind).toBe("follow_through");
+    expect(probes[0].question).toContain("redo two practice problems out loud");
+  });
+
+  it("adds no follow-through probe when there is no prior action", () => {
+    const { probes } = buildReflectionProbes(
+      [wrong("Solve 3x + 5 = 20.", "linear equations")],
+      render,
+      EMPTY_PRIOR_CONTEXT,
+    );
+    expect(probes.some((p) => p.kind === "follow_through")).toBe(false);
+  });
+
+  it("names the recurring pattern in the synthesis, in task-focused language", () => {
+    const prior = derivePriorContext([
+      reflection({ at: "2026-01-01", category: "strategy" }),
+      reflection({ at: "2026-02-01", category: "strategy" }),
+    ]);
+    const { probes } = buildReflectionProbes(
+      [wrong("Solve 3x + 5 = 20.", "linear equations")],
+      render,
+      prior,
+    );
+    const synthesis = probes.find((p) => p.kind === "synthesis");
+    expect(synthesis?.question).toContain("how you set your work up");
+    // Still never about the person.
+    expect(synthesis?.question.toLowerCase()).not.toMatch(/\b(bad at|not a .* person)\b/);
   });
 });

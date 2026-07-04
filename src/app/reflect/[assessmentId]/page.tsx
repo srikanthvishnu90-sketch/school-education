@@ -10,7 +10,11 @@ import {
   isKnownAssessment,
   SKILL_NAMES,
 } from "@/app/_world/world";
-import { buildReflectionProbes, type WrongItem } from "@/domain";
+import {
+  buildReflectionProbes,
+  derivePriorContext,
+  type WrongItem,
+} from "@/domain";
 import ReflectFlow from "./ReflectFlow";
 
 /**
@@ -55,6 +59,15 @@ export default async function ReflectPage({
       skillName: SKILL_NAMES[item.skillId] ?? "this work",
     }));
 
+  // Prior data personalizes this cycle: the student's OWN past reflections (from
+  // earlier assessments) yield a follow-through opener on their last committed
+  // action and, where a controllable pattern exists, a synthesis that names it.
+  // Pure domain logic decides what is personal; the model only phrases it.
+  const priorReflections = (
+    await world.repos.reflections.listByStudent(studentId)
+  ).filter((r) => r.assessmentId !== assessmentId);
+  const prior = derivePriorContext(priorReflections);
+
   const language = createDeterministicLanguageCapability();
   // Capture the (template, slots) the student is shown so the LLM can re-render
   // them in the background (shadow mode) — for golden-set harvest, never shown.
@@ -65,6 +78,7 @@ export default async function ReflectPage({
       shadowInputs.push({ template, slots: { ...slots } });
       return language.renderQuestion(template, slots);
     },
+    prior,
   );
   // Runs AFTER the response is sent — never blocks or changes what the student sees.
   after(async () => {
