@@ -6,6 +6,7 @@ import {
   getEmailSender,
   lookupByEmail,
   mintToken,
+  pilotGateAccepts,
   type AuthUser,
 } from "./authCore";
 import { signIn } from "./session";
@@ -27,12 +28,22 @@ async function homeFor(user: AuthUser): Promise<string> {
 }
 
 export interface RequestResult {
-  sent: true;
+  sent: boolean;
+  /** True when the closed-pilot access code was required and did not match. */
+  codeRejected?: true;
   /** In dev only, the link is returned so the flow works without SMTP. */
   devLink?: string;
 }
 
-export async function requestMagicLink(email: string): Promise<RequestResult> {
+export async function requestMagicLink(
+  email: string,
+  code?: string,
+): Promise<RequestResult> {
+  // Closed-pilot gate first. Rejecting a bad shared code is safe to surface (it
+  // is not tied to any account); email existence is still never revealed below.
+  if (!pilotGateAccepts(email, code)) {
+    return { sent: false, codeRejected: true };
+  }
   const user = lookupByEmail(email);
   if (user === null) {
     // Don't leak which emails exist; behave identically.

@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { TEACHER_ID } from "./teacher";
 import { COUNSELOR_ID } from "./roles";
 
@@ -63,6 +63,36 @@ export function lookupByEmail(email: string): AuthUser | null {
   if (known !== undefined) return known;
   if (!isPlausibleEmail(e)) return null;
   return { email: e, id: studentIdForEmail(e), role: "student" };
+}
+
+/** True for an email in the pre-provisioned roster (bypasses the pilot gate). */
+export function isSeededEmail(email: string): boolean {
+  return KNOWN_ROLES.some((u) => u.email === normalize(email));
+}
+
+/** Constant-time string equality (avoids leaking the code via response timing). */
+function secretEquals(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (ab.length !== bb.length) return false;
+  return timingSafeEqual(ab, bb);
+}
+
+/**
+ * The closed-pilot admission gate. A self-served student is admitted only with the
+ * pilot's shared access code (PILOT_ACCESS_CODE). When that env var is unset —
+ * local dev, demos, tests — the gate is OPEN so self-signup stays frictionless.
+ * The seeded roster (demo students, teacher, counselor) always bypasses it.
+ *
+ * The code is a SHARED pilot secret, not a per-account credential, so rejecting a
+ * wrong code reveals nothing about which emails exist — unlike email lookup, which
+ * must stay non-enumerable. That is why this gate can answer honestly.
+ */
+export function pilotGateAccepts(email: string, code: string | undefined): boolean {
+  if (isSeededEmail(email)) return true;
+  const required = process.env.PILOT_ACCESS_CODE;
+  if (required === undefined || required.length === 0) return true;
+  return code !== undefined && secretEquals(code.trim(), required);
 }
 
 // --- One-time tokens ---------------------------------------------------------

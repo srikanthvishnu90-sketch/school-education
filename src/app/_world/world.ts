@@ -149,14 +149,16 @@ export async function isProvisioned(world: World, studentId: Id): Promise<boolea
 
 /**
  * Provision a signed-in student on first cycle entry: grant their consent and set
- * a goal per assessment, idempotently. Self-served students (any real email) are
- * provisioned here the first time they predict — no seeded roster required.
+ * a goal per assessment, idempotently. A student reaches this only after clearing
+ * the closed-pilot access gate, so consent is granted under the school/guardian
+ * UMBRELLA that authorized that pilot — never as a minor self-consenting, which
+ * COPPA/SOPPA do not permit. This matches the seeded roster's grantor.
  */
 export async function provisionStudent(world: World, studentId: Id): Promise<void> {
   if (await isProvisioned(world, studentId)) return;
   await world.consentService.grant({
     studentId,
-    grantorType: "self",
+    grantorType: "parent",
     scopes: ["academic", "affect", "telemetry"],
   });
   for (const a of world.assessments) {

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   consumeToken,
+  isSeededEmail,
   lookupByEmail,
   mintToken,
+  pilotGateAccepts,
 } from "@/app/_world/authCore";
 
 /**
@@ -51,6 +53,39 @@ describe("directory", () => {
   it("returns null for garbage that isn't an email", () => {
     expect(lookupByEmail("not-an-email")).toBeNull();
     expect(lookupByEmail("")).toBeNull();
+  });
+});
+
+describe("closed-pilot access gate", () => {
+  const CODE = "PILOT_ACCESS_CODE";
+
+  it("is OPEN when no code is configured (dev/demo self-signup keeps working)", () => {
+    delete process.env[CODE];
+    expect(pilotGateAccepts("new.student@school.org", undefined)).toBe(true);
+  });
+
+  it("admits a self-served student only with the exact shared code", () => {
+    process.env[CODE] = "spring-2026-alg";
+    try {
+      expect(pilotGateAccepts("new.student@school.org", "spring-2026-alg")).toBe(true);
+      expect(pilotGateAccepts("new.student@school.org", "wrong")).toBe(false);
+      expect(pilotGateAccepts("new.student@school.org", undefined)).toBe(false);
+      // Surrounding whitespace on the entered code is tolerated.
+      expect(pilotGateAccepts("new.student@school.org", "  spring-2026-alg ")).toBe(true);
+    } finally {
+      delete process.env[CODE];
+    }
+  });
+
+  it("lets the seeded roster bypass the gate even when a code is required", () => {
+    process.env[CODE] = "spring-2026-alg";
+    try {
+      expect(isSeededEmail("avery@demo.school")).toBe(true);
+      expect(pilotGateAccepts("avery@demo.school", undefined)).toBe(true);
+      expect(pilotGateAccepts("teacher@demo.school", undefined)).toBe(true);
+    } finally {
+      delete process.env[CODE];
+    }
   });
 });
 
