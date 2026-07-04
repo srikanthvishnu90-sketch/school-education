@@ -20,7 +20,7 @@ const STILL_DWELL_MS = 3000;
 // text). All ambient; the constant overlay carries legibility.
 const HERO_MEDIA: readonly HeroMedia[] = [
   { type: "image", src: "/landing/05-beam.png", alt: "A single line of light resolving to a point", dwellMs: STILL_DWELL_MS },
-  { type: "video", src: "/landing/hero-loop.webm", poster: "/landing/05-beam.png", alt: "A slow-moving field of light" },
+  { type: "video", src: "/landing/hero-loop.mp4", poster: "/landing/05-beam.png", alt: "A slow-moving field of light" },
   { type: "image", src: "/landing/06-topography.png", alt: "A learner located on a field of contour lines", dwellMs: STILL_DWELL_MS },
   { type: "image", src: "/landing/03-beams.png", alt: "Converging beams of light", dwellMs: STILL_DWELL_MS },
   { type: "image", src: "/landing/04-mind.png", alt: "An abstract rendering of a settled mind", dwellMs: STILL_DWELL_MS },
