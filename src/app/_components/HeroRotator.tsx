@@ -220,6 +220,7 @@ export default function HeroRotator({
           eager={current === 0}
           active={incoming === null}
           opacity={1}
+          dwellMs={dwellFor(media[current])}
           onEnded={onVideoEnded}
         />
         {incoming !== null && (
@@ -232,19 +233,24 @@ export default function HeroRotator({
             eager={false}
             active={false}
             opacity={incomingVisible ? 1 : 0}
+            dwellMs={dwellFor(media[incoming])}
             onEnded={undefined}
           />
         )}
       </div>
 
-      {/* Constant legibility overlay: same across every scene, so text never
-          flickers. transparent → near-black toward the center-bottom. */}
+      {/* Constant legibility overlay: identical across every scene, so text
+          never flickers. A vertical wash darkens the nav and the base; a
+          centered pool sits behind the headline so it holds even on the
+          brightest frame — legibility is won here, not in the media. */}
       <div
         className="pointer-events-none absolute inset-0"
         aria-hidden="true"
         style={{
-          background:
-            "radial-gradient(120% 90% at 50% 78%, rgba(10,14,19,0.65) 0%, rgba(10,14,19,0.28) 45%, rgba(10,14,19,0.10) 100%)",
+          background: [
+            "linear-gradient(180deg, rgba(10,14,19,0.55) 0%, rgba(10,14,19,0.20) 26%, rgba(10,14,19,0.20) 58%, rgba(10,14,19,0.80) 100%)",
+            "radial-gradient(80% 60% at 50% 48%, rgba(10,14,19,0.45) 0%, rgba(10,14,19,0.0) 72%)",
+          ].join(","),
         }}
       />
 
@@ -264,6 +270,7 @@ function MediaLayer({
   eager,
   active,
   opacity,
+  dwellMs,
   onEnded,
 }: {
   item: HeroMedia;
@@ -273,6 +280,7 @@ function MediaLayer({
   eager: boolean;
   active: boolean;
   opacity: number;
+  dwellMs: number;
   onEnded?: () => void;
 }): ReactElement {
   const [zoom, setZoom] = useState(false);
@@ -302,7 +310,8 @@ function MediaLayer({
     ? undefined
     : {
         transform: zoom ? "scale(1.04)" : "scale(1)",
-        transition: `transform ${IMAGE_DWELL_MS + CROSSFADE_MS}ms ease-out`,
+        // Zoom spans the asset's own dwell (plus the fade) so it settles in step.
+        transition: `transform ${dwellMs + CROSSFADE_MS}ms ease-out`,
       };
 
   return (
