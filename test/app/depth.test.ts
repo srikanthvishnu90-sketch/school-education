@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import { assessDepth } from "@/app/_world/depth";
 
 /**
- * The depth gate is the "won't let you move on until you truly answer" rule.
- * It must block thin/empty/padded answers and pass a genuine one — deterministic,
- * with kind, basic nudges.
+ * The gate is "the question is answered", not "the answer is long enough". There
+ * is no right or wrong answer: any genuine attempt in the student's own words
+ * passes and they move on. It blocks only blanks, filler non-answers, one word,
+ * and padding — with kind, basic nudges.
  */
 describe("assessDepth", () => {
   it("blocks an empty answer", () => {
@@ -13,10 +14,24 @@ describe("assessDepth", () => {
     expect(assessDepth("   ").ok).toBe(false);
   });
 
-  it("blocks a too-short answer with a gentle nudge", () => {
-    const r = assessDepth("I rushed it");
+  it("passes a short but genuine answer (no length target)", () => {
+    const r = assessDepth("I rushed the last step");
+    expect(r.ok).toBe(true);
+    expect(r.hint).toBeNull();
+  });
+
+  it("blocks a filler non-answer, inviting the real one without judging it", () => {
+    for (const filler of ["idk", "I don't know", "nothing", "n/a"]) {
+      const r = assessDepth(filler);
+      expect(r.ok).toBe(false);
+      expect(r.hint).toMatch(/no right one|honest answer/);
+    }
+  });
+
+  it("blocks a single word (not yet an answer) with a gentle nudge", () => {
+    const r = assessDepth("rushed");
     expect(r.ok).toBe(false);
-    expect(r.hint).toContain("little more");
+    expect(r.hint).toContain("own words");
   });
 
   it("blocks padded repetition even when long", () => {

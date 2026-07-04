@@ -177,10 +177,9 @@ export default function ReflectFlow({
   if (step === "probes") {
     const probe = probes[probeIndex];
     const answer = answers[probeIndex] ?? "";
-    const depth = assessDepth(answer, {
-      minWords: probe.minWords,
-      minChars: probe.minWords * 4,
-    });
+    // One gentle "is it answered" floor for every probe — no per-question length
+    // target. Any genuine answer clears it and the student moves straight on.
+    const depth = assessDepth(answer);
     const isFirst = probeIndex === 0;
     const isLast = probeIndex === probes.length - 1;
 
