@@ -5,7 +5,7 @@ import {
   assessmentById,
   getWorld,
   isKnownAssessment,
-  isKnownStudent,
+  provisionStudent,
 } from "@/app/_world/world";
 import PredictFlow from "./PredictFlow";
 
@@ -25,13 +25,11 @@ export default async function PredictPage({
 
   const world = await getWorld();
   const assessment = assessmentById(world, assessmentId);
-  if (
-    assessment === null ||
-    !isKnownAssessment(world, assessmentId) ||
-    !isKnownStudent(world, studentId)
-  ) {
+  if (assessment === null || !isKnownAssessment(world, assessmentId)) {
     notFound();
   }
+  // Provision a self-served student on first cycle entry (consent + goals).
+  await provisionStudent(world, studentId);
 
   const items = assessment.items.map((item) => ({
     id: item.id,

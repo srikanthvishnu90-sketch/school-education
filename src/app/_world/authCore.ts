@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { TEACHER_ID } from "./teacher";
 import { COUNSELOR_ID } from "./roles";
 
@@ -25,9 +25,14 @@ export interface AuthUser {
  * The provisioned participant directory. Emails map to the existing seeded roles
  * so magic-link logs into the same worlds the demo pickers do. A real deployment
  * populates this from the district roster; unknown emails are simply not found
- * (self-signup is deferred — it needs world provisioning + real outcomes).
+ * ELEVATED roles (teacher, counselor) are fixed here — they see more than their
+ * own data, so they are never self-served. Any other real email SELF-SIGNS-UP as a
+ * student: safe because plumb is a personal instrument with per-student RLS
+ * isolation (a self-served student is enrolled in no class, so they are invisible
+ * to every teacher/aggregate view) and no payments. The student id is DERIVED from
+ * the email, so the same email always maps to the same account with zero storage.
  */
-const DIRECTORY: readonly AuthUser[] = [
+const KNOWN_ROLES: readonly AuthUser[] = [
   { email: "avery@demo.school", id: "student-avery", role: "student" },
   { email: "blake@demo.school", id: "student-blake", role: "student" },
   { email: "casey@demo.school", id: "student-casey", role: "student" },
@@ -39,9 +44,25 @@ function normalize(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function isPlausibleEmail(email: string): boolean {
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
+}
+
+/** Deterministic, storage-free student id: same email → same account, always. */
+function studentIdForEmail(email: string): string {
+  return `student-${createHash("sha256").update(email, "utf8").digest("hex").slice(0, 12)}`;
+}
+
+/**
+ * The account for an email: a fixed elevated role if one exists, else a
+ * self-served student for any plausible email, else null (garbage input).
+ */
 export function lookupByEmail(email: string): AuthUser | null {
   const e = normalize(email);
-  return DIRECTORY.find((u) => u.email === e) ?? null;
+  const known = KNOWN_ROLES.find((u) => u.email === e);
+  if (known !== undefined) return known;
+  if (!isPlausibleEmail(e)) return null;
+  return { email: e, id: studentIdForEmail(e), role: "student" };
 }
 
 // --- One-time tokens ---------------------------------------------------------

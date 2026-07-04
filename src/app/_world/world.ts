@@ -9,6 +9,7 @@ import {
   buildLearningMap,
   buildSecondAssessment,
   buildWorldCore,
+  type ConsentService,
   type PilotTelemetry,
   type Repos,
   type Services,
@@ -38,6 +39,8 @@ export interface World {
   services: Services;
   repos: Repos;
   clock: Clock;
+  /** Consent lifecycle service (P12) — used to provision a new student's consent. */
+  consentService: ConsentService;
   /** Consent-gated, pseudonymizing pilot telemetry recorder (P17). */
   telemetry: PilotTelemetry;
   /** Gradebook grades imported via /ingest, surfaced to the student (p7). */
@@ -120,6 +123,7 @@ async function build(): Promise<World> {
     services: core.services,
     repos: core.repos,
     clock: core.clock,
+    consentService: core.consentService,
     telemetry: core.telemetry,
     importedGrades,
     assessment,
@@ -138,9 +142,31 @@ export function getWorld(): Promise<World> {
   return worldPromise;
 }
 
-/** True when the student has a known goal (i.e. is a seeded archetype). */
-export function isKnownStudent(world: World, studentId: Id): boolean {
-  return world.students.some((s) => s.id === studentId);
+/** True once a student has been provisioned (has a goal). */
+export async function isProvisioned(world: World, studentId: Id): Promise<boolean> {
+  return (await world.repos.goals.listByStudent(studentId)).length > 0;
+}
+
+/**
+ * Provision a signed-in student on first cycle entry: grant their consent and set
+ * a goal per assessment, idempotently. Self-served students (any real email) are
+ * provisioned here the first time they predict — no seeded roster required.
+ */
+export async function provisionStudent(world: World, studentId: Id): Promise<void> {
+  if (await isProvisioned(world, studentId)) return;
+  await world.consentService.grant({
+    studentId,
+    grantorType: "self",
+    scopes: ["academic", "affect", "telemetry"],
+  });
+  for (const a of world.assessments) {
+    await world.services.captureGoal({
+      studentId,
+      assessmentId: a.id,
+      targetScore: 0.7,
+      whyItMatters: "I want to know where I really stand.",
+    });
+  }
 }
 
 /** The assessment with this id, or null. */

@@ -8,7 +8,6 @@ import {
   assessmentById,
   getWorld,
   isKnownAssessment,
-  isKnownStudent,
   SKILL_NAMES,
 } from "@/app/_world/world";
 import { buildReflectionProbes, type WrongItem } from "@/domain";
@@ -34,11 +33,7 @@ export default async function ReflectPage({
 
   const world = await getWorld();
   const assessment = assessmentById(world, assessmentId);
-  if (
-    assessment === null ||
-    !isKnownAssessment(world, assessmentId) ||
-    !isKnownStudent(world, studentId)
-  ) {
+  if (assessment === null || !isKnownAssessment(world, assessmentId)) {
     notFound();
   }
   const outcome = await world.repos.outcomes.findByAssessmentAndStudent(

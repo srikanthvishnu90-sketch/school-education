@@ -22,14 +22,18 @@ test("a provisioned student signs in with a magic link", async ({ page }) => {
   await expect(page.getByText("Your learning map")).toBeVisible();
 });
 
-test("an unknown email does not reveal whether it is provisioned", async ({
+test("a brand-new email self-signs-up and can start a real cycle", async ({
   page,
 }) => {
   await page.goto("/signin");
-  await page.getByLabel("Sign in with your school email").fill("stranger@example.com");
+  await page.getByLabel("Sign in with your school email").fill("brand.new@school.org");
   await page.getByRole("button", { name: "Send link" }).click();
+  await page.getByRole("link", { name: "Open your link" }).click();
 
-  // Same reassuring copy, and NO usable link is surfaced.
-  await expect(page.getByText("a sign-in link is on its way", { exact: false })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Open your link" })).toHaveCount(0);
+  // A fresh student lands on their (empty) map and is invited to start.
+  await expect(page).toHaveURL(/\/map/);
+  await page.getByRole("link", { name: "Make a guess" }).click();
+  await expect(page).toHaveURL(/\/predict\//);
+  // Provisioned on entry — they can answer the first item.
+  await expect(page.getByLabel("Your answer")).toBeVisible();
 });

@@ -39,8 +39,18 @@ describe("directory", () => {
     expect(lookupByEmail("counselor@demo.school")?.role).toBe("counselor");
   });
 
-  it("does not find an unprovisioned email", () => {
-    expect(lookupByEmail("stranger@example.com")).toBeNull();
+  it("self-signs-up any plausible email as a student (stable, storage-free id)", () => {
+    const user = lookupByEmail("new.student@school.org");
+    expect(user?.role).toBe("student");
+    // Deterministic: the same email always maps to the same account.
+    expect(lookupByEmail("new.student@school.org")?.id).toBe(user?.id);
+    // A self-served student is never one of the elevated fixed roles.
+    expect(user?.id).not.toBe("teacher-1");
+  });
+
+  it("returns null for garbage that isn't an email", () => {
+    expect(lookupByEmail("not-an-email")).toBeNull();
+    expect(lookupByEmail("")).toBeNull();
   });
 });
 

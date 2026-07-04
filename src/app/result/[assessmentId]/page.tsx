@@ -8,7 +8,6 @@ import {
   assessmentById,
   getWorld,
   isKnownAssessment,
-  isKnownStudent,
 } from "@/app/_world/world";
 import { accuracy, perSkill, type SkillCalibration } from "@/domain";
 
@@ -28,11 +27,7 @@ export default async function ResultPage({
 
   const world = await getWorld();
   const assessment = assessmentById(world, assessmentId);
-  if (
-    assessment === null ||
-    !isKnownAssessment(world, assessmentId) ||
-    !isKnownStudent(world, studentId)
-  ) {
+  if (assessment === null || !isKnownAssessment(world, assessmentId)) {
     notFound();
   }
 

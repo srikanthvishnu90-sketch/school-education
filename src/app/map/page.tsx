@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { getSessionStudent } from "@/app/_world/session";
-import { SKILL_NAMES, getWorld, isKnownStudent } from "@/app/_world/world";
+import { SKILL_NAMES, getWorld } from "@/app/_world/world";
 import { accuracy } from "@/domain";
 
 /**
@@ -25,41 +25,37 @@ export default async function MapPage(): Promise<ReactElement> {
   if (studentId === null) redirect("/signin");
 
   const world = await getWorld();
-  const known = isKnownStudent(world, studentId);
   const map = world.learningMap;
   const bands = [...map.bands].sort((a, b) => a.order - b.order);
 
-  // Every completed cycle, in order — a belief↔reality point each.
+  // Every completed cycle, in order — a belief↔reality point each. A signed-in
+  // student who hasn't started simply has none yet (the empty "make a guess" state).
   const points: CyclePoint[] = [];
   let nextUnstarted: { id: string; cycleN: number } | null = null;
-  if (known) {
-    for (let i = 0; i < world.assessments.length; i += 1) {
-      const a = world.assessments[i];
-      const prediction = await world.repos.predictions.findByAssessmentAndStudent(
-        a.id,
-        studentId,
-      );
-      const outcome = await world.repos.outcomes.findByAssessmentAndStudent(
-        a.id,
-        studentId,
-      );
-      if (prediction !== null && outcome !== null) {
-        points.push({
-          cycleN: i + 1,
-          predicted: prediction.globalPredicted,
-          achieved: accuracy(prediction, outcome) ?? 0,
-        });
-      } else if (nextUnstarted === null) {
-        nextUnstarted = { id: a.id, cycleN: i + 1 };
-      }
+  for (let i = 0; i < world.assessments.length; i += 1) {
+    const a = world.assessments[i];
+    const prediction = await world.repos.predictions.findByAssessmentAndStudent(
+      a.id,
+      studentId,
+    );
+    const outcome = await world.repos.outcomes.findByAssessmentAndStudent(
+      a.id,
+      studentId,
+    );
+    if (prediction !== null && outcome !== null) {
+      points.push({
+        cycleN: i + 1,
+        predicted: prediction.globalPredicted,
+        achieved: accuracy(prediction, outcome) ?? 0,
+      });
+    } else if (nextUnstarted === null) {
+      nextUnstarted = { id: a.id, cycleN: i + 1 };
     }
   }
 
-  const namedFeeling =
-    known &&
-    (await world.repos.affects.listByStudent(studentId)).some(
-      (a) => a.phase === "post_evidence",
-    );
+  const namedFeeling = (
+    await world.repos.affects.listByStudent(studentId)
+  ).some((a) => a.phase === "post_evidence");
 
   // Teacher-recorded grades imported from the gradebook (p7) — a separate record,
   // never folded into the belief↔reality trajectory.
