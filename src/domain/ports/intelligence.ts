@@ -1,5 +1,11 @@
 import type { Lesson, LessonAnalysis } from "../intelligence/lesson";
-import type { ReflectionQuestionSet } from "../intelligence/question";
+import type {
+  QuestionCategory,
+  QuestionFormat,
+  ReflectionQuestionSet,
+} from "../intelligence/question";
+import type { ReflectionSession, ReflectionStage } from "../intelligence/session";
+import type { ExtractedSignals } from "../intelligence/signals";
 
 /**
  * ReflectionIntelligence — the AI service seam for the reflection loop. It is
@@ -29,6 +35,35 @@ export interface GenerateQuestionsInput {
   adaptiveFollowups: boolean;
 }
 
+export interface NextTurnInput {
+  session: ReflectionSession;
+  questionSet: ReflectionQuestionSet;
+}
+
+/**
+ * The next move in the adaptive conversation. `question` asks one thing; `summary`
+ * means enough is known to end and summarize; `safety` means a possible safety
+ * concern surfaced and the normal reflection must stop. Safety is decided by
+ * deterministic detection, NEVER by the model (CLAUDE.md → AI never sets a safety
+ * outcome).
+ */
+export type ConversationStep =
+  | {
+      kind: "question";
+      stage: ReflectionStage;
+      category: QuestionCategory;
+      text: string;
+      format: QuestionFormat;
+      options?: string[];
+    }
+  | { kind: "summary" }
+  | { kind: "safety" };
+
+export interface ExtractSignalsInput {
+  session: ReflectionSession;
+  analysis?: LessonAnalysis;
+}
+
 export interface ReflectionIntelligence {
   /** Read a lesson: topic, likely misconceptions, emotional pressure points, focus. */
   analyzeLesson(input: AnalyzeLessonInput): Promise<LessonAnalysis>;
@@ -36,4 +71,8 @@ export interface ReflectionIntelligence {
   generateReflectionQuestions(
     input: GenerateQuestionsInput,
   ): Promise<ReflectionQuestionSet>;
+  /** Decide the next conversational move given the session so far. */
+  nextTurn(input: NextTurnInput): Promise<ConversationStep>;
+  /** Tag the conversation onto the closed technical/emotional/behavioral/context sets. */
+  extractSignals(input: ExtractSignalsInput): Promise<ExtractedSignals>;
 }

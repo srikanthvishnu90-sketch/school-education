@@ -95,3 +95,110 @@ export const reflectionQuestionSetSchema = z.object({
   maxFollowups: z.number().int().min(0).max(4),
   createdAt: z.date(),
 });
+
+// --- Extracted signals (closed taxonomies) -----------------------------------
+
+export const technicalSignalSchema = z.enum([
+  "understood_concept",
+  "misunderstood_concept",
+  "unclear_step",
+  "can_explain",
+  "independent_application",
+  "misconception",
+  "recall_difficulty",
+  "application_difficulty",
+  "reading_difficulty",
+  "time_management",
+  "careless_error",
+  "prerequisite_gap",
+]);
+
+export const emotionalSignalSchema = z.enum([
+  "confident",
+  "frustrated",
+  "interested",
+  "bored",
+  "embarrassed",
+  "discouraged",
+  "curious",
+  "rushed",
+  "overwhelmed",
+  "comfortable_asking_help",
+  "fear_of_mistakes",
+  "sense_of_progress",
+]);
+
+export const behavioralSignalSchema = z.enum([
+  "asked_for_help",
+  "avoided_help",
+  "kept_trying",
+  "stopped_working",
+  "guessed",
+  "rushed",
+  "checked_work",
+  "used_notes",
+  "relied_on_examples",
+  "collaborated",
+  "disengaged",
+  "sought_clarification",
+  "changed_strategy",
+]);
+
+export const contextSignalSchema = z.enum([
+  "individual_work",
+  "group_work",
+  "teacher_led",
+  "independent_work",
+  "assessment",
+  "time_pressure",
+  "peer_comparison",
+  "classroom_participation",
+]);
+
+export const extractedSignalsSchema = z.object({
+  technical: z.array(technicalSignalSchema),
+  emotional: z.array(emotionalSignalSchema),
+  behavioral: z.array(behavioralSignalSchema),
+  context: z.array(contextSignalSchema),
+});
+
+// --- Adaptive reflection session (the student chat) --------------------------
+
+export const messageSenderSchema = z.enum(["student", "ai"]);
+
+export const reflectionStageSchema = z.enum([
+  "overall",
+  "technical",
+  "emotional",
+  "behavioral",
+  "support",
+  "action",
+]);
+
+export const sessionStatusSchema = z.enum([
+  "active",
+  "completed",
+  "abandoned",
+  "escalated",
+]);
+
+export const reflectionMessageSchema = z.object({
+  id: idSchema,
+  sessionId: idSchema,
+  sender: messageSenderSchema,
+  text: z.string().min(1),
+  category: questionCategorySchema.optional(),
+  createdAt: z.date(),
+});
+
+export const reflectionSessionSchema = z.object({
+  id: idSchema,
+  reflectionId: idSchema,
+  studentId: idSchema,
+  status: sessionStatusSchema,
+  messages: z.array(reflectionMessageSchema),
+  selectedAction: z.string().min(1).optional(),
+  studentConfirmedSummary: z.boolean().optional(),
+  startedAt: z.date(),
+  completedAt: z.date().optional(),
+});

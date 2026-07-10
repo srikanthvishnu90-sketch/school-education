@@ -2,11 +2,16 @@ import type { z } from "zod";
 
 import type { Lesson, LessonAnalysis } from "./lesson";
 import type { GeneratedQuestion, ReflectionQuestionSet } from "./question";
+import type { ReflectionMessage, ReflectionSession } from "./session";
+import type { ExtractedSignals } from "./signals";
 import type {
+  extractedSignalsSchema,
   generatedQuestionSchema,
   lessonAnalysisSchema,
   lessonSchema,
+  reflectionMessageSchema,
   reflectionQuestionSetSchema,
+  reflectionSessionSchema,
 } from "../schemas/intelligence";
 
 /**
@@ -30,4 +35,13 @@ export type _GeneratedQuestionSync = Expect<
 >;
 export type _ReflectionQuestionSetSync = Expect<
   Equal<ReflectionQuestionSet, z.infer<typeof reflectionQuestionSetSchema>>
+>;
+export type _ExtractedSignalsSync = Expect<
+  Equal<ExtractedSignals, z.infer<typeof extractedSignalsSchema>>
+>;
+export type _ReflectionMessageSync = Expect<
+  Equal<ReflectionMessage, z.infer<typeof reflectionMessageSchema>>
+>;
+export type _ReflectionSessionSync = Expect<
+  Equal<ReflectionSession, z.infer<typeof reflectionSessionSchema>>
 >;

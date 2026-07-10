@@ -114,7 +114,7 @@ describe("LLM reflection intelligence (fake gateway)", () => {
       gateway,
       fallback: deterministic,
       now: () => NOW,
-      config: { tasks: { analyze: false, generate: false } },
+      config: { tasks: { analyze: false, generate: false, converse: false, signals: false } },
     });
     const a = await ai.analyzeLesson({ lesson: lesson() });
     expect(a.topic).toBe("Balancing chemical equations");
