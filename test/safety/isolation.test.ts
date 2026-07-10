@@ -40,19 +40,20 @@ describe("src/safety isolation", () => {
     expect(offenders, offenders.join("\n")).toEqual([]);
   });
 
-  it("the analytics and agent modules never reference escalation data", () => {
+  it("the analytics and intelligence modules never reference escalation data", () => {
+    // The reflection-intelligence layer and pilot analytics summarize learning;
+    // they must never import the safety module or reason about crisis data. Safety
+    // detection is injected as an opaque boolean hook and lives only behind the
+    // capture boundary (src/app/_world/safetyWorld.ts).
     const analytics = [
-      "src/application/efficacy.ts",
-      "src/domain/cohort.ts",
-      "src/domain/responseQuality.ts",
-      "src/application/agent/policy.ts",
-      "src/application/agent/observe.ts",
+      "src/application/pilot.ts",
+      "src/adapters/intelligence/llm.ts",
+      "src/domain/intelligence/insight.ts",
+      "src/domain/intelligence/signals.ts",
     ];
     for (const file of analytics) {
       const src = readFileSync(file, "utf8");
       expect(IMPORTS_SAFETY.test(src), `${file} imports safety`).toBe(false);
-      // "escalation" alone is a legitimate P7 verification term; forbid the
-      // crisis-specific reference (the safety concern) instead.
       expect(/crisis/i.test(src), `${file} references crisis`).toBe(false);
     }
   });

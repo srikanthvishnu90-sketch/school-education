@@ -2,10 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { Assessment } from "@/domain/skill";
 import type { LearningGoal } from "@/domain/goal";
-import type { Prediction } from "@/domain/prediction";
 import type { Outcome } from "@/domain/outcome";
 import type { Reflection } from "@/domain/reflection";
-import type { CalibrationRecord } from "@/domain/calibration";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot } from "@/domain/emotion";
@@ -14,13 +12,11 @@ import type { Clock } from "@/domain/ports";
 import {
   createPgAffectRepository,
   createPgAssessmentRepository,
-  createPgCalibrationRepository,
   createPgClient,
   createPgEvidenceProvider,
   createPgGoalRepository,
   createPgLearningMapRepository,
   createPgOutcomeRepository,
-  createPgPredictionRepository,
   createPgReflectionRepository,
   createPgTransferProbeRepository,
   runMigrations,
@@ -28,7 +24,6 @@ import {
   truncateAll,
   type PoolClient,
 } from "@/adapters/supabase";
-import { buildPersistentWorld } from "@/application/persistent";
 import { defineRepositoryContract } from "../../support/repositoryContract";
 import { defineProviderContract } from "../../support/providerContract";
 
@@ -58,14 +53,6 @@ const goal = (target: number): LearningGoal => ({
   whyItMatters: "reason",
   createdAt: AT,
 });
-const prediction = (gp: number): Prediction => ({
-  id: "p1",
-  assessmentId: "a1",
-  studentId: "s1",
-  itemPredictions: [{ itemId: "item-1", confidence: 0.5 }],
-  globalPredicted: gp,
-  createdAt: AT,
-});
 const outcome = (correct: boolean): Outcome => ({
   id: "o1",
   assessmentId: "a1",
@@ -81,16 +68,6 @@ const reflection = (reviewed: boolean): Reflection => ({
   nextAction: { text: "do", dueBy: AT },
   exemplarReviewed: reviewed,
   createdAt: AT,
-});
-const calibration = (brier: number): CalibrationRecord => ({
-  id: "c1",
-  assessmentId: "a1",
-  studentId: "s1",
-  brier,
-  bias: 0,
-  resolution: 0,
-  itemCount: 1,
-  computedAt: AT,
 });
 const probe = (itemId: string): TransferProbe => ({
   id: "tp1",
@@ -200,16 +177,6 @@ suite("Postgres adapters — existing contracts, second implementation", () => {
     findById: (r, id) => r.findById(id),
   });
   defineRepositoryContract({
-    name: "PgPredictionRepository",
-    makeRepo: () => createPgPredictionRepository(client, clock),
-    entityA: prediction(0.5),
-    entityB: prediction(0.9),
-    keyA: "p1",
-    unknownKey: "nope",
-    save: (r, e) => r.save(e),
-    findById: (r, id) => r.findById(id),
-  });
-  defineRepositoryContract({
     name: "PgOutcomeRepository",
     makeRepo: () => createPgOutcomeRepository(client, clock),
     entityA: outcome(true),
@@ -225,16 +192,6 @@ suite("Postgres adapters — existing contracts, second implementation", () => {
     entityA: reflection(true),
     entityB: reflection(false),
     keyA: "r1",
-    unknownKey: "nope",
-    save: (r, e) => r.save(e),
-    findById: (r, id) => r.findById(id),
-  });
-  defineRepositoryContract({
-    name: "PgCalibrationRepository",
-    makeRepo: () => createPgCalibrationRepository(client, clock),
-    entityA: calibration(0.1),
-    entityB: calibration(0.2),
-    keyA: "c1",
     unknownKey: "nope",
     save: (r, e) => r.save(e),
     findById: (r, id) => r.findById(id),
@@ -307,37 +264,13 @@ suite("Postgres adapters — existing contracts, second implementation", () => {
       expect(new Date(rows[0].created_at).toISOString()).toBe(fixed.toISOString());
     });
 
-    it("findByAssessmentAndStudent returns the latest, listByStudent preserves order", async () => {
-      const preds = createPgPredictionRepository(client, clock);
-      await preds.save({ ...prediction(0.5), id: "qp1", studentId: "qsp" });
-      await preds.save({ ...prediction(0.9), id: "qp2", studentId: "qsp" });
-      const found = await preds.findByAssessmentAndStudent("a1", "qsp");
-      expect(found?.id).toBe("qp2");
-
+    it("listByStudent preserves insertion order", async () => {
       const goals = createPgGoalRepository(client, clock);
       await goals.save({ ...goal(0.5), id: "qg1", studentId: "qs1" });
       await goals.save({ ...goal(0.6), id: "qg2", studentId: "qs2" });
       await goals.save({ ...goal(0.7), id: "qg3", studentId: "qs1" });
       const forS1 = await goals.listByStudent("qs1");
       expect(forS1.map((g) => g.id)).toEqual(["qg1", "qg3"]);
-    });
-  });
-
-  describe("buildPersistentWorld", () => {
-    it("runs the full seeded loop on Postgres and round-trips a reflection", async () => {
-      const world = await buildPersistentWorld({ client });
-      const gap = await world.services.computeGap(world.assessmentId, "student-avery");
-      expect(gap.calibration.n).toBeGreaterThan(0);
-
-      const saved = await world.services.submitReflection({
-        studentId: "student-avery",
-        assessmentId: world.assessmentId,
-        attribution: { category: "strategy", specific: true, controllable: true, note: "n" },
-        nextAction: { text: "redo the slope items", dueBy: new Date("2026-02-01T00:00:00.000Z") },
-        exemplarReviewed: true,
-      });
-      const back = await world.repos.reflections.findById(saved.id);
-      expect(back).toEqual(saved);
     });
   });
 });

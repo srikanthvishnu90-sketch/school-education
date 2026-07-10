@@ -21,29 +21,6 @@ export class NotFoundError extends ApplicationError {
   }
 }
 
-/** capturePrediction: the prediction did not cover exactly the assessment's items. */
-export class ItemCoverageError extends ApplicationError {
-  constructor(
-    readonly missing: Id[],
-    readonly extra: Id[],
-    readonly duplicated: boolean = false,
-  ) {
-    super(
-      `prediction item coverage mismatch — missing: [${missing.join(", ")}], ` +
-        `extra: [${extra.join(", ")}]${duplicated ? ", duplicate item predictions" : ""}`,
-    );
-    this.name = "ItemCoverageError";
-  }
-}
-
-/** recordOutcome: the prediction was not registered strictly before the outcome. */
-export class PredictionAfterOutcomeError extends ApplicationError {
-  constructor(message: string) {
-    super(message);
-    this.name = "PredictionAfterOutcomeError";
-  }
-}
-
 /** captureAffect: a snapshot that names zero states. */
 export class EmptyAffectError extends ApplicationError {
   constructor() {

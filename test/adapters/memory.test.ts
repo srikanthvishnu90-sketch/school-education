@@ -2,22 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import type { Assessment } from "@/domain/skill";
 import type { LearningGoal } from "@/domain/goal";
-import type { Prediction } from "@/domain/prediction";
 import type { Outcome } from "@/domain/outcome";
 import type { Reflection } from "@/domain/reflection";
-import type { CalibrationRecord } from "@/domain/calibration";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot } from "@/domain/emotion";
 import {
   createAffectRepository,
   createAssessmentRepository,
-  createCalibrationRepository,
   createEmotionVocabularyRepository,
   createGoalRepository,
   createLearningMapRepository,
   createOutcomeRepository,
-  createPredictionRepository,
   createReflectionRepository,
   createSequentialClock,
   createSequentialIdGenerator,
@@ -41,14 +37,6 @@ const goal = (target: number): LearningGoal => ({
   whyItMatters: "reason",
   createdAt: AT,
 });
-const prediction = (gp: number): Prediction => ({
-  id: "p1",
-  assessmentId: "a1",
-  studentId: "s1",
-  itemPredictions: [{ itemId: "item-1", confidence: 0.5 }],
-  globalPredicted: gp,
-  createdAt: AT,
-});
 const outcome = (correct: boolean): Outcome => ({
   id: "o1",
   assessmentId: "a1",
@@ -69,16 +57,6 @@ const reflection = (reviewed: boolean): Reflection => ({
   nextAction: { text: "do", dueBy: AT },
   exemplarReviewed: reviewed,
   createdAt: AT,
-});
-const calibration = (brier: number): CalibrationRecord => ({
-  id: "c1",
-  assessmentId: "a1",
-  studentId: "s1",
-  brier,
-  bias: 0,
-  resolution: 0,
-  itemCount: 1,
-  computedAt: AT,
 });
 const probe = (itemId: string): TransferProbe => ({
   id: "tp1",
@@ -123,16 +101,6 @@ defineRepositoryContract({
   findById: (r, id) => r.findById(id),
 });
 defineRepositoryContract({
-  name: "PredictionRepository",
-  makeRepo: createPredictionRepository,
-  entityA: prediction(0.5),
-  entityB: prediction(0.9),
-  keyA: "p1",
-  unknownKey: "nope",
-  save: (r, e) => r.save(e),
-  findById: (r, id) => r.findById(id),
-});
-defineRepositoryContract({
   name: "OutcomeRepository",
   makeRepo: createOutcomeRepository,
   entityA: outcome(true),
@@ -148,16 +116,6 @@ defineRepositoryContract({
   entityA: reflection(true),
   entityB: reflection(false),
   keyA: "r1",
-  unknownKey: "nope",
-  save: (r, e) => r.save(e),
-  findById: (r, id) => r.findById(id),
-});
-defineRepositoryContract({
-  name: "CalibrationRepository",
-  makeRepo: createCalibrationRepository,
-  entityA: calibration(0.1),
-  entityB: calibration(0.2),
-  keyA: "c1",
   unknownKey: "nope",
   save: (r, e) => r.save(e),
   findById: (r, id) => r.findById(id),
@@ -201,15 +159,6 @@ describe("query methods return deterministic, filtered results", () => {
     await repo.save({ ...goal(0.7), id: "g3", studentId: "s1" });
     const forS1 = await repo.listByStudent("s1");
     expect(forS1.map((g) => g.id)).toEqual(["g1", "g3"]);
-  });
-
-  it("PredictionRepository.findByAssessmentAndStudent returns the latest match", async () => {
-    const repo = createPredictionRepository();
-    await repo.save({ ...prediction(0.5), id: "p1" });
-    await repo.save({ ...prediction(0.9), id: "p2" });
-    const found = await repo.findByAssessmentAndStudent("a1", "s1");
-    expect(found?.id).toBe("p2");
-    expect(await repo.findByAssessmentAndStudent("a1", "other")).toBeNull();
   });
 
   it("AffectRepository.listByAssessmentAndStudent filters correctly", async () => {

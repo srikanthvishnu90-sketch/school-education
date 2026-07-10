@@ -60,10 +60,10 @@ suite("RLS policies — forbidden access fails at the database", () => {
     // Idempotent inserts (no truncate) so this coexists with the contract suite
     // running in parallel against the same DB — RLS isolates these reads anyway.
     await service.query(
-      `insert into academic.predictions (id, tenant_id, student_id, assessment_id, data, created_at) values
-        ('pred-A','school-1','stu-A','a1','{}','2026-01-01'),
-        ('pred-B','school-1','stu-B','a1','{}','2026-01-01'),
-        ('pred-C','school-2','stu-C','a1','{}','2026-01-01')
+      `insert into academic.outcomes (id, tenant_id, student_id, assessment_id, data, created_at) values
+        ('out-A','school-1','stu-A','a1','{}','2026-01-01'),
+        ('out-B','school-1','stu-B','a1','{}','2026-01-01'),
+        ('out-C','school-2','stu-C','a1','{}','2026-01-01')
        on conflict (id) do nothing`,
     );
     await service.query(
@@ -108,25 +108,25 @@ suite("RLS policies — forbidden access fails at the database", () => {
   });
 
   it("student reads own rows, and CANNOT fetch another student's", async () => {
-    expect(await idsAs(AS.studentA, "select id from academic.predictions")).toEqual([
-      "pred-A",
+    expect(await idsAs(AS.studentA, "select id from academic.outcomes")).toEqual([
+      "out-A",
     ]);
     expect(
-      await idsAs(AS.studentA, "select id from academic.predictions where id = $1", [
-        "pred-B",
+      await idsAs(AS.studentA, "select id from academic.outcomes where id = $1", [
+        "out-B",
       ]),
     ).toEqual([]);
   });
 
   it("no role crosses tenant", async () => {
     expect(
-      await idsAs(AS.studentA, "select id from academic.predictions where id = $1", [
-        "pred-C",
+      await idsAs(AS.studentA, "select id from academic.outcomes where id = $1", [
+        "out-C",
       ]),
     ).toEqual([]);
     expect(
-      await idsAs(AS.studentC, "select id from academic.predictions where id = $1", [
-        "pred-A",
+      await idsAs(AS.studentC, "select id from academic.outcomes where id = $1", [
+        "out-A",
       ]),
     ).toEqual([]);
     expect(await idsAs(AS.teacher, "select id from academic.cohort_reports")).toEqual(
@@ -136,16 +136,16 @@ suite("RLS policies — forbidden access fails at the database", () => {
 
   it("teacher reads academic aggregates for own class — NEVER reflections or affect", async () => {
     expect(
-      await idsAs(AS.teacher, "select id from academic.predictions order by id"),
-    ).toEqual(["pred-A", "pred-B"]);
+      await idsAs(AS.teacher, "select id from academic.outcomes order by id"),
+    ).toEqual(["out-A", "out-B"]);
     expect(await idsAs(AS.teacher, "select id from academic.reflections")).toEqual([]);
     expect(
       await idsAs(AS.teacher, "select id from emotional.affect_snapshots"),
     ).toEqual([]);
     // A student outside the teacher's class is invisible even in the same reach.
     expect(
-      await idsAs(AS.teacher, "select id from academic.predictions where id = $1", [
-        "pred-C",
+      await idsAs(AS.teacher, "select id from academic.outcomes where id = $1", [
+        "out-C",
       ]),
     ).toEqual([]);
   });
@@ -154,7 +154,7 @@ suite("RLS policies — forbidden access fails at the database", () => {
     expect(await idsAs(AS.admin, "select id from academic.cohort_reports")).toEqual([
       "rep-1",
     ]);
-    expect(await idsAs(AS.admin, "select id from academic.predictions")).toEqual([]);
+    expect(await idsAs(AS.admin, "select id from academic.outcomes")).toEqual([]);
     expect(await idsAs(AS.admin, "select id from academic.reflections")).toEqual([]);
     expect(
       await idsAs(AS.admin, "select id from emotional.affect_snapshots"),
@@ -173,7 +173,7 @@ suite("RLS policies — forbidden access fails at the database", () => {
       ]),
     ).toEqual([]);
     // The counselor can read NOTHING else — not predictions, reflections, affect, cohorts.
-    expect(await idsAs(AS.counselor, "select id from academic.predictions")).toEqual([]);
+    expect(await idsAs(AS.counselor, "select id from academic.outcomes")).toEqual([]);
     expect(await idsAs(AS.counselor, "select id from academic.reflections")).toEqual([]);
     expect(
       await idsAs(AS.counselor, "select id from emotional.affect_snapshots"),
@@ -205,7 +205,7 @@ suite("RLS policies — forbidden access fails at the database", () => {
     const client = await createAuthenticatedClient(AUTH_DB, AS.studentA);
     try {
       await expect(
-        client.query("alter table academic.predictions disable row level security"),
+        client.query("alter table academic.outcomes disable row level security"),
       ).rejects.toBeTruthy();
     } finally {
       await client.end();

@@ -1,29 +1,25 @@
 import type { ReactElement } from "react";
-import { DEMO_ASSESSMENT_ID, getWorld } from "@/app/_world/world";
-import {
-  TEACHER_NAME,
-  getTeacherWorld,
-  studentDisplayName,
-} from "@/app/_world/teacher";
+import { getWorld } from "@/app/_world/world";
+import { DEMO_REFLECTION_ID } from "@/app/_world/intelligence";
+import { TEACHER_ID, TEACHER_NAME, studentDisplayName } from "@/app/_world/teacher";
 import { COUNSELOR_ID, COUNSELOR_NAME } from "@/app/_world/roles";
 import SignInList from "./SignInList";
 
 export default async function SignInPage(): Promise<ReactElement> {
   const world = await getWorld();
-  const teacher = await getTeacherWorld();
 
   const entries = [
     ...world.students.map((s) => ({
       id: s.id,
       name: studentDisplayName(s.id),
       role: "Student",
-      href: `/predict/${DEMO_ASSESSMENT_ID}`,
+      href: `/chat/${DEMO_REFLECTION_ID}`,
     })),
     {
-      id: teacher.teacherId,
+      id: TEACHER_ID,
       name: TEACHER_NAME,
       role: "Teacher",
-      href: `/class/${teacher.classId}`,
+      href: "/lessons",
     },
     {
       id: COUNSELOR_ID,

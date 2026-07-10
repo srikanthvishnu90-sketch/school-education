@@ -1,13 +1,10 @@
-import { createDeterministicLanguageCapability } from "@/adapters/language";
 import {
   createSequentialClock,
   createSequentialIdGenerator,
 } from "@/adapters/memory";
 import {
-  createPgActionVerificationRepository,
   createPgAffectRepository,
   createPgAssessmentRepository,
-  createPgCalibrationRepository,
   createPgClient,
   createPgConsentRepository,
   createPgEmotionVocabularyRepository,
@@ -16,43 +13,23 @@ import {
   createPgLearningMapRepository,
   createPgOutcomeRepository,
   createPgPilotEventRepository,
-  createPgPredictionRepository,
   createPgPseudonymRepository,
   createPgReflectionRepository,
-  createPgResponseQualityRepository,
   createPgTransferProbeRepository,
   applyRls,
   runMigrations,
   type SqlClient,
 } from "@/adapters/supabase";
-import {
-  createAgentLoop,
-  createObserver,
-  interventionPolicy,
-} from "./agent";
-import {
-  ASSESSMENT_ID,
-  CLASS_ID,
-  ITEM_IDS,
-  SEED_STUDENTS,
-  START_EPOCH,
-  buildAssessment,
-  buildEmotionVocabulary,
-  buildLearningMap,
-  type Repos,
-  type SeededWorld,
-  type WorldCore,
-} from "./seed";
+import { START_EPOCH, type Repos, type WorldCore } from "./seed";
 import { createConsentService } from "./consent";
 import { createPilotTelemetry } from "./pilot";
 import { createServices } from "./services";
-import { createVerificationService } from "./verification";
 
 /**
- * The persistent composition root. It wires the SAME services and agent as
- * buildWorldCore, but over the Postgres adapters instead of the in-memory ones —
- * the domain is untouched; only the adapters change. Migrations are applied on
- * build; the injected clock stamps every row's created_at.
+ * The persistent composition root. It wires the SAME services as buildWorldCore,
+ * but over the Postgres adapters instead of the in-memory ones — the domain is
+ * untouched; only the adapters change. Migrations are applied on build; the
+ * injected clock stamps every row's created_at.
  */
 
 export interface PersistentOptions {
@@ -79,20 +56,14 @@ export async function buildPersistentCore(
   const repos: Repos = {
     assessments: createPgAssessmentRepository(client, clock),
     goals: createPgGoalRepository(client, clock),
-    predictions: createPgPredictionRepository(client, clock),
     outcomes: createPgOutcomeRepository(client, clock),
     reflections: createPgReflectionRepository(client, clock),
-    calibrations: createPgCalibrationRepository(client, clock),
     transferProbes: createPgTransferProbeRepository(client, clock),
     learningMaps: createPgLearningMapRepository(client, clock),
     affects: createPgAffectRepository(client, clock),
     emotionVocab: createPgEmotionVocabularyRepository(client, clock),
-    verifications: createPgActionVerificationRepository(client, clock),
     consent: createPgConsentRepository(client, clock),
     flagAcks: createPgFlagAcknowledgementRepository(client, clock),
-    // Pilot metadata is now PG-backed too, so it survives restarts under Postgres
-    // (service-role-only tables; never reachable from any signed-in surface).
-    responseQuality: createPgResponseQualityRepository(client, clock),
     pilotEvents: createPgPilotEventRepository(client, clock),
   };
 
@@ -101,13 +72,11 @@ export async function buildPersistentCore(
     ids,
     assessments: repos.assessments,
     goals: repos.goals,
-    predictions: repos.predictions,
     outcomes: repos.outcomes,
     reflections: repos.reflections,
     transferProbes: repos.transferProbes,
     affects: repos.affects,
     consent: repos.consent,
-    responseQuality: repos.responseQuality,
   });
 
   const consentService = createConsentService({
@@ -117,42 +86,11 @@ export async function buildPersistentCore(
     affects: repos.affects,
   });
 
-  const verification = createVerificationService({
-    clock,
-    ids,
-    assessments: repos.assessments,
-    predictions: repos.predictions,
-    outcomes: repos.outcomes,
-    verifications: repos.verifications,
-  });
-
-  const agent = createAgentLoop({
-    observer: createObserver({
-      clock,
-      assessments: repos.assessments,
-      predictions: repos.predictions,
-      outcomes: repos.outcomes,
-      goals: repos.goals,
-      affects: repos.affects,
-      reflections: repos.reflections,
-      calibrations: repos.calibrations,
-      verifications: repos.verifications,
-      flagAcks: repos.flagAcks,
-      responseQuality: repos.responseQuality,
-    }),
-    policy: interventionPolicy,
-    services,
-    assessments: repos.assessments,
-    language: createDeterministicLanguageCapability(),
-    clock,
-  });
-
   const telemetry = createPilotTelemetry({
     clock,
     consent: repos.consent,
     pseudonyms: createPgPseudonymRepository(client, clock),
     events: repos.pilotEvents,
-    responseQuality: repos.responseQuality,
   });
 
   return {
@@ -160,77 +98,8 @@ export async function buildPersistentCore(
     clock,
     ids,
     services,
-    verification,
     consentService,
-    agent,
     telemetry,
     client,
-  };
-}
-
-/**
- * buildPersistentWorld — mirrors buildSeededWorld exactly (same static world,
- * same archetype loop) but against Postgres, so the whole two-axis story runs
- * end to end on a real database. Selectable by env in the app.
- */
-export async function buildPersistentWorld(
-  opts: PersistentOptions = {},
-): Promise<SeededWorld> {
-  const core = await buildPersistentCore(opts);
-
-  await core.repos.assessments.save(buildAssessment());
-  await core.repos.learningMaps.save(buildLearningMap());
-  await core.repos.emotionVocab.save(buildEmotionVocabulary());
-
-  for (const s of SEED_STUDENTS) {
-    await core.consentService.grant({
-      studentId: s.id,
-      grantorType: "parent",
-      scopes: ["academic", "affect"],
-    });
-    await core.services.captureGoal({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      targetScore: s.targetScore,
-      whyItMatters: s.whyItMatters,
-      successCriteriaRef: s.successCriteriaRef,
-    });
-    await core.services.capturePrediction({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      itemPredictions: ITEM_IDS.map((itemId, i) => ({
-        itemId,
-        confidence: s.confidences[i],
-      })),
-      globalPredicted: s.globalPredicted,
-    });
-    await core.services.recordOutcome({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      itemOutcomes: ITEM_IDS.map((itemId, i) => ({
-        itemId,
-        correct: s.corrects[i],
-        pointsAwarded: s.corrects[i] ? 1 : 0,
-      })),
-    });
-    await core.services.captureAffect({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      labels: s.labels,
-      phase: "post_evidence",
-    });
-  }
-
-  return {
-    services: core.services,
-    verification: core.verification,
-    consentService: core.consentService,
-    repos: core.repos,
-    agent: core.agent,
-    clock: core.clock,
-    ids: core.ids,
-    classId: CLASS_ID,
-    assessmentId: ASSESSMENT_ID,
-    students: SEED_STUDENTS.map((s) => ({ id: s.id, archetype: s.archetype })),
   };
 }

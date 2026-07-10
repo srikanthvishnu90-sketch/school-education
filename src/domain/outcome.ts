@@ -2,10 +2,8 @@ import type { Id } from "./common";
 import { itemOutcomeSchema, outcomeSchema } from "./schemas/academic";
 
 /**
- * Outcome → the objective truth, revealed AFTER the prediction. Item-level
- * correctness + points. `scoredAt` is the moment the truth became known; the
- * prediction's `createdAt` must strictly precede it (see
- * assertPredictionPrecedesOutcome in ./prediction).
+ * Outcome → the objective truth of an assessment: item-level correctness +
+ * points. `scoredAt` is the moment the truth became known.
  */
 
 export interface ItemOutcome {

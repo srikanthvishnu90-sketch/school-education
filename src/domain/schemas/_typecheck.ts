@@ -7,17 +7,10 @@ import type {
   Skill,
 } from "../skill";
 import type { LearningGoal } from "../goal";
-import type { ItemPrediction, Prediction } from "../prediction";
 import type { ItemOutcome, Outcome } from "../outcome";
 import type { Attribution, NextAction, Reflection } from "../reflection";
 import type { LearningMap, MasteryBand } from "../learningMap";
-import type { CalibrationRecord } from "../calibration";
 import type { TransferProbe } from "../transferProbe";
-import type {
-  ActionVerification,
-  SkillDrift,
-  SkillMeasure,
-} from "../verification";
 import type { ConsentRecord } from "../consent";
 import type {
   AffectSnapshot,
@@ -29,21 +22,15 @@ import type {
   assessmentItemSchema,
   assessmentSchema,
   attributionSchema,
-  calibrationRecordSchema,
   itemOutcomeSchema,
-  itemPredictionSchema,
   learningGoalSchema,
   learningMapSchema,
-  actionVerificationSchema,
   consentRecordSchema,
   masteryBandSchema,
   misconceptionSchema,
   nextActionSchema,
   outcomeSchema,
-  predictionSchema,
   reflectionSchema,
-  skillDriftSchema,
-  skillMeasureSchema,
   skillSchema,
   transferProbeSchema,
 } from "./academic";
@@ -80,12 +67,6 @@ export type _AssessmentSync = Expect<
 export type _LearningGoalSync = Expect<
   Equal<LearningGoal, z.infer<typeof learningGoalSchema>>
 >;
-export type _ItemPredictionSync = Expect<
-  Equal<ItemPrediction, z.infer<typeof itemPredictionSchema>>
->;
-export type _PredictionSync = Expect<
-  Equal<Prediction, z.infer<typeof predictionSchema>>
->;
 export type _ItemOutcomeSync = Expect<
   Equal<ItemOutcome, z.infer<typeof itemOutcomeSchema>>
 >;
@@ -107,20 +88,8 @@ export type _MasteryBandSync = Expect<
 export type _LearningMapSync = Expect<
   Equal<LearningMap, z.infer<typeof learningMapSchema>>
 >;
-export type _CalibrationRecordSync = Expect<
-  Equal<CalibrationRecord, z.infer<typeof calibrationRecordSchema>>
->;
 export type _TransferProbeSync = Expect<
   Equal<TransferProbe, z.infer<typeof transferProbeSchema>>
->;
-export type _SkillMeasureSync = Expect<
-  Equal<SkillMeasure, z.infer<typeof skillMeasureSchema>>
->;
-export type _SkillDriftSync = Expect<
-  Equal<SkillDrift, z.infer<typeof skillDriftSchema>>
->;
-export type _ActionVerificationSync = Expect<
-  Equal<ActionVerification, z.infer<typeof actionVerificationSchema>>
 >;
 export type _ConsentRecordSync = Expect<
   Equal<ConsentRecord, z.infer<typeof consentRecordSchema>>

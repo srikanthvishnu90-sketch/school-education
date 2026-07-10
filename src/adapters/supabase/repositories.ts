@@ -1,22 +1,17 @@
 import { createHash } from "node:crypto";
 import {
-  createActionVerification,
   createAffectSnapshot,
   createAssessment,
-  createCalibrationRecord,
   createConsentRecord,
   createEmotionVocabulary,
   createLearningGoal,
   createLearningMap,
   createOutcome,
   createPilotEvent,
-  createPrediction,
   createReflection,
   createTransferProbe,
-  type ActionVerification,
   type AffectSnapshot,
   type Assessment,
-  type CalibrationRecord,
   type ConsentRecord,
   type DeletionReceipt,
   type EmotionVocabulary,
@@ -25,16 +20,12 @@ import {
   type LearningMap,
   type Outcome,
   type PilotEvent,
-  type Prediction,
   type Reflection,
-  type ResponseQuality,
   type TransferProbe,
 } from "@/domain";
 import type {
-  ActionVerificationRepository,
   AffectRepository,
   AssessmentRepository,
-  CalibrationRepository,
   Clock,
   ConsentRepository,
   EmotionVocabularyRepository,
@@ -43,10 +34,8 @@ import type {
   LearningMapRepository,
   OutcomeRepository,
   PilotEventRepository,
-  PredictionRepository,
   PseudonymRepository,
   ReflectionRepository,
-  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 import { DEFAULT_TENANT_ID, type SqlClient } from "./client";
@@ -124,9 +113,6 @@ interface RawGoal extends Omit<LearningGoal, "createdAt"> {
 interface RawAssessment extends Omit<Assessment, "createdAt"> {
   createdAt: string;
 }
-interface RawPrediction extends Omit<Prediction, "createdAt"> {
-  createdAt: string;
-}
 interface RawOutcome extends Omit<Outcome, "scoredAt"> {
   scoredAt: string;
 }
@@ -135,19 +121,11 @@ interface RawReflection
   createdAt: string;
   nextAction: { text: string; dueBy: string };
 }
-interface RawCalibration extends Omit<CalibrationRecord, "computedAt"> {
-  computedAt: string;
-}
 interface RawProbe extends Omit<TransferProbe, "createdAt"> {
   createdAt: string;
 }
 interface RawAffect extends Omit<AffectSnapshot, "createdAt"> {
   createdAt: string;
-}
-interface RawVerification
-  extends Omit<ActionVerification, "openedAt" | "closedAt"> {
-  openedAt: string;
-  closedAt?: string;
 }
 interface RawConsent extends Omit<ConsentRecord, "grantedAt" | "revokedAt"> {
   grantedAt: string;
@@ -223,43 +201,6 @@ export function createPgGoalRepository(
   };
 }
 
-export function createPgPredictionRepository(
-  client: SqlClient,
-  clock: Clock,
-): PredictionRepository {
-  const revive = (raw: RawPrediction): Prediction =>
-    createPrediction({ ...raw, createdAt: d(raw.createdAt) });
-  return {
-    async save(p) {
-      await upsertRow(client, "academic.predictions", {
-        ...base(p.id),
-        student_id: p.studentId,
-        assessment_id: p.assessmentId,
-        data: JSON.stringify(p),
-        created_at: clock.now(),
-      });
-    },
-    async findById(id) {
-      const raw = await selectOne<RawPrediction>(
-        client,
-        "academic.predictions",
-        "id = $1",
-        [id],
-      );
-      return raw === null ? null : revive(raw);
-    },
-    async findByAssessmentAndStudent(assessmentId, studentId) {
-      const raw = await selectOne<RawPrediction>(
-        client,
-        "academic.predictions",
-        "assessment_id = $1 and student_id = $2",
-        [assessmentId, studentId],
-      );
-      return raw === null ? null : revive(raw);
-    },
-  };
-}
-
 export function createPgOutcomeRepository(
   client: SqlClient,
   clock: Clock,
@@ -330,43 +271,6 @@ export function createPgReflectionRepository(
       const raws = await selectMany<RawReflection>(
         client,
         "academic.reflections",
-        "student_id = $1",
-        [studentId],
-      );
-      return raws.map(revive);
-    },
-  };
-}
-
-export function createPgCalibrationRepository(
-  client: SqlClient,
-  clock: Clock,
-): CalibrationRepository {
-  const revive = (raw: RawCalibration): CalibrationRecord =>
-    createCalibrationRecord({ ...raw, computedAt: d(raw.computedAt) });
-  return {
-    async save(record) {
-      await upsertRow(client, "academic.calibration_records", {
-        ...base(record.id),
-        student_id: record.studentId,
-        assessment_id: record.assessmentId,
-        data: JSON.stringify(record),
-        created_at: clock.now(),
-      });
-    },
-    async findById(id) {
-      const raw = await selectOne<RawCalibration>(
-        client,
-        "academic.calibration_records",
-        "id = $1",
-        [id],
-      );
-      return raw === null ? null : revive(raw);
-    },
-    async listByStudent(studentId) {
-      const raws = await selectMany<RawCalibration>(
-        client,
-        "academic.calibration_records",
         "student_id = $1",
         [studentId],
       );
@@ -594,101 +498,10 @@ export function createPgEmotionVocabularyRepository(
   };
 }
 
-export function createPgActionVerificationRepository(
-  client: SqlClient,
-  clock: Clock,
-): ActionVerificationRepository {
-  const revive = (raw: RawVerification): ActionVerification => {
-    const { closedAt, openedAt, ...rest } = raw;
-    return createActionVerification({
-      ...rest,
-      openedAt: d(openedAt),
-      ...(closedAt !== undefined && closedAt !== null
-        ? { closedAt: d(closedAt) }
-        : {}),
-    });
-  };
-  return {
-    async save(verification) {
-      await upsertRow(client, "academic.action_verifications", {
-        ...base(verification.id),
-        student_id: verification.studentId,
-        target_skill_id: verification.targetSkillId,
-        data: JSON.stringify(verification),
-        created_at: clock.now(),
-      });
-    },
-    async findById(id) {
-      const raw = await selectOne<RawVerification>(
-        client,
-        "academic.action_verifications",
-        "id = $1",
-        [id],
-      );
-      return raw === null ? null : revive(raw);
-    },
-    async listByStudent(studentId) {
-      const raws = await selectMany<RawVerification>(
-        client,
-        "academic.action_verifications",
-        "student_id = $1",
-        [studentId],
-      );
-      return raws.map(revive);
-    },
-  };
-}
+// --- Pilot metadata (P17): service-role-only, PG-backed for durability --------
 
-// --- Pilot metadata (P15/P17): service-role-only, PG-backed for durability ----
-
-interface RawResponseQuality extends Omit<ResponseQuality, "at"> {
-  at: string;
-}
 interface RawPilotEvent extends Omit<PilotEvent, "at"> {
   at: string;
-}
-
-export function createPgResponseQualityRepository(
-  client: SqlClient,
-  clock: Clock,
-): ResponseQualityRepository {
-  const revive = (raw: RawResponseQuality): ResponseQuality => ({
-    ...raw,
-    at: d(raw.at),
-  });
-  return {
-    async save(q) {
-      await upsertRow(
-        client,
-        "pilot.response_quality",
-        {
-          session_id: q.sessionId,
-          student_id: q.studentId,
-          data: JSON.stringify(q),
-          created_at: clock.now(),
-        },
-        "session_id",
-      );
-    },
-    async findBySession(sessionId) {
-      const raw = await selectOne<RawResponseQuality>(
-        client,
-        "pilot.response_quality",
-        "session_id = $1",
-        [sessionId],
-      );
-      return raw === null ? null : revive(raw);
-    },
-    async listByStudent(studentId) {
-      const raws = await selectMany<RawResponseQuality>(
-        client,
-        "pilot.response_quality",
-        "student_id = $1",
-        [studentId],
-      );
-      return raws.map(revive);
-    },
-  };
 }
 
 export function createPgPilotEventRepository(

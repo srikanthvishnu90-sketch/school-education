@@ -1,32 +1,22 @@
 import {
-  DomainError,
-  assertPredictionPrecedesOutcome,
-  computeCalibration,
-  computeCongruence,
   createAffectSnapshot,
   createLearningGoal,
   createNextAction,
   createOutcome,
-  createPrediction,
   createReflection,
   createTransferProbe,
-  assessResponseQuality,
   granularity,
   hasScope,
   isProductiveAttribution,
   type AffectPhase,
   type AffectSnapshot,
   type Attribution,
-  type CalibrationSummary,
-  type Congruence,
   type EmotionLabel,
   type Id,
   type ItemOutcome,
-  type ItemPrediction,
   type LearningGoal,
   type NextAction,
   type Outcome,
-  type Prediction,
   type Reflection,
   type TransferProbe,
 } from "@/domain";
@@ -38,30 +28,29 @@ import type {
   GoalRepository,
   IdGenerator,
   OutcomeRepository,
-  PredictionRepository,
   ReflectionRepository,
-  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 import {
   AffectConsentError,
   EmptyAffectError,
-  ItemCoverageError,
   NonProductiveAttributionError,
   NotFoundError,
-  PredictionAfterOutcomeError,
 } from "./errors";
 
 /**
  * Application services — they ENACT the self-regulated-learning cycle:
- *   captureGoal (forethought) → capturePrediction (monitoring) →
- *   recordOutcome + computeGap (feed-back) → captureAffect + submitReflection
- *   (self-reflection) → commitNextAction (feed-forward).
+ *   captureGoal (forethought) → recordOutcome (feed-back) →
+ *   captureAffect + submitReflection (self-reflection) →
+ *   commitNextAction (feed-forward).
  *
- * Services depend ONLY on port interfaces (never concrete adapters) plus an
- * injected Clock and IdGenerator — so there is no `Date.now()`/randomness here.
- * All boundary inputs are validated through the domain factories (P2 Zod
- * schemas); invariant failures surface as the typed errors in ./errors.
+ * The pre-assessment/prediction mechanic (and the calibration/gap it fed) was
+ * retired; outcomes are recorded directly, and reflection now runs through the
+ * intelligence subsystem. Services depend ONLY on port interfaces (never concrete
+ * adapters) plus an injected Clock and IdGenerator — so there is no
+ * `Date.now()`/randomness here. All boundary inputs are validated through the
+ * domain factories (P2 Zod schemas); invariant failures surface as the typed
+ * errors in ./errors.
  */
 
 export interface ServiceDeps {
@@ -69,7 +58,6 @@ export interface ServiceDeps {
   ids: IdGenerator;
   assessments: AssessmentRepository;
   goals: GoalRepository;
-  predictions: PredictionRepository;
   outcomes: OutcomeRepository;
   reflections: ReflectionRepository;
   transferProbes: TransferProbeRepository;
@@ -79,12 +67,6 @@ export interface ServiceDeps {
    * unless the affect scope is granted. Omitting it preserves pre-P12 behavior.
    */
   consent?: ConsentRepository;
-  /**
-   * Response-quality quarantine (P15, honesty architecture). When provided, a
-   * capture session is assessed for low-quality signals and recorded. Omitting it
-   * preserves pre-P15 behavior; the quarantine never confronts or blocks capture.
-   */
-  responseQuality?: ResponseQualityRepository;
 }
 
 export interface CaptureGoalInput {
@@ -93,18 +75,6 @@ export interface CaptureGoalInput {
   targetScore: number;
   whyItMatters: string;
   successCriteriaRef?: string;
-}
-
-export interface CapturePredictionInput {
-  studentId: Id;
-  assessmentId: Id;
-  itemPredictions: ItemPrediction[];
-  globalPredicted: number;
-  /**
-   * Per-screen response times in ms, in screen order (P15 quality signal). The
-   * surface may supply these; absent, the latency signal simply doesn't fire.
-   */
-  screenLatenciesMs?: number[];
 }
 
 export interface RecordOutcomeInput {
@@ -144,22 +114,9 @@ export interface ProbeResult {
   correct: boolean;
 }
 
-/**
- * The GAP result. `congruence` is null when there is no goal (never guess the
- * student's target) or no post-evidence affect — calibration is still returned.
- */
-export interface GapResult {
-  calibration: CalibrationSummary;
-  congruence: Congruence | null;
-  /** Granularity of the post-evidence snapshot used, or null if none. */
-  granularity: number | null;
-}
-
 export interface Services {
   captureGoal(input: CaptureGoalInput): Promise<LearningGoal>;
-  capturePrediction(input: CapturePredictionInput): Promise<Prediction>;
   recordOutcome(input: RecordOutcomeInput): Promise<Outcome>;
-  computeGap(assessmentId: Id, studentId: Id): Promise<GapResult>;
   captureAffect(input: CaptureAffectInput): Promise<CaptureAffectResult>;
   submitReflection(input: SubmitReflectionInput): Promise<Reflection>;
   commitNextAction(
@@ -187,50 +144,6 @@ export function createServices(deps: ServiceDeps): Services {
     return goal;
   }
 
-  async function capturePrediction(
-    input: CapturePredictionInput,
-  ): Promise<Prediction> {
-    const assessment = await deps.assessments.findById(input.assessmentId);
-    if (assessment === null) {
-      throw new NotFoundError(`assessment ${input.assessmentId}`);
-    }
-
-    const required = new Set(assessment.items.map((i) => i.id));
-    const provided = new Set(input.itemPredictions.map((p) => p.itemId));
-    const missing = [...required].filter((id) => !provided.has(id));
-    const extra = [...provided].filter((id) => !required.has(id));
-    const duplicated = input.itemPredictions.length !== provided.size;
-    if (missing.length > 0 || extra.length > 0 || duplicated) {
-      throw new ItemCoverageError(missing, extra, duplicated);
-    }
-
-    const prediction = createPrediction({
-      id: ids.next("pred"),
-      assessmentId: input.assessmentId,
-      studentId: input.studentId,
-      itemPredictions: input.itemPredictions,
-      globalPredicted: input.globalPredicted,
-      createdAt: clock.now(),
-    });
-    await deps.predictions.save(prediction);
-
-    // P15: assess and record this session's response quality. A quarantined
-    // session is excluded from metrics downstream; capture is never blocked and
-    // the student is never told (docs/honesty-and-data-integrity.md).
-    if (deps.responseQuality !== undefined) {
-      const quality = assessResponseQuality({
-        sessionId: prediction.id,
-        studentId: input.studentId,
-        at: clock.now(),
-        confidences: input.itemPredictions.map((p) => p.confidence),
-        screenLatenciesMs: input.screenLatenciesMs,
-      });
-      await deps.responseQuality.save(quality);
-    }
-
-    return prediction;
-  }
-
   async function recordOutcome(input: RecordOutcomeInput): Promise<Outcome> {
     const outcome = createOutcome({
       id: ids.next("out"),
@@ -239,70 +152,8 @@ export function createServices(deps: ServiceDeps): Services {
       itemOutcomes: input.itemOutcomes,
       scoredAt: clock.now(),
     });
-
-    const prediction = await deps.predictions.findByAssessmentAndStudent(
-      input.assessmentId,
-      input.studentId,
-    );
-    if (prediction === null) {
-      throw new NotFoundError(
-        `prediction for assessment ${input.assessmentId} / student ${input.studentId}`,
-      );
-    }
-
-    try {
-      assertPredictionPrecedesOutcome(prediction, outcome);
-    } catch (error) {
-      if (error instanceof DomainError) {
-        throw new PredictionAfterOutcomeError(error.message);
-      }
-      throw error;
-    }
-
     await deps.outcomes.save(outcome);
     return outcome;
-  }
-
-  async function computeGap(
-    assessmentId: Id,
-    studentId: Id,
-  ): Promise<GapResult> {
-    const prediction = await deps.predictions.findByAssessmentAndStudent(
-      assessmentId,
-      studentId,
-    );
-    const outcome = await deps.outcomes.findByAssessmentAndStudent(
-      assessmentId,
-      studentId,
-    );
-    if (prediction === null || outcome === null) {
-      throw new NotFoundError(
-        `prediction+outcome for assessment ${assessmentId} / student ${studentId}`,
-      );
-    }
-
-    const calibration = computeCalibration(prediction, outcome);
-
-    const goal =
-      (await deps.goals.listByStudent(studentId))
-        .filter((g) => g.assessmentId === assessmentId)
-        .at(-1) ?? null;
-
-    const post =
-      (await deps.affects.listByAssessmentAndStudent(assessmentId, studentId))
-        .filter((a) => a.phase === "post_evidence")
-        .at(-1) ?? null;
-
-    const congruence =
-      goal !== null && post !== null
-        ? computeCongruence(post, outcome, goal)
-        : null;
-
-    return {
-      calibration,
-      congruence,
-      granularity: post !== null ? granularity(post.labels) : null,
-    };
   }
 
   async function captureAffect(
@@ -390,9 +241,7 @@ export function createServices(deps: ServiceDeps): Services {
 
   return {
     captureGoal,
-    capturePrediction,
     recordOutcome,
-    computeGap,
     captureAffect,
     submitReflection,
     commitNextAction,

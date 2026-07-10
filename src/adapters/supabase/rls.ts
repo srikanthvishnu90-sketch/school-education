@@ -105,10 +105,7 @@ function tablePolicies(): string {
   // Per-student tables a TEACHER may read as aggregates (never free text).
   const teacherReadable = [
     "academic.goals",
-    "academic.predictions",
     "academic.outcomes",
-    "academic.calibration_records",
-    "academic.action_verifications",
   ];
   // Per-student tables NO teacher/admin may ever read (free text, affect, and the
   // student's own imported-grade record).

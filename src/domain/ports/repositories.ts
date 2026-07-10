@@ -1,17 +1,13 @@
 import type { Id } from "../common";
 import type { Assessment } from "../skill";
 import type { LearningGoal } from "../goal";
-import type { Prediction } from "../prediction";
 import type { Outcome } from "../outcome";
 import type { Reflection } from "../reflection";
-import type { CalibrationRecord } from "../calibration";
-import type { ActionVerification } from "../verification";
 import type { ConsentRecord, DeletionReceipt } from "../consent";
 import type { FlagAcknowledgement } from "../flag";
 import type { TransferProbe } from "../transferProbe";
 import type { LearningMap } from "../learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "../emotion";
-import type { ResponseQuality } from "../responseQuality";
 import type { PilotEvent } from "../pilot";
 
 /**
@@ -33,15 +29,6 @@ export interface GoalRepository {
   listByStudent(studentId: Id): Promise<LearningGoal[]>;
 }
 
-export interface PredictionRepository {
-  save(prediction: Prediction): Promise<void>;
-  findById(id: Id): Promise<Prediction | null>;
-  findByAssessmentAndStudent(
-    assessmentId: Id,
-    studentId: Id,
-  ): Promise<Prediction | null>;
-}
-
 export interface OutcomeRepository {
   save(outcome: Outcome): Promise<void>;
   findById(id: Id): Promise<Outcome | null>;
@@ -57,21 +44,9 @@ export interface ReflectionRepository {
   listByStudent(studentId: Id): Promise<Reflection[]>;
 }
 
-export interface CalibrationRepository {
-  save(record: CalibrationRecord): Promise<void>;
-  findById(id: Id): Promise<CalibrationRecord | null>;
-  listByStudent(studentId: Id): Promise<CalibrationRecord[]>;
-}
-
 export interface TransferProbeRepository {
   save(probe: TransferProbe): Promise<void>;
   findById(id: Id): Promise<TransferProbe | null>;
-}
-
-export interface ActionVerificationRepository {
-  save(verification: ActionVerification): Promise<void>;
-  findById(id: Id): Promise<ActionVerification | null>;
-  listByStudent(studentId: Id): Promise<ActionVerification[]>;
 }
 
 export interface LearningMapRepository {
@@ -108,17 +83,6 @@ export interface FlagAcknowledgementRepository {
   save(ack: FlagAcknowledgement): Promise<void>;
   find(flagId: Id): Promise<FlagAcknowledgement | null>;
   list(): Promise<FlagAcknowledgement[]>;
-}
-
-/**
- * Response-quality records (honesty architecture). One per capture session, keyed
- * by session id. Written at capture, read only by the exclusion + agent paths —
- * never by any student/teacher surface.
- */
-export interface ResponseQualityRepository {
-  save(quality: ResponseQuality): Promise<void>;
-  findBySession(sessionId: Id): Promise<ResponseQuality | null>;
-  listByStudent(studentId: Id): Promise<ResponseQuality[]>;
 }
 
 /**

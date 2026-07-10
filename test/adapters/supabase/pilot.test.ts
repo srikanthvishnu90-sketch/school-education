@@ -4,17 +4,16 @@ import {
   createPgClient,
   createPgPilotEventRepository,
   createPgPseudonymRepository,
-  createPgResponseQualityRepository,
   runMigrations,
   type PoolClient,
 } from "@/adapters/supabase";
 import { createSequentialClock } from "@/adapters/memory";
 
 /**
- * Pilot metadata (P15/P17) is now PG-backed, so it survives restarts under
- * Postgres. Gated on TEST_DATABASE_URL. Round-trips each adapter through the real
- * database. Idempotent inserts (unique keys per test), no truncation — coexists
- * with the other gated suites.
+ * Pilot metadata (P17) is now PG-backed, so it survives restarts under Postgres.
+ * Gated on TEST_DATABASE_URL. Round-trips each adapter through the real database.
+ * Idempotent inserts (unique keys per test), no truncation — coexists with the
+ * other gated suites.
  */
 const DB = process.env.TEST_DATABASE_URL;
 const suite = DB ? describe : describe.skip;
@@ -30,23 +29,6 @@ suite("pilot PG adapters", () => {
 
   afterAll(async () => {
     await client.end();
-  });
-
-  it("response-quality round-trips by session and student", async () => {
-    const repo = createPgResponseQualityRepository(client, clock);
-    await repo.save({
-      sessionId: "pilot-rq-1",
-      studentId: "pilot-stu-1",
-      signals: ["straightlining"],
-      quarantined: true,
-      at: new Date("2026-07-01T00:00:00Z"),
-    });
-    const found = await repo.findBySession("pilot-rq-1");
-    expect(found?.quarantined).toBe(true);
-    expect(found?.at).toBeInstanceOf(Date);
-    expect(
-      (await repo.listByStudent("pilot-stu-1")).some((q) => q.sessionId === "pilot-rq-1"),
-    ).toBe(true);
   });
 
   it("pilot events append and list back (pseudonymized payloads)", async () => {

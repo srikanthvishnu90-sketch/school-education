@@ -1,24 +1,18 @@
 import type { Id } from "@/domain/common";
 import type { Assessment } from "@/domain/skill";
 import type { LearningGoal } from "@/domain/goal";
-import type { Prediction } from "@/domain/prediction";
 import type { Outcome } from "@/domain/outcome";
 import type { Reflection } from "@/domain/reflection";
-import type { CalibrationRecord } from "@/domain/calibration";
-import type { ActionVerification } from "@/domain/verification";
 import type { ConsentRecord, DeletionReceipt } from "@/domain/consent";
 import type { FlagAcknowledgement } from "@/domain/flag";
 import type { TransferProbe } from "@/domain/transferProbe";
 import type { LearningMap } from "@/domain/learningMap";
 import type { AffectSnapshot, EmotionVocabulary } from "@/domain/emotion";
 import { createHash } from "node:crypto";
-import type { ResponseQuality } from "@/domain/responseQuality";
 import type { PilotEvent } from "@/domain/pilot";
 import type {
   AffectRepository,
-  ActionVerificationRepository,
   AssessmentRepository,
-  CalibrationRepository,
   ConsentRepository,
   EmotionVocabularyRepository,
   FlagAcknowledgementRepository,
@@ -26,10 +20,8 @@ import type {
   LearningMapRepository,
   OutcomeRepository,
   PilotEventRepository,
-  PredictionRepository,
   PseudonymRepository,
   ReflectionRepository,
-  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 
@@ -95,28 +87,6 @@ export function createGoalRepository(): GoalRepository {
   };
 }
 
-export function createPredictionRepository(): PredictionRepository {
-  const store = new MemoryStore<Prediction>();
-  return {
-    async save(prediction) {
-      store.set(prediction.id, prediction);
-    },
-    async findById(id) {
-      return store.get(id);
-    },
-    async findByAssessmentAndStudent(assessmentId, studentId) {
-      return (
-        store
-          .values()
-          .filter(
-            (p) => p.assessmentId === assessmentId && p.studentId === studentId,
-          )
-          .at(-1) ?? null
-      );
-    },
-  };
-}
-
 export function createOutcomeRepository(): OutcomeRepository {
   const store = new MemoryStore<Outcome>();
   return {
@@ -150,21 +120,6 @@ export function createReflectionRepository(): ReflectionRepository {
     },
     async listByStudent(studentId) {
       return store.values().filter((r) => r.studentId === studentId);
-    },
-  };
-}
-
-export function createCalibrationRepository(): CalibrationRepository {
-  const store = new MemoryStore<CalibrationRecord>();
-  return {
-    async save(record) {
-      store.set(record.id, record);
-    },
-    async findById(id) {
-      return store.get(id);
-    },
-    async listByStudent(studentId) {
-      return store.values().filter((c) => c.studentId === studentId);
     },
   };
 }
@@ -207,21 +162,6 @@ export function createPseudonymRepository(
   };
 }
 
-export function createResponseQualityRepository(): ResponseQualityRepository {
-  const store = new MemoryStore<ResponseQuality>();
-  return {
-    async save(quality) {
-      store.set(quality.sessionId, quality);
-    },
-    async findBySession(sessionId) {
-      return store.get(sessionId);
-    },
-    async listByStudent(studentId) {
-      return store.values().filter((q) => q.studentId === studentId);
-    },
-  };
-}
-
 export function createTransferProbeRepository(): TransferProbeRepository {
   const store = new MemoryStore<TransferProbe>();
   return {
@@ -230,21 +170,6 @@ export function createTransferProbeRepository(): TransferProbeRepository {
     },
     async findById(id) {
       return store.get(id);
-    },
-  };
-}
-
-export function createActionVerificationRepository(): ActionVerificationRepository {
-  const store = new MemoryStore<ActionVerification>();
-  return {
-    async save(verification) {
-      store.set(verification.id, verification);
-    },
-    async findById(id) {
-      return store.get(id);
-    },
-    async listByStudent(studentId) {
-      return store.values().filter((v) => v.studentId === studentId);
     },
   };
 }

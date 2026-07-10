@@ -12,10 +12,8 @@ import { describe, expect, it } from "vitest";
 const SURFACE_DIRS = [
   "src/app/_ui",
   "src/app/_world",
-  "src/app/predict",
-  "src/app/result",
-  "src/app/reflect",
-  "src/app/map",
+  "src/app/chat",
+  "src/app/lessons",
 ];
 
 function walk(dir: string): string[] {

@@ -48,14 +48,6 @@ create table if not exists pilot.events (
   created_at timestamptz not null
 );
 
-create table if not exists pilot.response_quality (
-  session_id text primary key,
-  student_id text not null,
-  data jsonb not null,
-  created_at timestamptz not null,
-  seq bigserial
-);
-
 create table if not exists pilot.pseudonyms (
   real_id text primary key,
   pseudonym text not null,
@@ -93,16 +85,6 @@ create table if not exists academic.goals (
   seq bigserial
 );
 
-create table if not exists academic.predictions (
-  id text primary key,
-  tenant_id text not null default 'tenant-default',
-  student_id text not null,
-  assessment_id text not null,
-  data jsonb not null,
-  created_at timestamptz not null,
-  seq bigserial
-);
-
 create table if not exists academic.outcomes (
   id text primary key,
   tenant_id text not null default 'tenant-default',
@@ -114,16 +96,6 @@ create table if not exists academic.outcomes (
 );
 
 create table if not exists academic.reflections (
-  id text primary key,
-  tenant_id text not null default 'tenant-default',
-  student_id text not null,
-  assessment_id text not null,
-  data jsonb not null,
-  created_at timestamptz not null,
-  seq bigserial
-);
-
-create table if not exists academic.calibration_records (
   id text primary key,
   tenant_id text not null default 'tenant-default',
   student_id text not null,
@@ -148,26 +120,6 @@ create table if not exists academic.learning_maps (
   tenant_id text not null default 'tenant-default',
   skill_id text not null,
   student_id text,
-  data jsonb not null,
-  created_at timestamptz not null,
-  seq bigserial
-);
-
-create table if not exists academic.action_verifications (
-  id text primary key,
-  tenant_id text not null default 'tenant-default',
-  student_id text not null,
-  target_skill_id text not null,
-  data jsonb not null,
-  created_at timestamptz not null,
-  seq bigserial
-);
-
-create table if not exists academic.cohort_assignments (
-  id text primary key,
-  tenant_id text not null default 'tenant-default',
-  class_id text,
-  started_at timestamptz not null,
   data jsonb not null,
   created_at timestamptz not null,
   seq bigserial
@@ -249,14 +201,10 @@ create table if not exists emotional.affect_snapshots (
 const ALL_TABLES = [
   "academic.assessments",
   "academic.goals",
-  "academic.predictions",
   "academic.outcomes",
   "academic.reflections",
-  "academic.calibration_records",
   "academic.transfer_probes",
   "academic.learning_maps",
-  "academic.action_verifications",
-  "academic.cohort_assignments",
   "academic.canonical_evidence",
   "academic.field_maps",
   "academic.consent_records",

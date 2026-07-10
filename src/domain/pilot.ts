@@ -1,5 +1,11 @@
 import { z } from "zod";
-import type { EvidenceGrade } from "./cohort";
+
+/**
+ * The evidence grade a pilot measurement can carry. A single-arm pilot cannot
+ * establish causation, so a point estimate is at best `associational`, and below
+ * min-n it is withheld as `insufficient_n`.
+ */
+export type EvidenceGrade = "insufficient_n" | "associational";
 
 /**
  * Pilot telemetry — instrumentation that measures MECHANICS, never content

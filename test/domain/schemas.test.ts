@@ -4,12 +4,12 @@ import {
   arousalSchema,
   attributionCategorySchema,
   emotionLabelSchema,
-  predictionSchema,
+  outcomeSchema,
   unitIntervalSchema,
   valenceSchema,
 } from "@/domain/schemas";
-import { createPrediction } from "@/domain/prediction";
-import { makePrediction } from "../fixtures/domain";
+import { createOutcome } from "@/domain/outcome";
+import { makeOutcome } from "../fixtures/domain";
 
 describe("primitive schemas", () => {
   it("unitInterval accepts [0, 1] and rejects outside / non-finite", () => {
@@ -57,11 +57,13 @@ describe("structural schemas", () => {
     ).toBe(true);
   });
 
-  it("prediction schema accepts a valid prediction and rejects a bad confidence", () => {
-    expect(predictionSchema.safeParse(makePrediction()).success).toBe(true);
+  it("outcome schema accepts a valid outcome and rejects a negative pointsAwarded", () => {
+    expect(outcomeSchema.safeParse(makeOutcome()).success).toBe(true);
     expect(
-      predictionSchema.safeParse(
-        makePrediction({ itemPredictions: [{ itemId: "i", confidence: 2 }] }),
+      outcomeSchema.safeParse(
+        makeOutcome({
+          itemOutcomes: [{ itemId: "i", correct: true, pointsAwarded: -1 }],
+        }),
       ).success,
     ).toBe(false);
   });
@@ -69,7 +71,7 @@ describe("structural schemas", () => {
 
 describe("factories return frozen (immutable) entities", () => {
   it("freezes the produced object", () => {
-    const prediction = createPrediction(makePrediction());
-    expect(Object.isFrozen(prediction)).toBe(true);
+    const outcome = createOutcome(makeOutcome());
+    expect(Object.isFrozen(outcome)).toBe(true);
   });
 });

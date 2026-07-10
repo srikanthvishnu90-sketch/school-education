@@ -2,10 +2,10 @@ import { z } from "zod";
 import { idSchema, nonNegativeSchema, unitIntervalSchema } from "./common";
 
 /**
- * Zod schemas for the ACADEMIC axis — the calibration loop: goal → prediction →
- * outcome → reflection, plus the skill/assessment structure they hang on.
- * Mirrors the interfaces in the sibling domain files 1:1 (compile-time enforced
- * by ../schemas/_typecheck.ts).
+ * Zod schemas for the ACADEMIC axis — goal → outcome → reflection, plus the
+ * skill/assessment structure they hang on. The pre-assessment prediction and the
+ * calibration/verification it fed were retired. Mirrors the interfaces in the
+ * sibling domain files 1:1 (compile-time enforced by ../schemas/_typecheck.ts).
  */
 
 // --- Skill structure ---------------------------------------------------------
@@ -51,23 +51,7 @@ export const learningGoalSchema = z.object({
   createdAt: z.date(),
 });
 
-// --- Prediction (metacognitive monitoring, pre-registered) -------------------
-
-export const itemPredictionSchema = z.object({
-  itemId: idSchema,
-  confidence: unitIntervalSchema,
-});
-
-export const predictionSchema = z.object({
-  id: idSchema,
-  assessmentId: idSchema,
-  studentId: idSchema,
-  itemPredictions: z.array(itemPredictionSchema),
-  globalPredicted: unitIntervalSchema,
-  createdAt: z.date(),
-});
-
-// --- Outcome (revealed after prediction) -------------------------------------
+// --- Outcome -----------------------------------------------------------------
 
 export const itemOutcomeSchema = z.object({
   itemId: idSchema,
@@ -134,19 +118,6 @@ export const learningMapSchema = z.object({
   currentBandId: idSchema.optional(),
 });
 
-// --- Calibration record (shape only; the MATH is P3) -------------------------
-
-export const calibrationRecordSchema = z.object({
-  id: idSchema,
-  assessmentId: idSchema,
-  studentId: idSchema,
-  brier: z.number(),
-  bias: z.number(),
-  resolution: z.number(),
-  itemCount: z.number().int().nonnegative(),
-  computedAt: z.date(),
-});
-
 // --- Transfer probe (served after "I get it now") ----------------------------
 
 export const transferProbeSchema = z.object({
@@ -171,40 +142,3 @@ export const consentRecordSchema = z.object({
   revokedAt: z.date().optional(),
 });
 
-// --- Verification cycle (closes the loop; the MATH is P7) ---------------------
-
-export const verificationVerdictSchema = z.enum([
-  "improved",
-  "flat",
-  "regressed",
-  "pending",
-  "inconclusive",
-]);
-
-export const skillMeasureSchema = z.object({
-  skillId: idSchema,
-  accuracy: unitIntervalSchema,
-  brier: z.number().optional(),
-  itemCount: z.number().int().nonnegative(),
-});
-
-export const skillDriftSchema = z.object({
-  skillId: idSchema,
-  accuracy: unitIntervalSchema,
-});
-
-export const actionVerificationSchema = z.object({
-  id: idSchema,
-  nextActionId: idSchema,
-  studentId: idSchema,
-  targetSkillId: idSchema,
-  openedAt: z.date(),
-  baseline: skillMeasureSchema,
-  baselineAssessmentId: idSchema,
-  followup: skillMeasureSchema.optional(),
-  followupAssessmentId: idSchema.optional(),
-  accuracyVerdict: verificationVerdictSchema,
-  calibrationVerdict: verificationVerdictSchema,
-  untargetedDrift: z.array(skillDriftSchema).optional(),
-  closedAt: z.date().optional(),
-});

@@ -3,36 +3,29 @@ import {
   createEmotionVocabulary,
   createLearningMap,
   type Assessment,
-  type EmotionLabel,
   type EmotionVocabulary,
   type Id,
   type LearningMap,
 } from "@/domain";
 import {
-  createActionVerificationRepository,
   createAffectRepository,
   createAssessmentRepository,
-  createCalibrationRepository,
   createConsentRepository,
   createEmotionVocabularyRepository,
   createFlagAcknowledgementRepository,
   createGoalRepository,
   createLearningMapRepository,
   createOutcomeRepository,
-  createPredictionRepository,
   createPilotEventRepository,
   createPseudonymRepository,
   createReflectionRepository,
-  createResponseQualityRepository,
   createSequentialClock,
   createSequentialIdGenerator,
   createTransferProbeRepository,
 } from "@/adapters/memory";
 import type {
-  ActionVerificationRepository,
   AffectRepository,
   AssessmentRepository,
-  CalibrationRepository,
   Clock,
   ConsentRepository,
   EmotionVocabularyRepository,
@@ -42,32 +35,20 @@ import type {
   LearningMapRepository,
   OutcomeRepository,
   PilotEventRepository,
-  PredictionRepository,
   ReflectionRepository,
-  ResponseQualityRepository,
   TransferProbeRepository,
 } from "@/domain/ports";
 import { createConsentService, type ConsentService } from "./consent";
 import { createPilotTelemetry, type PilotTelemetry } from "./pilot";
 import { createServices, type Services } from "./services";
-import {
-  createVerificationService,
-  type VerificationService,
-} from "./verification";
-import {
-  createAgentLoop,
-  createObserver,
-  interventionPolicy,
-  type AgentLoop,
-} from "./agent";
-import { createDeterministicLanguageCapability } from "@/adapters/language";
 
 /**
- * buildSeededWorld — the composition root. It is the ONE place allowed to import
+ * buildWorldCore — the composition root. It is the ONE place allowed to import
  * concrete adapters (services never do). It wires in-memory adapters with a
- * deterministic clock + id generator and plays the two-axis loop for three
- * archetype students, so the whole "feels good about a 50" story runs end to end
- * with zero infrastructure. Fully deterministic: same inputs, same world.
+ * deterministic clock + id generator, so the product runs end to end with zero
+ * infrastructure. Fully deterministic: same inputs, same world. The pre-assessment
+ * prediction/calibration/agent machinery was retired; the seeded roster carries
+ * only the identity + goal context the surviving surfaces read.
  */
 
 // Fixed instant so timestamps are reproducible (Date.UTC is deterministic).
@@ -92,61 +73,29 @@ export interface SeedStudent {
   targetScore: number;
   whyItMatters: string;
   successCriteriaRef: string;
-  confidences: [number, number, number, number];
-  globalPredicted: number;
-  /** The archetype's cycle-1 correctness, for the SEEDED snapshot demos only.
-   * (Live students are graded from their real answers; there is no live key.) */
-  corrects: [boolean, boolean, boolean, boolean];
-  labels: EmotionLabel[];
 }
 
 export const SEED_STUDENTS: SeedStudent[] = [
   {
-    // Predicted high, scored 1/4 vs a 0.7 goal — yet names a single, undifferentiated
-    // "good". Overconfident + over_positive congruence + LOW granularity. Target case.
     id: "student-avery",
     archetype: "overconfident-low",
     targetScore: 0.7,
     whyItMatters: "I want to place into honors next year.",
     successCriteriaRef: "exemplar:two-step-linear-worked",
-    // Uniformly high but not flat — a genuine overconfident student, not a
-    // straight-liner (P15: perfectly identical confidences would quarantine).
-    confidences: [0.9, 0.95, 0.9, 0.85],
-    globalPredicted: 0.8,
-    corrects: [true, false, false, false],
-    labels: [{ term: "good", valence: 0.6, arousal: 0.5 }],
   },
   {
-    // Predicted low, scored 4/4 above a 0.6 goal — yet feels anxious/drained.
     id: "student-blake",
     archetype: "underconfident-high",
     targetScore: 0.6,
     whyItMatters: "I want to stop freezing on tests.",
     successCriteriaRef: "exemplar:slope-from-table-worked",
-    // Uniformly low but not flat — genuinely underconfident, not a straight-liner.
-    confidences: [0.3, 0.25, 0.35, 0.3],
-    globalPredicted: 0.4,
-    corrects: [true, true, true, true],
-    labels: [
-      { term: "anxious", valence: -0.6, arousal: 0.8 },
-      { term: "drained", valence: -0.4, arousal: 0.3 },
-    ],
   },
   {
-    // Predicted ~0.75, scored 3/4 vs a 0.6 goal — mildly content. Aligned + congruent.
     id: "student-casey",
     archetype: "calibrated",
     targetScore: 0.6,
     whyItMatters: "I want to actually understand slope, not memorize it.",
     successCriteriaRef: "exemplar:slope-meaning-worked",
-    confidences: [0.8, 0.8, 0.7, 0.7],
-    globalPredicted: 0.75,
-    corrects: [true, true, true, false],
-    labels: [
-      { term: "content", valence: 0.3, arousal: 0.3 },
-      { term: "focused", valence: 0.1, arousal: 0.6 },
-      { term: "satisfied", valence: 0.5, arousal: 0.2 },
-    ],
   },
 ];
 
@@ -290,67 +239,43 @@ export function buildLearningMap(): LearningMap {
 export interface Repos {
   assessments: AssessmentRepository;
   goals: GoalRepository;
-  predictions: PredictionRepository;
   outcomes: OutcomeRepository;
   reflections: ReflectionRepository;
-  calibrations: CalibrationRepository;
   transferProbes: TransferProbeRepository;
   learningMaps: LearningMapRepository;
   affects: AffectRepository;
   emotionVocab: EmotionVocabularyRepository;
-  verifications: ActionVerificationRepository;
   consent: ConsentRepository;
   flagAcks: FlagAcknowledgementRepository;
-  responseQuality: ResponseQualityRepository;
   pilotEvents: PilotEventRepository;
 }
 
-export interface SeededWorld {
-  services: Services;
-  verification: VerificationService;
-  consentService: ConsentService;
-  repos: Repos;
-  agent: AgentLoop;
-  clock: Clock;
-  ids: IdGenerator;
-  classId: Id;
-  assessmentId: Id;
-  students: { id: Id; archetype: Archetype }[];
-}
-
-/** The adapter wiring shared by every composition (seeded AND ingested). */
+/** The adapter wiring shared by every composition (in-memory AND persistent). */
 export interface WorldCore {
   repos: Repos;
   clock: Clock;
   ids: IdGenerator;
   services: Services;
-  verification: VerificationService;
   consentService: ConsentService;
-  agent: AgentLoop;
   telemetry: PilotTelemetry;
 }
 
 /**
- * Wires in-memory adapters, a deterministic clock + id generator, the P4
- * services, and the agent loop. Compositions differ only in how they POPULATE
- * this world (seed data vs ingested evidence).
+ * Wires in-memory adapters, a deterministic clock + id generator, and the
+ * application services. Populating the world (seed data) is left to the caller.
  */
 export function buildWorldCore(): WorldCore {
   const repos: Repos = {
     assessments: createAssessmentRepository(),
     goals: createGoalRepository(),
-    predictions: createPredictionRepository(),
     outcomes: createOutcomeRepository(),
     reflections: createReflectionRepository(),
-    calibrations: createCalibrationRepository(),
     transferProbes: createTransferProbeRepository(),
     learningMaps: createLearningMapRepository(),
     affects: createAffectRepository(),
     emotionVocab: createEmotionVocabularyRepository(),
-    verifications: createActionVerificationRepository(),
     consent: createConsentRepository(),
     flagAcks: createFlagAcknowledgementRepository(),
-    responseQuality: createResponseQualityRepository(),
     pilotEvents: createPilotEventRepository(),
   };
 
@@ -362,13 +287,11 @@ export function buildWorldCore(): WorldCore {
     ids,
     assessments: repos.assessments,
     goals: repos.goals,
-    predictions: repos.predictions,
     outcomes: repos.outcomes,
     reflections: repos.reflections,
     transferProbes: repos.transferProbes,
     affects: repos.affects,
     consent: repos.consent,
-    responseQuality: repos.responseQuality,
   });
 
   const consentService = createConsentService({
@@ -378,43 +301,12 @@ export function buildWorldCore(): WorldCore {
     affects: repos.affects,
   });
 
-  const verification = createVerificationService({
-    clock,
-    ids,
-    assessments: repos.assessments,
-    predictions: repos.predictions,
-    outcomes: repos.outcomes,
-    verifications: repos.verifications,
-  });
-
-  const agent = createAgentLoop({
-    observer: createObserver({
-      clock,
-      assessments: repos.assessments,
-      predictions: repos.predictions,
-      outcomes: repos.outcomes,
-      goals: repos.goals,
-      affects: repos.affects,
-      reflections: repos.reflections,
-      calibrations: repos.calibrations,
-      verifications: repos.verifications,
-      flagAcks: repos.flagAcks,
-      responseQuality: repos.responseQuality,
-    }),
-    policy: interventionPolicy,
-    services,
-    assessments: repos.assessments,
-    language: createDeterministicLanguageCapability(),
-    clock,
-  });
-
   // Pilot telemetry recorder — consent-gated, pseudonymizing (P17).
   const telemetry = createPilotTelemetry({
     clock,
     consent: repos.consent,
     pseudonyms: createPseudonymRepository(),
     events: repos.pilotEvents,
-    responseQuality: repos.responseQuality,
   });
 
   return {
@@ -422,73 +314,7 @@ export function buildWorldCore(): WorldCore {
     clock,
     ids,
     services,
-    verification,
     consentService,
-    agent,
     telemetry,
-  };
-}
-
-export async function buildSeededWorld(): Promise<SeededWorld> {
-  const { repos, clock, ids, services, verification, consentService, agent } =
-    buildWorldCore();
-
-  // Static world.
-  await repos.assessments.save(buildAssessment());
-  await repos.learningMaps.save(buildLearningMap());
-  await repos.emotionVocab.save(buildEmotionVocabulary());
-
-  // Play the loop per student (deterministic clock guarantees predict < outcome).
-  for (const s of SEED_STUDENTS) {
-    // Consent is granted before any affect is captured (P12).
-    await consentService.grant({
-      studentId: s.id,
-      grantorType: "parent",
-      scopes: ["academic", "affect"],
-    });
-    await services.captureGoal({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      targetScore: s.targetScore,
-      whyItMatters: s.whyItMatters,
-      successCriteriaRef: s.successCriteriaRef,
-    });
-    await services.capturePrediction({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      itemPredictions: ITEM_IDS.map((itemId, i) => ({
-        itemId,
-        confidence: s.confidences[i],
-      })),
-      globalPredicted: s.globalPredicted,
-    });
-    await services.recordOutcome({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      itemOutcomes: ITEM_IDS.map((itemId, i) => ({
-        itemId,
-        correct: s.corrects[i],
-        pointsAwarded: s.corrects[i] ? 1 : 0,
-      })),
-    });
-    await services.captureAffect({
-      studentId: s.id,
-      assessmentId: ASSESSMENT_ID,
-      labels: s.labels,
-      phase: "post_evidence",
-    });
-  }
-
-  return {
-    services,
-    verification,
-    consentService,
-    repos,
-    agent,
-    clock,
-    ids,
-    classId: CLASS_ID,
-    assessmentId: ASSESSMENT_ID,
-    students: SEED_STUDENTS.map((s) => ({ id: s.id, archetype: s.archetype })),
   };
 }

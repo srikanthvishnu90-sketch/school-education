@@ -1,7 +1,6 @@
 import type { AffectSnapshot } from "@/domain/emotion";
 import type { LearningGoal } from "@/domain/goal";
 import type { Outcome } from "@/domain/outcome";
-import type { Prediction } from "@/domain/prediction";
 import type { Attribution, Reflection } from "@/domain/reflection";
 
 /**
@@ -20,23 +19,6 @@ export function makeGoal(overrides: Partial<LearningGoal> = {}): LearningGoal {
     assessmentId: "assess-1",
     targetScore: 0.8,
     whyItMatters: "I want to teach this to my sister.",
-    createdAt: T_PREDICT,
-    ...overrides,
-  };
-}
-
-export function makePrediction(
-  overrides: Partial<Prediction> = {},
-): Prediction {
-  return {
-    id: "pred-1",
-    assessmentId: "assess-1",
-    studentId: "stu-1",
-    itemPredictions: [
-      { itemId: "item-1", confidence: 0.9 },
-      { itemId: "item-2", confidence: 0.4 },
-    ],
-    globalPredicted: 0.7,
     createdAt: T_PREDICT,
     ...overrides,
   };
