@@ -2,9 +2,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { getSessionUser } from "@/app/_world/session";
-import { buildClassBrief } from "@/app/_world/teacherReflectionActions";
+import {
+  buildClassBrief,
+  listScoreRows,
+} from "@/app/_world/teacherReflectionActions";
 import { studentDisplayName } from "@/app/_world/teacher";
 import type { AttentionGroup } from "@/domain/intelligence/insight";
+import ScoreEntry from "./ScoreEntry";
 
 /**
  * The class brief for one reflection: what the class understood, how it felt, what
@@ -57,6 +61,7 @@ export default async function ClassBriefPage({
   }
 
   const { brief, students } = view;
+  const scoreRows = await listScoreRows(reflectionId);
   const byGroup = new Map<AttentionGroup, string[]>();
   for (const s of brief.attentionStudents) {
     const names = byGroup.get(s.group) ?? [];
@@ -131,6 +136,19 @@ export default async function ClassBriefPage({
           </div>
         </section>
       ) : null}
+
+      <section className="mt-10">
+        <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+          Graded results
+        </h2>
+        <p className="mt-2 text-[14px] text-secondary">
+          Enter each student&rsquo;s score for this work. It sits beside how sure they
+          felt on their own timeline — recorded after the fact, never a bet up front.
+        </p>
+        <div className="mt-4">
+          <ScoreEntry reflectionId={reflectionId} rows={scoreRows} />
+        </div>
+      </section>
     </main>
   );
 }

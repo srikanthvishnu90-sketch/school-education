@@ -6,9 +6,11 @@ import type {
   ClassInsightSummary,
   StudentInsightSummary,
 } from "@/domain/intelligence/insight";
+import type { ReflectionPerformance } from "@/domain/intelligence/metacognition";
 import type {
   ClassSummaryRepository,
   LessonRepository,
+  PerformanceRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
   StudentSummaryRepository,
@@ -102,6 +104,23 @@ export function createMemoryClassSummaryRepository(): ClassSummaryRepository {
     },
     async findByReflection(reflectionId) {
       return byReflection.get(reflectionId) ?? null;
+    },
+  };
+}
+
+export function createMemoryPerformanceRepository(): PerformanceRepository {
+  const byKey = new Map<string, ReflectionPerformance>();
+  const key = (reflectionId: Id, studentId: Id): string =>
+    `${reflectionId}::${studentId}`;
+  return {
+    async save(performance) {
+      byKey.set(key(performance.reflectionId, performance.studentId), performance);
+    },
+    async findByReflectionAndStudent(reflectionId, studentId) {
+      return byKey.get(key(reflectionId, studentId)) ?? null;
+    },
+    async listByStudent(studentId) {
+      return [...byKey.values()].filter((p) => p.studentId === studentId);
     },
   };
 }

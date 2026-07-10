@@ -218,6 +218,12 @@ function SummaryCard({
           <p className="mt-1 text-[15px] text-ink-black">{chosen}</p>
         </div>
       )}
+      <a
+        href="/timeline"
+        className="mt-5 inline-block text-[13px] text-ink-tint hover:underline"
+      >
+        See how your read compares to your results over time →
+      </a>
     </div>
   );
 }

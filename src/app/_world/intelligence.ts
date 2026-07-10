@@ -7,6 +7,7 @@ import { PINNED_MODELS, createHttpGateway } from "@/adapters/language";
 import {
   createMemoryClassSummaryRepository,
   createMemoryLessonRepository,
+  createMemoryPerformanceRepository,
   createMemoryQuestionSetRepository,
   createMemoryReflectionSessionRepository,
   createMemoryStudentSummaryRepository,
@@ -15,6 +16,7 @@ import type { ReflectionIntelligence } from "@/domain/ports/intelligence";
 import type {
   ClassSummaryRepository,
   LessonRepository,
+  PerformanceRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
   StudentSummaryRepository,
@@ -36,6 +38,7 @@ export interface IntelRepos {
   sessions: ReflectionSessionRepository;
   studentSummaries: StudentSummaryRepository;
   classSummaries: ClassSummaryRepository;
+  performances: PerformanceRepository;
 }
 
 export function buildIntelligence(
@@ -61,6 +64,7 @@ export function buildIntelRepos(): IntelRepos {
     sessions: createMemoryReflectionSessionRepository(),
     studentSummaries: createMemoryStudentSummaryRepository(),
     classSummaries: createMemoryClassSummaryRepository(),
+    performances: createMemoryPerformanceRepository(),
   };
 }
 

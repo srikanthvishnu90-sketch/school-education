@@ -9,6 +9,7 @@ import type {
   ClassInsightSummary,
   StudentInsightSummary,
 } from "./insight";
+import type { ReflectionPerformance } from "./metacognition";
 import type {
   attentionStudentSchema,
   classInsightSummarySchema,
@@ -17,6 +18,7 @@ import type {
   lessonAnalysisSchema,
   lessonSchema,
   reflectionMessageSchema,
+  reflectionPerformanceSchema,
   reflectionQuestionSetSchema,
   reflectionSessionSchema,
   studentInsightSummarySchema,
@@ -61,4 +63,7 @@ export type _StudentInsightSummarySync = Expect<
 >;
 export type _ClassInsightSummarySync = Expect<
   Equal<ClassInsightSummary, z.infer<typeof classInsightSummarySchema>>
+>;
+export type _ReflectionPerformanceSync = Expect<
+  Equal<ReflectionPerformance, z.infer<typeof reflectionPerformanceSchema>>
 >;

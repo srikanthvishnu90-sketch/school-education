@@ -5,10 +5,11 @@ import type {
   ClassInsightSummary,
   StudentInsightSummary,
 } from "@/domain/intelligence/insight";
+import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
 import type { ClassStudentInput } from "@/domain/ports/intelligence";
 import { getSessionUser } from "./session";
 import { getWorld } from "./world";
-import { TEACHER_ID } from "./teacher";
+import { TEACHER_ID, studentDisplayName } from "./teacher";
 
 /**
  * The teacher side of the reflection loop: enter a lesson, and the AI reads it,
@@ -39,6 +40,13 @@ export interface LessonListItem {
 export interface ClassBriefView {
   brief: ClassInsightSummary;
   students: StudentInsightSummary[];
+}
+
+export interface StudentScoreRow {
+  studentId: string;
+  name: string;
+  /** The score already recorded for this reflection, as a percent, or null. */
+  scorePercent: number | null;
 }
 
 async function requireTeacher(): Promise<void> {
@@ -147,4 +155,57 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
   });
   await world.intel.classSummaries.save(brief);
   return { brief, students: summaries };
+}
+
+/**
+ * The students who finished reflecting on a lesson, with any score already recorded
+ * — the roster the teacher enters graded results against (P7 score entry).
+ */
+export async function listScoreRows(reflectionId: string): Promise<StudentScoreRow[]> {
+  await requireTeacher();
+  const world = await getWorld();
+  const sessions = (await world.intel.sessions.listByReflection(reflectionId)).filter(
+    (s) => s.status === "completed",
+  );
+  const seen = new Set<string>();
+  const rows: StudentScoreRow[] = [];
+  for (const session of sessions) {
+    if (seen.has(session.studentId)) continue;
+    seen.add(session.studentId);
+    const perf = await world.intel.performances.findByReflectionAndStudent(
+      reflectionId,
+      session.studentId,
+    );
+    rows.push({
+      studentId: session.studentId,
+      name: studentDisplayName(session.studentId),
+      scorePercent: perf === null ? null : Math.round(perf.score * 100),
+    });
+  }
+  return rows;
+}
+
+/**
+ * Record a graded result (0–100%) for one student's reflection. This is the honest
+ * score the reflection's self-confidence is later set beside — never a pre-registered
+ * bet. Overwrites any prior score for the same (reflection, student).
+ */
+export async function recordReflectionScore(
+  reflectionId: string,
+  studentId: string,
+  scorePercent: number,
+): Promise<void> {
+  await requireTeacher();
+  if (!Number.isFinite(scorePercent) || scorePercent < 0 || scorePercent > 100) {
+    throw new Error("A score must be between 0 and 100.");
+  }
+  const world = await getWorld();
+  await world.intel.performances.save(
+    createReflectionPerformance({
+      reflectionId,
+      studentId,
+      score: scorePercent / 100,
+      recordedAt: world.clock.now(),
+    }),
+  );
 }

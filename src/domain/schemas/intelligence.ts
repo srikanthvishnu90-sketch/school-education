@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { idSchema } from "./common";
+import { idSchema, unitIntervalSchema } from "./common";
 
 /**
  * Zod schemas for the REFLECTION-INTELLIGENCE axis — the new product core:
@@ -248,4 +248,14 @@ export const classInsightSummarySchema = z.object({
   recommendedPlan: z.array(z.string().min(1)),
   attentionStudents: z.array(attentionStudentSchema),
   createdAt: z.date(),
+});
+
+// --- Reflection performance (P7: the graded result behind a reflection) -------
+
+export const reflectionPerformanceSchema = z.object({
+  reflectionId: idSchema,
+  studentId: idSchema,
+  /** Fraction 0..1 the student actually earned on the graded work. */
+  score: unitIntervalSchema,
+  recordedAt: z.date(),
 });

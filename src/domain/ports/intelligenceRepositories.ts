@@ -6,6 +6,7 @@ import type {
   ClassInsightSummary,
   StudentInsightSummary,
 } from "../intelligence/insight";
+import type { ReflectionPerformance } from "../intelligence/metacognition";
 
 /**
  * Persistence ports for the reflection-intelligence subsystem. Pure interfaces,
@@ -49,4 +50,17 @@ export interface StudentSummaryRepository {
 export interface ClassSummaryRepository {
   save(summary: ClassInsightSummary): Promise<void>;
   findByReflection(reflectionId: Id): Promise<ClassInsightSummary | null>;
+}
+
+/**
+ * The teacher-entered graded result behind a reflection (P7 score entry). Keyed
+ * by (reflectionId, studentId) — one performance per student per reflection.
+ */
+export interface PerformanceRepository {
+  save(performance: ReflectionPerformance): Promise<void>;
+  findByReflectionAndStudent(
+    reflectionId: Id,
+    studentId: Id,
+  ): Promise<ReflectionPerformance | null>;
+  listByStudent(studentId: Id): Promise<ReflectionPerformance[]>;
 }

@@ -5,8 +5,10 @@ import {
   createReflectionMessage,
   createReflectionSession,
 } from "@/domain/intelligence/session";
+import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
 import {
   createMemoryLessonRepository,
+  createMemoryPerformanceRepository,
   createMemoryReflectionSessionRepository,
 } from "@/adapters/memory/intelligenceRepositories";
 
@@ -54,5 +56,28 @@ describe("in-memory intelligence repositories", () => {
     const found = await repo.findByReflectionAndStudent("L1", "stu");
     expect(found?.messages).toHaveLength(1); // overwritten, not duplicated
     expect(await repo.listByReflection("L1")).toHaveLength(1);
+  });
+
+  it("stores a performance per (reflection, student) and overwrites on re-save", async () => {
+    const repo = createMemoryPerformanceRepository();
+    await repo.save(
+      createReflectionPerformance({
+        reflectionId: "L1",
+        studentId: "stu",
+        score: 0.4,
+        recordedAt: NOW,
+      }),
+    );
+    await repo.save(
+      createReflectionPerformance({
+        reflectionId: "L1",
+        studentId: "stu",
+        score: 0.8, // revised grade overwrites, not appends
+        recordedAt: NOW,
+      }),
+    );
+    expect((await repo.findByReflectionAndStudent("L1", "stu"))?.score).toBe(0.8);
+    expect(await repo.listByStudent("stu")).toHaveLength(1);
+    expect(await repo.findByReflectionAndStudent("L1", "other")).toBeNull();
   });
 });
