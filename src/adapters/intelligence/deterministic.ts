@@ -17,8 +17,9 @@ import type {
  * the drafting. Nothing here decides an intervention or a student's state.
  */
 
+// Leading boundary only, so it also catches "independently" / "individually".
 const INDEPENDENT_MARKERS =
-  /\b(independent|on their own|by themselves|individually|solo|alone)\b/i;
+  /\b(independent|individual|on their own|by themselves|solo|alone)/i;
 
 const DEPTH_COUNT: Record<GenerateQuestionsInput["depth"], number> = {
   shorter: 4,

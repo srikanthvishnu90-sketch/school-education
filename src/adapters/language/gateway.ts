@@ -16,9 +16,16 @@ import { createHash } from "node:crypto";
  */
 
 export type LanguageTask = "classify" | "tag" | "render";
+/**
+ * Every task the shared gateway routes a model for. `LanguageTask` stays the
+ * narrow set the LanguageCapability adapter + eval harness cover; the reflection-
+ * intelligence adapter adds its generative tasks here. The gateway is the ONE
+ * place a model is called, so all tasks share its audit/ledger/hash seam.
+ */
+export type GatewayTask = LanguageTask | "analyze" | "generate";
 
 export interface GatewayRequest {
-  task: LanguageTask;
+  task: GatewayTask;
   /** Short instruction; stable per task (kept out of the input hash's variance). */
   system: string;
   /** The already-PII-stripped payload the model reasons over. */
@@ -34,7 +41,7 @@ export interface GatewayResponse {
 }
 
 export interface CostEntry {
-  task: LanguageTask;
+  task: GatewayTask;
   model: string;
   inputTokens: number;
   outputTokens: number;
@@ -44,7 +51,7 @@ export interface CostEntry {
 
 export interface AuditEntry {
   at: Date;
-  task: LanguageTask;
+  task: GatewayTask;
   model: string;
   /** sha256 of the prompt — enough to correlate, impossible to read back. */
   inputHash: string;
@@ -87,7 +94,7 @@ export type RawSend = (
 
 export interface GatewayDeps {
   /** Pinned model + price per task. Changing a string trips the drift check. */
-  models: Readonly<Record<LanguageTask, ModelPrice>>;
+  models: Readonly<Record<GatewayTask, ModelPrice>>;
   /** Injected clock — never Date.now(), so audit timestamps are deterministic in tests. */
   now: () => Date;
 }
