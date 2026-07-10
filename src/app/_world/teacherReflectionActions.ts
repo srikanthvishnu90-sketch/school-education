@@ -10,6 +10,7 @@ import type { ClassStudentInput } from "@/domain/ports/intelligence";
 import { getSessionUser } from "./session";
 import { getWorld } from "./world";
 import { TEACHER_ID, studentDisplayName } from "./teacher";
+import { getLessonPhotos, saveLessonPhotos } from "./lessonMedia";
 
 /**
  * The teacher side of the reflection loop: enter a lesson, and the AI reads it,
@@ -26,6 +27,16 @@ export interface NewLessonInput {
   title: string;
   lessonType: LessonType;
   content: string;
+  /** Optional photos of the day's work, as data URLs. */
+  photos?: string[];
+}
+
+export interface LessonDetail {
+  reflectionId: string;
+  title: string;
+  lessonType: LessonType;
+  content: string;
+  photos: string[];
 }
 
 export interface LessonListItem {
@@ -113,6 +124,9 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
     createdAt: now,
   });
   await world.intel.lessons.save(lesson);
+  if (input.photos !== undefined && input.photos.length > 0) {
+    saveLessonPhotos(id, input.photos);
+  }
   const analysis = await world.intelligence.analyzeLesson({ lesson });
   const set = await world.intelligence.generateReflectionQuestions({
     analysis,
@@ -121,6 +135,21 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
   });
   await world.intel.questionSets.save(set);
   return id;
+}
+
+/** The lesson's own content — the summary of the day and any photos the teacher added. */
+export async function getLessonDetail(reflectionId: string): Promise<LessonDetail | null> {
+  await requireTeacher();
+  const world = await getWorld();
+  const lesson = await world.intel.lessons.findById(reflectionId);
+  if (lesson === null) return null;
+  return {
+    reflectionId,
+    title: lesson.title,
+    lessonType: lesson.lessonType,
+    content: lesson.content,
+    photos: getLessonPhotos(reflectionId),
+  };
 }
 
 /**

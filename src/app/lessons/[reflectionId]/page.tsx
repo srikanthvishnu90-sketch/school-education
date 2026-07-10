@@ -1,14 +1,29 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { getSessionUser } from "@/app/_world/session";
 import {
   buildClassBrief,
+  getLessonDetail,
   listScoreRows,
 } from "@/app/_world/teacherReflectionActions";
 import { studentDisplayName } from "@/app/_world/teacher";
 import type { AttentionGroup } from "@/domain/intelligence/insight";
+import type { LessonType } from "@/domain/intelligence/lesson";
 import ScoreEntry from "./ScoreEntry";
+
+const LESSON_TYPE_LABELS: Record<LessonType, string> = {
+  direct_instruction: "Direct instruction",
+  discussion: "Discussion",
+  group_work: "Group work",
+  independent_practice: "Independent practice",
+  lab: "Lab",
+  presentation: "Presentation",
+  project: "Project",
+  review: "Review",
+  assessment_prep: "Assessment prep",
+  other: "Lesson",
+};
 
 /**
  * The class brief for one reflection: what the class understood, how it felt, what
@@ -43,41 +58,89 @@ export default async function ClassBriefPage({
   const user = await getSessionUser();
   if (user === null || user.role !== "teacher") redirect("/signin");
 
+  const lesson = await getLessonDetail(reflectionId);
+  if (lesson === null) notFound();
+
   const view = await buildClassBrief(reflectionId);
-
-  if (view === null) {
-    return (
-      <main className="mx-auto w-full max-w-2xl px-6 py-14">
-        <BackLink />
-        <h1 className="mt-6 text-2xl font-medium tracking-tight text-ink-black">
-          No reflections yet
-        </h1>
-        <p className="mt-3 text-[15px] leading-relaxed text-secondary">
-          The brief appears once at least one student has finished reflecting on this
-          lesson. Check back after class.
-        </p>
-      </main>
-    );
-  }
-
-  const { brief, students } = view;
   const scoreRows = await listScoreRows(reflectionId);
   const byGroup = new Map<AttentionGroup, string[]>();
-  for (const s of brief.attentionStudents) {
-    const names = byGroup.get(s.group) ?? [];
-    names.push(studentDisplayName(s.studentId));
-    byGroup.set(s.group, names);
+  if (view !== null) {
+    for (const s of view.brief.attentionStudents) {
+      const names = byGroup.get(s.group) ?? [];
+      names.push(studentDisplayName(s.studentId));
+      byGroup.set(s.group, names);
+    }
   }
 
   return (
     <main className="mx-auto w-full max-w-2xl px-6 py-14">
       <BackLink />
+
+      {/* Today's lesson — the summary the teacher wrote, and any photos. */}
       <p className="mt-6 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
-        Class brief · {students.length} reflection{students.length === 1 ? "" : "s"}
+        {LESSON_TYPE_LABELS[lesson.lessonType]}
       </p>
       <h1 className="mt-2 text-3xl font-medium tracking-tight text-ink-black">
-        Where the class landed
+        {lesson.title}
       </h1>
+      <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-black">
+        {lesson.content}
+      </p>
+      {lesson.photos.length > 0 && (
+        <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+          {lesson.photos.map((src, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={src}
+              alt={`Lesson photo ${i + 1}`}
+              className="aspect-square w-full rounded-control border border-ink-wash object-cover"
+            />
+          ))}
+        </div>
+      )}
+
+      {view === null ? (
+        <p className="mt-10 rounded-card border border-ink-wash bg-white p-5 text-[15px] leading-relaxed text-secondary">
+          The class brief appears once at least one student has finished reflecting on
+          this lesson. You can still enter graded results below.
+        </p>
+      ) : (
+        <ClassBriefBody view={view} byGroup={byGroup} />
+      )}
+
+      <section className="mt-10">
+        <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+          Graded results
+        </h2>
+        <p className="mt-2 text-[14px] text-secondary">
+          Enter each student&rsquo;s score for this work. It sits beside how sure they
+          felt on their own timeline — recorded after the fact, never a bet up front.
+        </p>
+        <div className="mt-4">
+          <ScoreEntry reflectionId={reflectionId} rows={scoreRows} />
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ClassBriefBody({
+  view,
+  byGroup,
+}: {
+  view: NonNullable<Awaited<ReturnType<typeof buildClassBrief>>>;
+  byGroup: Map<AttentionGroup, string[]>;
+}): ReactElement {
+  const { brief, students } = view;
+  return (
+    <>
+      <p className="mt-10 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
+        Class brief · {students.length} reflection{students.length === 1 ? "" : "s"}
+      </p>
+      <h2 className="mt-2 text-2xl font-medium tracking-tight text-ink-black">
+        Where the class landed
+      </h2>
 
       <div className="mt-8 flex flex-col gap-4">
         <Panel label="Understanding">{brief.technicalSummary}</Panel>
@@ -136,20 +199,7 @@ export default async function ClassBriefPage({
           </div>
         </section>
       ) : null}
-
-      <section className="mt-10">
-        <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
-          Graded results
-        </h2>
-        <p className="mt-2 text-[14px] text-secondary">
-          Enter each student&rsquo;s score for this work. It sits beside how sure they
-          felt on their own timeline — recorded after the fact, never a bet up front.
-        </p>
-        <div className="mt-4">
-          <ScoreEntry reflectionId={reflectionId} rows={scoreRows} />
-        </div>
-      </section>
-    </main>
+    </>
   );
 }
 
