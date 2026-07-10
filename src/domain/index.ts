@@ -19,3 +19,4 @@ export * from "./transferProbe";
 export * from "./emotion";
 export * from "./gap";
 export * from "./pilot";
+export * from "./intelligence";
