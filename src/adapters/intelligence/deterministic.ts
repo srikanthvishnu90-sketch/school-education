@@ -14,6 +14,14 @@ import {
   type ExtractedSignals,
   type TechnicalSignal,
 } from "@/domain/intelligence/signals";
+import {
+  createClassInsightSummary,
+  createStudentInsightSummary,
+  type AttentionStudent,
+  type ClassInsightSummary,
+  type ConfidenceLevel,
+  type StudentInsightSummary,
+} from "@/domain/intelligence/insight";
 import type {
   AnalyzeLessonInput,
   ConversationStep,
@@ -21,6 +29,8 @@ import type {
   GenerateQuestionsInput,
   NextTurnInput,
   ReflectionIntelligence,
+  SummarizeClassInput,
+  SummarizeStudentInput,
 } from "@/domain/ports/intelligence";
 
 /**
@@ -121,6 +131,106 @@ function matchAll<S extends string>(
     if (re.test(text) && !out.includes(sig)) out.push(sig);
   }
   return out;
+}
+
+// --- Summary phrasing from signals (observed language, never diagnostic) -----
+
+function technicalPhrase(s: ExtractedSignals): string {
+  const t = s.technical;
+  if (t.includes("understood_concept") && (t.includes("application_difficulty") || t.includes("misunderstood_concept")))
+    return "Followed the guided examples but was unsure how to apply the concept independently.";
+  if (t.includes("misunderstood_concept")) return "Reported confusion about the core concept.";
+  if (t.includes("recall_difficulty")) return "Had trouble recalling a needed step.";
+  if (t.includes("understood_concept")) return "Reported understanding the concept.";
+  return "Understanding is unclear from this reflection.";
+}
+
+function emotionalPhrase(s: ExtractedSignals): string {
+  const e = s.emotional;
+  if (e.includes("embarrassed")) return "Reported feeling embarrassed at a difficult moment.";
+  if (e.includes("discouraged")) return "Reported feeling discouraged after a mistake.";
+  if (e.includes("overwhelmed")) return "Reported feeling overwhelmed.";
+  if (e.includes("rushed")) return "Reported feeling rushed.";
+  if (e.includes("frustrated")) return "Reported frustration during the work.";
+  if (e.includes("sense_of_progress")) return "Reported a sense of progress.";
+  if (e.includes("confident")) return "Reported feeling confident.";
+  return "Emotional experience was mixed or unstated.";
+}
+
+function behavioralPhrase(s: ExtractedSignals): string {
+  const b = s.behavioral;
+  if (b.includes("avoided_help")) return "Did not ask for help when stuck.";
+  if (b.includes("asked_for_help")) return "Asked for help when stuck.";
+  if (b.includes("stopped_working")) return "Stopped working after getting stuck.";
+  if (b.includes("kept_trying")) return "Kept trying after getting stuck.";
+  if (b.includes("guessed")) return "Guessed when unsure.";
+  if (b.includes("used_notes")) return "Leaned on notes or examples.";
+  return "Learning behavior was not clear from this reflection.";
+}
+
+function relationshipPhrase(s: ExtractedSignals): string {
+  const { emotional: e, behavioral: b, technical: t } = s;
+  if (e.includes("embarrassed") && b.includes("avoided_help"))
+    return "Feeling embarrassed appears to have made it harder to ask for help, which may have let the confusion continue.";
+  if (e.includes("rushed") && t.includes("careless_error"))
+    return "Feeling rushed appears to have led to avoidable errors.";
+  if (b.includes("avoided_help") && t.includes("misunderstood_concept"))
+    return "Not asking for help appears to have let the misunderstanding continue.";
+  if (e.includes("confident") && t.includes("understood_concept"))
+    return "Confidence tracked with genuine understanding here.";
+  return "No strong link between emotion, behavior, and understanding stood out.";
+}
+
+function actionsFor(s: ExtractedSignals): string[] {
+  const out: string[] = [];
+  if (s.behavioral.includes("avoided_help") || s.emotional.includes("embarrassed"))
+    out.push("Offer a private, low-pressure check-in.");
+  if (s.technical.includes("application_difficulty") || s.technical.includes("misunderstood_concept"))
+    out.push("Give a first-step checklist for choosing a method.");
+  if (s.emotional.includes("rushed") || s.context.includes("time_pressure"))
+    out.push("Add a calm, untimed warm-up before independent work.");
+  if (out.length === 0)
+    out.push("Confirm understanding with one quick independent example next class.");
+  return out;
+}
+
+function studentFacing(s: ExtractedSignals, action: string): string {
+  const tech = s.technical.includes("application_difficulty")
+    ? "You understood the examples but weren't sure how to start on your own. "
+    : "You reflected on today's work. ";
+  const feel = s.emotional.includes("embarrassed")
+    ? "Feeling embarrassed made it harder to ask for help. "
+    : "";
+  return `${tech}${feel}Your next step: ${action.toLowerCase().replace(/\.$/, "")}.`;
+}
+
+function confidenceFor(s: ExtractedSignals, words: number): ConfidenceLevel {
+  const total = s.technical.length + s.emotional.length + s.behavioral.length;
+  if (total >= 4 && words >= 25) return "high";
+  if (total >= 2) return "moderate";
+  return "limited";
+}
+
+const LOW_CONFIDENCE_EMOTIONS: readonly EmotionalSignal[] = [
+  "embarrassed",
+  "discouraged",
+  "overwhelmed",
+  "fear_of_mistakes",
+];
+
+function attentionGroupFor(s: ExtractedSignals): AttentionStudent["group"] | null {
+  const understood = s.technical.includes("understood_concept");
+  const confused =
+    s.technical.includes("misunderstood_concept") ||
+    s.technical.includes("application_difficulty");
+  const lowConf = s.emotional.some((e) => LOW_CONFIDENCE_EMOTIONS.includes(e));
+  if (s.behavioral.includes("avoided_help")) return "repeated_help_avoidance";
+  if (s.emotional.includes("sense_of_progress") && s.behavioral.includes("kept_trying"))
+    return "positive_improvement";
+  if (confused && lowConf) return "low_understanding_low_confidence";
+  if (understood && lowConf) return "high_understanding_low_confidence";
+  if (confused && s.emotional.includes("confident")) return "low_understanding_high_confidence";
+  return null;
 }
 
 export function createDeterministicReflectionIntelligence(deps: {
@@ -320,10 +430,80 @@ export function createDeterministicReflectionIntelligence(deps: {
     });
   }
 
+  function summarizeStudent(input: SummarizeStudentInput): StudentInsightSummary {
+    const { session, signals } = input;
+    const answers = studentAnswers(session).map((m) => m.text.trim()).filter(Boolean);
+    const words = answers.join(" ").split(/\s+/).filter(Boolean).length;
+    const actions = actionsFor(signals);
+    return createStudentInsightSummary({
+      id: `${session.id}-summary`,
+      studentId: session.studentId,
+      reflectionId: session.reflectionId,
+      technicalSummary: technicalPhrase(signals),
+      emotionalSummary: emotionalPhrase(signals),
+      behavioralSummary: behavioralPhrase(signals),
+      relationshipSummary: relationshipPhrase(signals),
+      recommendedActions: actions,
+      studentFacingSummary: studentFacing(signals, actions[0]),
+      evidence: answers.length > 0 ? answers : ["No free-text responses were recorded."],
+      confidenceLevel: confidenceFor(signals, words),
+      createdAt: now(),
+    });
+  }
+
+  function summarizeClass(input: SummarizeClassInput): ClassInsightSummary {
+    const n = input.students.length;
+    const count = (pred: (s: ExtractedSignals) => boolean): number =>
+      input.students.filter((x) => pred(x.signals)).length;
+    const understood = count((s) => s.technical.includes("understood_concept"));
+    const confused = count(
+      (s) =>
+        s.technical.includes("misunderstood_concept") ||
+        s.technical.includes("application_difficulty"),
+    );
+    const lowConfidence = count(
+      (s) => s.emotional.includes("embarrassed") || s.behavioral.includes("avoided_help"),
+    );
+    const rushed = count(
+      (s) => s.emotional.includes("rushed") || s.context.includes("time_pressure"),
+    );
+
+    const attentionStudents: AttentionStudent[] = input.students
+      .map((x): AttentionStudent | null => {
+        const group = attentionGroupFor(x.signals);
+        return group ? { studentId: x.studentId, group } : null;
+      })
+      .filter((x): x is AttentionStudent => x !== null);
+
+    const keyRelationship =
+      lowConfidence > 0 && confused > 0
+        ? "Several students understood the guided examples but lost confidence working independently; those who felt embarrassed were less likely to ask for help."
+        : "No single technical–emotional pattern dominated the class.";
+
+    return createClassInsightSummary({
+      id: `${input.reflectionId}-class`,
+      classId: input.classId,
+      reflectionId: input.reflectionId,
+      technicalSummary: `${understood} of ${n} reported understanding the concept; ${confused} reported confusion or trouble applying it independently.`,
+      emotionalSummary: `${lowConfidence} of ${n} showed low confidence or hesitation to ask for help; ${rushed} reported feeling rushed.`,
+      behavioralSummary: `${count((s) => s.behavioral.includes("avoided_help"))} did not ask for help when stuck; ${count((s) => s.behavioral.includes("kept_trying"))} kept trying.`,
+      keyRelationship,
+      recommendedPlan: [
+        "Start with one low-pressure independent example.",
+        "Review how to choose the right method before practice.",
+        "Normalize mistakes and offer a way to ask questions privately.",
+      ],
+      attentionStudents,
+      createdAt: now(),
+    });
+  }
+
   return {
     analyzeLesson: async (input) => analyze(input),
     generateReflectionQuestions: async (input) => generate(input),
     nextTurn: async (input) => next(input),
     extractSignals: async (input) => extract(input),
+    summarizeStudentReflection: async (input) => summarizeStudent(input),
+    summarizeClassReflection: async (input) => summarizeClass(input),
   };
 }

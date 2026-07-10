@@ -5,6 +5,13 @@ import type { GeneratedQuestion, ReflectionQuestionSet } from "./question";
 import type { ReflectionMessage, ReflectionSession } from "./session";
 import type { ExtractedSignals } from "./signals";
 import type {
+  AttentionStudent,
+  ClassInsightSummary,
+  StudentInsightSummary,
+} from "./insight";
+import type {
+  attentionStudentSchema,
+  classInsightSummarySchema,
   extractedSignalsSchema,
   generatedQuestionSchema,
   lessonAnalysisSchema,
@@ -12,6 +19,7 @@ import type {
   reflectionMessageSchema,
   reflectionQuestionSetSchema,
   reflectionSessionSchema,
+  studentInsightSummarySchema,
 } from "../schemas/intelligence";
 
 /**
@@ -44,4 +52,13 @@ export type _ReflectionMessageSync = Expect<
 >;
 export type _ReflectionSessionSync = Expect<
   Equal<ReflectionSession, z.infer<typeof reflectionSessionSchema>>
+>;
+export type _AttentionStudentSync = Expect<
+  Equal<AttentionStudent, z.infer<typeof attentionStudentSchema>>
+>;
+export type _StudentInsightSummarySync = Expect<
+  Equal<StudentInsightSummary, z.infer<typeof studentInsightSummarySchema>>
+>;
+export type _ClassInsightSummarySync = Expect<
+  Equal<ClassInsightSummary, z.infer<typeof classInsightSummarySchema>>
 >;

@@ -202,3 +202,50 @@ export const reflectionSessionSchema = z.object({
   startedAt: z.date(),
   completedAt: z.date().optional(),
 });
+
+// --- Insight summaries -------------------------------------------------------
+
+export const confidenceLevelSchema = z.enum(["high", "moderate", "limited"]);
+
+export const attentionGroupSchema = z.enum([
+  "low_understanding_low_confidence",
+  "high_understanding_low_confidence",
+  "low_understanding_high_confidence",
+  "significant_emotional_change",
+  "reflection_assessment_mismatch",
+  "repeated_help_avoidance",
+  "positive_improvement",
+]);
+
+export const attentionStudentSchema = z.object({
+  studentId: idSchema,
+  group: attentionGroupSchema,
+});
+
+export const studentInsightSummarySchema = z.object({
+  id: idSchema,
+  studentId: idSchema,
+  reflectionId: idSchema,
+  technicalSummary: z.string().min(1),
+  emotionalSummary: z.string().min(1),
+  behavioralSummary: z.string().min(1),
+  relationshipSummary: z.string().min(1),
+  recommendedActions: z.array(z.string().min(1)),
+  studentFacingSummary: z.string().min(1),
+  evidence: z.array(z.string().min(1)),
+  confidenceLevel: confidenceLevelSchema,
+  createdAt: z.date(),
+});
+
+export const classInsightSummarySchema = z.object({
+  id: idSchema,
+  classId: idSchema,
+  reflectionId: idSchema,
+  technicalSummary: z.string().min(1),
+  emotionalSummary: z.string().min(1),
+  behavioralSummary: z.string().min(1),
+  keyRelationship: z.string().min(1),
+  recommendedPlan: z.array(z.string().min(1)),
+  attentionStudents: z.array(attentionStudentSchema),
+  createdAt: z.date(),
+});

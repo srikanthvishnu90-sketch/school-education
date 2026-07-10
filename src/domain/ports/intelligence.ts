@@ -1,3 +1,4 @@
+import type { Id } from "../common";
 import type { Lesson, LessonAnalysis } from "../intelligence/lesson";
 import type {
   QuestionCategory,
@@ -6,6 +7,10 @@ import type {
 } from "../intelligence/question";
 import type { ReflectionSession, ReflectionStage } from "../intelligence/session";
 import type { ExtractedSignals } from "../intelligence/signals";
+import type {
+  ClassInsightSummary,
+  StudentInsightSummary,
+} from "../intelligence/insight";
 
 /**
  * ReflectionIntelligence — the AI service seam for the reflection loop. It is
@@ -64,6 +69,24 @@ export interface ExtractSignalsInput {
   analysis?: LessonAnalysis;
 }
 
+export interface SummarizeStudentInput {
+  session: ReflectionSession;
+  signals: ExtractedSignals;
+  analysis?: LessonAnalysis;
+}
+
+export interface ClassStudentInput {
+  studentId: Id;
+  summary: StudentInsightSummary;
+  signals: ExtractedSignals;
+}
+
+export interface SummarizeClassInput {
+  classId: Id;
+  reflectionId: Id;
+  students: ClassStudentInput[];
+}
+
 export interface ReflectionIntelligence {
   /** Read a lesson: topic, likely misconceptions, emotional pressure points, focus. */
   analyzeLesson(input: AnalyzeLessonInput): Promise<LessonAnalysis>;
@@ -75,4 +98,12 @@ export interface ReflectionIntelligence {
   nextTurn(input: NextTurnInput): Promise<ConversationStep>;
   /** Tag the conversation onto the closed technical/emotional/behavioral/context sets. */
   extractSignals(input: ExtractSignalsInput): Promise<ExtractedSignals>;
+  /** Build the teacher + student summary for one reflection (evidence + confidence). */
+  summarizeStudentReflection(
+    input: SummarizeStudentInput,
+  ): Promise<StudentInsightSummary>;
+  /** Aggregate student summaries into a class brief with attention groups + a plan. */
+  summarizeClassReflection(
+    input: SummarizeClassInput,
+  ): Promise<ClassInsightSummary>;
 }

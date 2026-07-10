@@ -5,3 +5,4 @@ export * from "./question";
 export * from "./session";
 export * from "./signals";
 export * from "./nonDiagnostic";
+export * from "./insight";
