@@ -7,10 +7,21 @@ import {
   createRecordingDeliveryChannel,
   createRecordingOperatorChannel,
   createTenantProtocolRepository,
+  detectCrisis,
   type CrisisEscalationRepository,
   type CrisisSafetyService,
 } from "@/safety";
 import { createPgClient, runMigrations, applyRls } from "@/adapters/supabase";
+
+/**
+ * A boolean-only safety check the reflection engine uses to yield to a concern.
+ * It exposes NO escalation data — just whether the deterministic detector fired —
+ * so the isolation holds: the reflection flow learns "stop and route to a human",
+ * never anything about the crisis itself.
+ */
+export function isSafetyConcern(text: string): boolean {
+  return detectCrisis(text) !== null;
+}
 
 /**
  * The process-lifetime crisis safety world (P16). This is one of the TWO sanctioned

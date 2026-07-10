@@ -23,6 +23,9 @@ import {
   createPgImportedGradeStore,
   type ImportedGradeStore,
 } from "./importedGrades";
+import { buildIntelRepos, buildIntelligence, type IntelRepos } from "./intelligence";
+import { isSafetyConcern } from "./safetyWorld";
+import type { ReflectionIntelligence } from "@/domain/ports/intelligence";
 
 /**
  * The single in-memory world the student surface is wired to. There is no
@@ -45,6 +48,10 @@ export interface World {
   telemetry: PilotTelemetry;
   /** Gradebook grades imported via /ingest, surfaced to the student (p7). */
   importedGrades: ImportedGradeStore;
+  /** The AI reflection service (deterministic default + crisis-safety hook; LLM when keyed). */
+  intelligence: ReflectionIntelligence;
+  /** Persistence for the reflection-intelligence entities (lessons, sessions, summaries). */
+  intel: IntelRepos;
   /** The primary (cycle-1) assessment; kept for back-compat. */
   assessment: Assessment;
   /** Every assessment, in cycle order — index + 1 is the cycle number. */
@@ -126,6 +133,8 @@ async function build(): Promise<World> {
     consentService: core.consentService,
     telemetry: core.telemetry,
     importedGrades,
+    intelligence: buildIntelligence(() => core.clock.now(), isSafetyConcern),
+    intel: buildIntelRepos(),
     assessment,
     assessments: [assessment, secondAssessment],
     vocabulary,
