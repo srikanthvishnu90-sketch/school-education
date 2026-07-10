@@ -20,7 +20,7 @@ import { TEACHER_ID, studentDisplayName } from "./teacher";
  */
 
 /** The demo teacher owns one class; a real build resolves this from the roster. */
-export const TEACHER_CLASS_ID = "class-1";
+const TEACHER_CLASS_ID = "class-1";
 
 export interface NewLessonInput {
   title: string;
