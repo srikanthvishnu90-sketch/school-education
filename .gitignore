@@ -22,7 +22,6 @@
 
 # misc
 .DS_Store
-*.pem
 
 # debug
 npm-debug.log*
@@ -30,9 +29,34 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# --- Secrets: NEVER commit ---------------------------------------------------
+# Every env file and every credential/key material is ignored. The single
+# exception is .env.example, a placeholder-only template (no real values).
+.env
+.env.*
 !.env.example
+*.local
+# Private keys, certificates, and credential bundles.
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+*.asc
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+# Common credential filenames.
+secrets.*
+*.secret
+*.secrets
+credentials.json
+gha-creds-*.json
+service-account*.json
+*serviceaccount*.json
+.netrc
 
 # vercel
 .vercel
