@@ -23,7 +23,12 @@ import {
   createPgImportedGradeStore,
   type ImportedGradeStore,
 } from "./importedGrades";
-import { buildIntelRepos, buildIntelligence, type IntelRepos } from "./intelligence";
+import {
+  buildIntelRepos,
+  buildIntelligence,
+  seedDemoReflection,
+  type IntelRepos,
+} from "./intelligence";
 import { isSafetyConcern } from "./safetyWorld";
 import type { ReflectionIntelligence } from "@/domain/ports/intelligence";
 
@@ -126,6 +131,10 @@ async function build(): Promise<World> {
     }
   }
 
+  const intelligence = buildIntelligence(() => core.clock.now(), isSafetyConcern);
+  const intel = buildIntelRepos();
+  await seedDemoReflection(intelligence, intel, () => core.clock.now());
+
   return {
     services: core.services,
     repos: core.repos,
@@ -133,8 +142,8 @@ async function build(): Promise<World> {
     consentService: core.consentService,
     telemetry: core.telemetry,
     importedGrades,
-    intelligence: buildIntelligence(() => core.clock.now(), isSafetyConcern),
-    intel: buildIntelRepos(),
+    intelligence,
+    intel,
     assessment,
     assessments: [assessment, secondAssessment],
     vocabulary,

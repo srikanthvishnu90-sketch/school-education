@@ -1,3 +1,4 @@
+import { createLesson } from "@/domain/intelligence/lesson";
 import {
   createDeterministicReflectionIntelligence,
   createLlmReflectionIntelligence,
@@ -61,4 +62,36 @@ export function buildIntelRepos(): IntelRepos {
     studentSummaries: createMemoryStudentSummaryRepository(),
     classSummaries: createMemoryClassSummaryRepository(),
   };
+}
+
+/** The seeded demo lesson every student can reflect on (id == reflectionId). */
+export const DEMO_REFLECTION_ID = "lesson-demo";
+
+/** Seed one lesson + its AI-generated question set so the chat runs out of the box. */
+export async function seedDemoReflection(
+  intelligence: ReflectionIntelligence,
+  intel: IntelRepos,
+  now: () => Date,
+): Promise<void> {
+  const lesson = createLesson({
+    id: DEMO_REFLECTION_ID,
+    classId: "class-1",
+    teacherId: "teacher-1",
+    title: "Factoring quadratic equations",
+    date: now(),
+    lessonType: "independent_practice",
+    content:
+      "I modeled three examples of factoring quadratic equations, then students solved six problems independently.",
+    objectives: [],
+    standards: [],
+    createdAt: now(),
+  });
+  await intel.lessons.save(lesson);
+  const analysis = await intelligence.analyzeLesson({ lesson });
+  const set = await intelligence.generateReflectionQuestions({
+    analysis,
+    depth: "standard",
+    adaptiveFollowups: true,
+  });
+  await intel.questionSets.save(set);
 }
