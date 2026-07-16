@@ -22,14 +22,18 @@ export default function CourseChat({
   courseId,
   courseName,
   studentName,
+  initial,
 }: {
   courseId: string;
   courseName: string;
   studentName: string;
+  /** The persisted conversation so far (empty on a first visit). */
+  initial: AssistantMessage[];
 }): ReactElement {
   const opening = `Hi ${studentName} — I'm here to think through ${courseName} with you. How did today go? Tell me one thing that clicked and one thing that felt tricky.`;
   const [messages, setMessages] = useState<AssistantMessage[]>([
     { role: "assistant", text: opening },
+    ...initial,
   ]);
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -45,12 +49,11 @@ export default function CourseChat({
     const text = input.trim();
     if (text.length === 0 || pending || crisis) return;
     setError(null);
-    const history = messages;
     setMessages((prev) => [...prev, { role: "student", text }]);
     setInput("");
     startTransition(async () => {
       try {
-        const turn = await sendAssistantMessage(courseId, history, text);
+        const turn = await sendAssistantMessage(courseId, text);
         setMessages((prev) => [...prev, { role: "assistant", text: turn.reply }]);
         if (turn.crisis) setCrisis(true);
       } catch (e) {

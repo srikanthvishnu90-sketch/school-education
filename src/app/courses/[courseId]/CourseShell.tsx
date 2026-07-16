@@ -4,6 +4,7 @@ import { ArrowLeft, Menu, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import { useState, type ReactElement } from "react";
 import Sidebar from "@/app/_landing/Sidebar";
+import type { AssistantMessage } from "@/app/_world/assistant";
 import type { CourseReflection } from "@/app/_world/courseActions";
 import type { Course } from "@/app/_world/courses";
 import CourseChat from "./CourseChat";
@@ -27,10 +28,12 @@ export default function CourseShell({
   course,
   reflections,
   studentName,
+  chatHistory,
 }: {
   course: Course;
   reflections: CourseReflection[];
   studentName: string;
+  chatHistory: AssistantMessage[];
 }): ReactElement {
   const [menuOpen, setMenuOpen] = useState(false);
   const initials = studentName
@@ -116,6 +119,7 @@ export default function CourseShell({
             courseId={course.id}
             courseName={course.name}
             studentName={studentName}
+            initial={chatHistory}
           />
         </main>
       </div>

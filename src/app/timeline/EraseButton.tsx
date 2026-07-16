@@ -21,7 +21,8 @@ export default function EraseButton(): ReactElement {
         setDone(
           result.deleted.sessions +
             result.deleted.summaries +
-            result.deleted.performances,
+            result.deleted.performances +
+            result.deleted.chats,
         );
         setArmed(false);
         router.refresh();

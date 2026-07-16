@@ -2,6 +2,7 @@
 
 import { getSessionUser } from "./session";
 import { getWorld } from "./world";
+import { deleteStudyChatsByStudent } from "./studyChat";
 import { recordAudit } from "./auditLog";
 
 /**
@@ -14,21 +15,30 @@ import { recordAudit } from "./auditLog";
 
 export interface EraseResult {
   ok: boolean;
-  deleted: { sessions: number; summaries: number; performances: number };
+  deleted: {
+    sessions: number;
+    summaries: number;
+    performances: number;
+    chats: number;
+  };
 }
 
 export async function eraseMyReflectionData(): Promise<EraseResult> {
   const user = await getSessionUser();
   if (user === null || user.role !== "student") {
-    return { ok: false, deleted: { sessions: 0, summaries: 0, performances: 0 } };
+    return {
+      ok: false,
+      deleted: { sessions: 0, summaries: 0, performances: 0, chats: 0 },
+    };
   }
   const studentId = user.id;
   const world = await getWorld();
 
-  const [sessions, summaries, performances] = await Promise.all([
+  const [sessions, summaries, performances, chats] = await Promise.all([
     world.intel.sessions.deleteByStudent(studentId),
     world.intel.studentSummaries.deleteByStudent(studentId),
     world.intel.performances.deleteByStudent(studentId),
+    deleteStudyChatsByStudent(studentId),
   ]);
 
   // Revoke affect consent — the ConsentService hard-deletes affect rows and writes
@@ -44,5 +54,5 @@ export async function eraseMyReflectionData(): Promise<EraseResult> {
     at: world.clock.now(),
   });
 
-  return { ok: true, deleted: { sessions, summaries, performances } };
+  return { ok: true, deleted: { sessions, summaries, performances, chats } };
 }

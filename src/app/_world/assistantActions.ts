@@ -5,44 +5,56 @@ import { findCourse } from "./courses";
 import { clientIp, hit } from "./rateLimit";
 import { screenReflectionText } from "./safetyActions";
 import { getSessionUser } from "./session";
+import { loadStudyChat, saveStudyChat } from "./studyChat";
 import { studentDisplayName } from "./teacher";
 
 /**
  * The open study-chat boundary. Same safety contract as the reflection chat: the
  * student's latest message is crisis-screened FIRST (the escalation is created and
  * routed server-side), and only if it's clear does anything reach the model. The
- * conversation itself lives in the client for now — this action is stateless per
- * turn — so a refresh starts a fresh chat, by design.
+ * conversation is PERSISTED per (student, course) — the server loads the history
+ * itself rather than trusting the client, so it survives a refresh and can't be
+ * spoofed.
  */
 
 const MAX_MESSAGE = 2000;
-const MAX_HISTORY = 40;
 
 export interface AssistantTurn {
   crisis: boolean;
   reply: string;
 }
 
-export async function sendAssistantMessage(
-  courseId: string,
-  history: AssistantMessage[],
-  message: string,
-): Promise<AssistantTurn> {
+async function requireStudent(): Promise<{ id: string }> {
   const user = await getSessionUser();
   if (user === null || user.role !== "student") {
     throw new Error("Only a signed-in student can use the study chat.");
   }
+  return { id: user.id };
+}
+
+/** The persisted conversation for a course (empty before the first message). */
+export async function getStudyChat(courseId: string): Promise<AssistantMessage[]> {
+  const { id } = await requireStudent();
+  return loadStudyChat(id, courseId);
+}
+
+export async function sendAssistantMessage(
+  courseId: string,
+  message: string,
+): Promise<AssistantTurn> {
+  const { id } = await requireStudent();
   const text = message.trim();
   if (text.length === 0) throw new Error("Type a message first.");
   if (text.length > MAX_MESSAGE) {
     throw new Error("That message is a bit long — try breaking it up.");
   }
 
-  if (!(await hit(`assistant:${await clientIp()}:${user.id}`, 30, 60_000)).ok) {
+  if (!(await hit(`assistant:${await clientIp()}:${id}`, 30, 60_000)).ok) {
     throw new Error("You’re sending messages very quickly. Give it a moment.");
   }
 
   // Safety FIRST: a crisis signal routes to a human and short-circuits the model.
+  // A crisis turn is not persisted to the chat — the escalation is the record.
   const { crisis } = await screenReflectionText(text);
   if (crisis) {
     return {
@@ -55,23 +67,22 @@ export async function sendAssistantMessage(
   const course = findCourse(courseId);
   if (course === null) throw new Error("Course not found.");
 
-  // Bound the history the client sends, then append this turn.
-  const trimmed = history
-    .filter((m) => typeof m.text === "string" && m.text.trim().length > 0)
-    .slice(-MAX_HISTORY)
-    .map((m) => ({
-      role: m.role === "assistant" ? ("assistant" as const) : ("student" as const),
-      text: m.text.slice(0, MAX_MESSAGE),
-    }));
-  const messages: AssistantMessage[] = [...trimmed, { role: "student", text }];
+  // Server-authoritative history: load what's stored, append this turn.
+  const history = await loadStudyChat(id, courseId);
+  const withStudent: AssistantMessage[] = [...history, { role: "student", text }];
 
   const reply = await assistantReply(
     {
       courseName: course.name,
       teacher: course.teacher,
-      studentName: studentDisplayName(user.id),
+      studentName: studentDisplayName(id),
     },
-    messages,
+    withStudent,
   );
+
+  await saveStudyChat(id, courseId, [
+    ...withStudent,
+    { role: "assistant", text: reply },
+  ]);
   return { crisis: false, reply };
 }
