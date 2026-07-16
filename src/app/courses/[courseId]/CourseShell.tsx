@@ -3,16 +3,16 @@
 import { ArrowLeft, Menu, MessageSquareText } from "lucide-react";
 import Link from "next/link";
 import { useState, type ReactElement } from "react";
-import HeroInput from "@/app/_landing/HeroInput";
 import Sidebar from "@/app/_landing/Sidebar";
 import type { CourseReflection } from "@/app/_world/courseActions";
 import type { Course } from "@/app/_world/courses";
+import CourseChat from "./CourseChat";
 
 /**
- * One course, on the same shell as the landing: a greeting, the composer, and
- * the class's reflections as the actionable rows. The composer is a stub here —
- * a reflection is a guided conversation the teacher's lesson seeds, so it starts
- * from a row, not from free text.
+ * One course. Two things live here, exactly as a student expects after clicking a
+ * class: the day's REFLECTION (the guided conversation the teacher's lesson seeds)
+ * and an open CHAT to think the class through freely. The reflection is structured
+ * and scored-adjacent; the chat is private, task-focused, and reward-free.
  */
 
 const STATUS_LABEL: Record<string, string> = {
@@ -67,47 +67,56 @@ export default function CourseShell({
           </Link>
         </header>
 
-        <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
-          <div className="w-full max-w-xl">
-            <h1 className="text-center text-[22px] font-normal tracking-tight sm:text-[28px]">
+        <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
+          <div className="mx-auto flex w-full max-w-2xl shrink-0 flex-col pt-1">
+            <h1 className="text-[22px] font-normal tracking-tight sm:text-[26px]">
               {course.name}
             </h1>
-            <p className="mt-2 text-center text-[13px] text-shell-muted">
+            <p className="mt-1 text-[13px] text-shell-muted">
               {course.code} · {course.teacher}
             </p>
 
-            <div className="mt-6">
-              <HeroInput placeholder={`Ask about ${course.name}`} />
-            </div>
-
-            {reflections.length === 0 ? (
-              <p className="mt-6 text-center text-[14px] text-shell-muted">
-                Nothing to reflect on yet. When {course.teacher} posts a lesson,
-                it shows up here.
+            {/* The day's reflection(s) — the structured, teacher-seeded conversation. */}
+            <div className="mt-4 rounded-xl border border-shell-border bg-shell-card p-1.5">
+              <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-shell-muted">
+                Today&rsquo;s reflection
               </p>
-            ) : (
-              <ul className="mt-4 flex w-full flex-col">
-                {reflections.map((r) => (
-                  <li key={r.reflectionId}>
-                    <Link
-                      href={`/chat/${r.reflectionId}`}
-                      className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-white/5"
-                    >
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-shell-muted">
-                        <MessageSquareText size={16} aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate text-[14px] text-shell-text">
-                        {r.title}
-                      </span>
-                      <span className="shrink-0 text-[12px] text-shell-muted">
-                        {STATUS_LABEL[r.status] ?? "Open"}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
+              {reflections.length === 0 ? (
+                <p className="px-2.5 pb-2 pt-0.5 text-[13px] text-shell-muted">
+                  Nothing to reflect on yet. When {course.teacher} posts a lesson, it
+                  shows up here.
+                </p>
+              ) : (
+                <ul className="flex flex-col">
+                  {reflections.map((r) => (
+                    <li key={r.reflectionId}>
+                      <Link
+                        href={`/chat/${r.reflectionId}`}
+                        className="flex items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-white/5"
+                      >
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-shell-muted">
+                          <MessageSquareText size={15} aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[14px] text-shell-text">
+                          {r.title}
+                        </span>
+                        <span className="shrink-0 text-[12px] text-shell-sage">
+                          {STATUS_LABEL[r.status] ?? "Open"}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
+
+          {/* The open study chat fills the rest of the height. */}
+          <CourseChat
+            courseId={course.id}
+            courseName={course.name}
+            studentName={studentName}
+          />
         </main>
       </div>
     </div>

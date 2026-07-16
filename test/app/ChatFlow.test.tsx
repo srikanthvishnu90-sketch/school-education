@@ -92,9 +92,9 @@ describe("ChatFlow", () => {
       "min-h-11",
     );
     expect(screen.getByRole("button", { name: "I'm not sure" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "All lessons" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "My courses" })).toHaveAttribute(
       "href",
-      "/reflections",
+      "/courses",
     );
     expect(
       screen.getByText(/answers don’t change your score/i),

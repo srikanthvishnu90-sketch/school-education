@@ -6,7 +6,7 @@ import type { Role } from "./_landing/RoleToggle";
 
 const HOME_FOR_ROLE: Record<string, string> = {
   teacher: "/lessons",
-  student: "/reflections",
+  student: "/courses",
   counselor: "/escalations",
   admin: "/admin",
 };

@@ -22,7 +22,7 @@ import { signIn } from "./session";
 async function homeFor(user: AuthUser): Promise<string> {
   if (user.role === "counselor") return "/escalations";
   if (user.role === "teacher") return "/lessons";
-  return "/reflections";
+  return "/courses";
 }
 
 export interface RequestResult {

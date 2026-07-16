@@ -33,10 +33,10 @@ describe("magic-link role landing", () => {
     mocks.signIn.mockResolvedValue(undefined);
   });
 
-  it("lands a verified student in the lesson reflection inbox", async () => {
+  it("lands a verified student on their courses", async () => {
     await expect(verifyMagicLink("valid-token")).resolves.toEqual({
       ok: true,
-      redirect: "/reflections",
+      redirect: "/courses",
     });
     expect(mocks.signIn).toHaveBeenCalledWith("student-avery");
   });

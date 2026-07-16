@@ -37,7 +37,7 @@ export default function ReflectionError({
             Try again
           </button>
           <Link
-            href="/reflections"
+            href="/courses"
             className="inline-flex min-h-11 items-center rounded-control px-3 text-sm text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
           >
             Back to lessons

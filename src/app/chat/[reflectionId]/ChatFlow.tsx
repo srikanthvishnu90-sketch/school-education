@@ -223,10 +223,10 @@ export default function ChatFlow({
           </div>
         </div>
         <Link
-          href="/reflections"
+          href="/courses"
           className="inline-flex min-h-11 shrink-0 items-center rounded-control px-2 text-[13px] text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
         >
-          All lessons
+          My courses
         </Link>
       </header>
 
@@ -492,10 +492,10 @@ function SafetyTurn(): ReactElement {
             Text 988
           </a>
           <Link
-            href="/reflections"
+            href="/courses"
             className="inline-flex min-h-11 items-center rounded-control px-2 text-sm text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
           >
-            Back to lessons
+            Back to courses
           </Link>
         </div>
       </div>
@@ -586,10 +586,10 @@ function SummaryTurn({
           See how your read compares to your results over time →
         </Link>
         <Link
-          href="/reflections"
+          href="/courses"
           className="ml-4 mt-2 inline-flex min-h-11 items-center rounded-control px-1 text-[13px] text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
         >
-          Back to all lessons
+          Back to my courses
         </Link>
       </div>
     </div>

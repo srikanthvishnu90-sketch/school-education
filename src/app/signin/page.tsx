@@ -15,7 +15,7 @@ export default function SignInPage(): ReactElement {
       id: s.id,
       name: studentDisplayName(s.id),
       role: "Student",
-      href: "/reflections",
+      href: "/courses",
     })),
     {
       id: TEACHER_ID,
