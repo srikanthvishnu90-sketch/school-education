@@ -49,11 +49,11 @@ export default function LandingShell({
         </header>
 
         <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
-          <div className="w-full max-w-2xl">
-            <h1 className="text-center text-[28px] font-normal tracking-tight text-shell-text sm:text-[40px]">
+          <div className="w-full max-w-xl">
+            <h1 className="text-center text-[22px] font-normal tracking-tight text-shell-text sm:text-[28px]">
               {greeting}
             </h1>
-            <div className="mt-8">
+            <div className="mt-6">
               <HeroInput />
             </div>
             <QuickActions role={role} />

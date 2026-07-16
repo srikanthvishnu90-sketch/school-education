@@ -13,19 +13,19 @@ export default function HeroInput({
 }): ReactElement {
   return (
     <div
-      className="flex h-14 w-full items-center gap-3 rounded-full border border-shell-border bg-shell-panel px-4"
+      className="flex h-12 w-full items-center gap-2.5 rounded-full border border-shell-border bg-shell-panel px-3.5"
       aria-hidden
     >
-      <Plus size={20} className="shrink-0 text-shell-muted" />
+      <Plus size={18} className="shrink-0 text-shell-muted" />
       <input
         disabled
         placeholder={placeholder}
         tabIndex={-1}
-        className="min-w-0 flex-1 bg-transparent text-[15px] text-shell-text outline-none placeholder:text-shell-muted disabled:cursor-not-allowed"
+        className="min-w-0 flex-1 bg-transparent text-[14px] text-shell-text outline-none placeholder:text-shell-muted disabled:cursor-not-allowed"
       />
-      <Mic size={20} className="shrink-0 text-shell-muted" />
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white">
-        <AudioLines size={18} className="text-black" />
+      <Mic size={18} className="shrink-0 text-shell-muted" />
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
+        <AudioLines size={16} className="text-black" />
       </span>
     </div>
   );

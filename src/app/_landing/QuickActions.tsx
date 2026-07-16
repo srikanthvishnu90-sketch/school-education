@@ -23,17 +23,17 @@ const ACTIONS: Record<Role, { label: string; Icon: typeof Camera }[]> = {
 
 export default function QuickActions({ role }: { role: Role }): ReactElement {
   return (
-    <ul className="mt-6 flex w-full flex-col">
+    <ul className="mt-4 flex w-full flex-col">
       {ACTIONS[role].map(({ label, Icon }) => (
         <li key={label}>
           <button
             type="button"
-            className="flex w-full items-center gap-4 rounded-xl px-2 py-3 text-left transition-colors hover:bg-white/5"
+            className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-white/5"
           >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-shell-muted">
-              <Icon size={18} aria-hidden />
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-shell-muted">
+              <Icon size={16} aria-hidden />
             </span>
-            <span className="text-[15px] text-shell-text">{label}</span>
+            <span className="text-[14px] text-shell-text">{label}</span>
           </button>
         </li>
       ))}

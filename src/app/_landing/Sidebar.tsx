@@ -1,30 +1,28 @@
 "use client";
 
 import {
-  Clock,
-  FolderClosed,
-  Library,
-  MoreHorizontal,
+  Blocks,
+  BookOpen,
+  GraduationCap,
   PanelLeft,
-  Search,
   SquarePen,
   X,
 } from "lucide-react";
 import type { ReactElement } from "react";
 
 /**
- * The left rail. Decorative for now — every destination is stubbed (href="#")
+ * The left rail: start a chat, or jump to a grade band. K–12 splits three ways
+ * because the bands ask genuinely different things of a reflection — a 2nd
+ * grader and a junior don't get the same question. Decorative for now (href="#")
  * until the signed-in surfaces own it. Under 768px it lifts out into an overlay
  * drawer driven by the hamburger in the header.
  */
 
 const NAV = [
   { label: "New chat", Icon: SquarePen },
-  { label: "Search", Icon: Search },
-  { label: "Library", Icon: Library },
-  { label: "Projects", Icon: FolderClosed },
-  { label: "Scheduled", Icon: Clock },
-  { label: "More", Icon: MoreHorizontal },
+  { label: "K–5", Icon: Blocks },
+  { label: "6–8", Icon: BookOpen },
+  { label: "9–12", Icon: GraduationCap },
 ] as const;
 
 const RECENTS = [
@@ -55,24 +53,24 @@ export default function Sidebar({
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-40 flex w-[260px] flex-col bg-shell-sidebar transition-transform duration-200 ease-out motion-reduce:transition-none md:static md:z-auto md:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-[228px] flex-col bg-shell-sidebar transition-transform duration-200 ease-out motion-reduce:transition-none md:static md:z-auto md:translate-x-0 ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between px-4 py-4">
-          <span className="text-[17px] font-semibold tracking-tight text-shell-text">
+        <div className="flex items-center justify-between px-3 py-3">
+          <span className="text-[14px] font-semibold tracking-tight text-shell-text">
             plumb
           </span>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="rounded-lg p-1.5 text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
+            className="rounded-lg p-1 text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
           <PanelLeft
-            size={18}
+            size={16}
             aria-hidden
             className="hidden text-shell-muted md:block"
           />
@@ -83,36 +81,36 @@ export default function Sidebar({
             <a
               key={label}
               href="#"
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
+              className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
             >
-              <Icon size={18} aria-hidden />
+              <Icon size={16} aria-hidden />
               {label}
             </a>
           ))}
         </nav>
 
-        <div className="mt-6 min-h-0 flex-1 overflow-y-auto px-2">
-          <p className="px-3 pb-2 text-[13px] font-medium text-shell-text">
+        <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-2">
+          <p className="px-2.5 pb-1.5 text-[12px] font-medium text-shell-text">
             Recents
           </p>
           {RECENTS.map((title) => (
             <a
               key={title}
               href="#"
-              className="block truncate rounded-xl px-3 py-2 text-[14px] text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
+              className="block truncate rounded-lg px-2.5 py-1.5 text-[13px] text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
             >
               {title}
             </a>
           ))}
         </div>
 
-        <div className="flex items-center gap-3 border-t border-white/5 px-4 py-3">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-shell-panel text-[12px] font-medium text-shell-text">
+        <div className="flex items-center gap-2.5 border-t border-white/5 px-3 py-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-shell-panel text-[11px] font-medium text-shell-text">
             VS
           </span>
           <div className="min-w-0">
-            <p className="truncate text-[14px] text-shell-text">Vishnu Srikanth</p>
-            <p className="text-[12px] text-shell-muted">Pro</p>
+            <p className="truncate text-[13px] text-shell-text">Vishnu Srikanth</p>
+            <p className="text-[11px] text-shell-muted">Pro</p>
           </div>
         </div>
       </aside>
