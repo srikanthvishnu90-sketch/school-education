@@ -17,7 +17,10 @@ import { TEACHER_ID } from "./teacher";
  * session cookie carries only the id.
  */
 
-export type AccountRole = "student" | "teacher" | "counselor";
+export type AccountRole = "student" | "teacher" | "counselor" | "admin";
+
+/** The seeded district admin — sees usage + the access audit log for their tenant. */
+export const ADMIN_ID = "admin-1";
 
 /** The demo district every seeded/self-signup account belongs to. A real build
  * resolves the tenant from the email domain or an invite at sign-up. */
@@ -74,6 +77,7 @@ function seedAccounts(): Account[] {
   const accounts = [
     make(TEACHER_ID, "rivera@demo.school", "teacher"),
     make(COUNSELOR_ID, "okafor@demo.school", "counselor"),
+    make(ADMIN_ID, "admin@demo.school", "admin"),
     // A second district — proves tenant isolation: these accounts never see
     // district-demo's data, and vice-versa, though they share the demo class id.
     make(NORTH_TEACHER_ID, "chen@north.school", "teacher", NORTH_TENANT_ID),
@@ -155,7 +159,7 @@ create schema if not exists auth;
 create table if not exists auth.accounts (
   id text primary key,
   email text not null unique,
-  role text not null check (role in ('student','teacher','counselor')),
+  role text not null check (role in ('student','teacher','counselor','admin')),
   tenant_id text not null default '${DEMO_TENANT_ID}',
   salt text not null,
   hash text not null,

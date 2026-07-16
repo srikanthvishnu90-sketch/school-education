@@ -41,7 +41,7 @@ export async function signOutAction(): Promise<void> {
 
 export async function getSessionUser(): Promise<{
   id: Id;
-  role: "student" | "teacher" | "counselor";
+  role: "student" | "teacher" | "counselor" | "admin";
   /** The district this account belongs to — the tenant isolation boundary. */
   tenantId: string;
 } | null> {

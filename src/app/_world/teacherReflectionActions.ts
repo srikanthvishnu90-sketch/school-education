@@ -172,6 +172,7 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
   const lesson = await ownedLesson(world, reflectionId, teacher);
   if (lesson === null) return null;
   recordAudit({
+    tenantId: teacher.tenantId,
     actorId: teacher.id,
     actorRole: "teacher",
     action: "view_lesson",
@@ -223,7 +224,8 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
   // to each (FERPA who-saw-what).
   for (const s of students) {
     recordAudit({
-      actorId: teacher.id,
+      tenantId: teacher.tenantId,
+    actorId: teacher.id,
       actorRole: "teacher",
       action: "view_class_brief",
       reflectionId,
@@ -298,6 +300,7 @@ export async function recordReflectionScore(
     }),
   );
   recordAudit({
+    tenantId: teacher.tenantId,
     actorId: teacher.id,
     actorRole: "teacher",
     action: "record_score",

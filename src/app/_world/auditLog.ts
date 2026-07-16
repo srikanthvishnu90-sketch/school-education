@@ -17,6 +17,8 @@ export type AuditAction =
 
 export interface AuditEvent {
   at: string;
+  /** The district this access happened in — an admin only sees their own. */
+  tenantId: string;
   actorId: string;
   actorRole: string;
   action: AuditAction;
@@ -30,6 +32,7 @@ const MAX_EVENTS = 5000;
 const events: AuditEvent[] = [];
 
 export interface AuditInput {
+  tenantId: string;
   actorId: string;
   actorRole: string;
   action: AuditAction;
@@ -42,6 +45,7 @@ export interface AuditInput {
 export function recordAudit(input: AuditInput): void {
   events.push({
     at: input.at.toISOString(),
+    tenantId: input.tenantId,
     actorId: input.actorId,
     actorRole: input.actorRole,
     action: input.action,
@@ -51,9 +55,12 @@ export function recordAudit(input: AuditInput): void {
   if (events.length > MAX_EVENTS) events.shift();
 }
 
-/** The most recent access events, newest first (for an auditor/admin surface). */
-export function listAudit(limit = 200): AuditEvent[] {
-  return events.slice(-limit).reverse();
+/** The most recent access events for one district, newest first (admin surface). */
+export function listAudit(tenantId: string, limit = 200): AuditEvent[] {
+  return events
+    .filter((e) => e.tenantId === tenantId)
+    .slice(-limit)
+    .reverse();
 }
 
 /** Access events touching one student — the FERPA "who saw my child's record" query. */

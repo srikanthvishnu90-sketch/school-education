@@ -30,13 +30,15 @@ async function requireCounselor(): Promise<boolean> {
 }
 
 export async function listEscalations(): Promise<EscalationView[]> {
-  if (!(await requireCounselor())) return [];
+  const user = await getSessionUser();
+  if (user === null || user.role !== "counselor") return [];
   const { escalations } = await getSafetyWorld();
   const rows = await escalations.listByTenant(CRISIS_TENANT);
   // Reading crisis escalations exposes at-risk students by name — record each.
   for (const e of rows) {
     recordAudit({
-      actorId: COUNSELOR_ID,
+      tenantId: user.tenantId,
+      actorId: user.id,
       actorRole: "counselor",
       action: "view_escalation",
       studentId: e.studentId,

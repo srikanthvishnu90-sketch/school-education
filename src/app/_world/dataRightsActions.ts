@@ -1,6 +1,6 @@
 "use server";
 
-import { getSessionStudent } from "./session";
+import { getSessionUser } from "./session";
 import { getWorld } from "./world";
 import { recordAudit } from "./auditLog";
 
@@ -18,10 +18,11 @@ export interface EraseResult {
 }
 
 export async function eraseMyReflectionData(): Promise<EraseResult> {
-  const studentId = await getSessionStudent();
-  if (studentId === null) {
+  const user = await getSessionUser();
+  if (user === null || user.role !== "student") {
     return { ok: false, deleted: { sessions: 0, summaries: 0, performances: 0 } };
   }
+  const studentId = user.id;
   const world = await getWorld();
 
   const [sessions, summaries, performances] = await Promise.all([
@@ -35,6 +36,7 @@ export async function eraseMyReflectionData(): Promise<EraseResult> {
   await world.consentService.revoke({ studentId, scopes: ["affect"] });
 
   recordAudit({
+    tenantId: user.tenantId,
     actorId: studentId,
     actorRole: "student",
     action: "erase_data",

@@ -6,6 +6,7 @@ import {
   studentDisplayName,
 } from "@/app/_world/teacher";
 import { COUNSELOR_ID, COUNSELOR_NAME } from "@/app/_world/roles";
+import { ADMIN_ID } from "@/app/_world/credentials";
 import SignInList from "./SignInList";
 
 export default function SignInPage(): ReactElement {
@@ -27,6 +28,12 @@ export default function SignInPage(): ReactElement {
       name: COUNSELOR_NAME,
       role: "Counselor",
       href: "/escalations",
+    },
+    {
+      id: ADMIN_ID,
+      name: "District admin",
+      role: "Admin",
+      href: "/admin",
     },
   ];
 
