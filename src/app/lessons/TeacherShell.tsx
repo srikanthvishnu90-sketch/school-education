@@ -9,6 +9,7 @@ import {
   Plus,
   Search,
   Settings,
+  Users,
   X,
 } from "lucide-react";
 import Link from "next/link";
@@ -97,6 +98,9 @@ export default function TeacherShell({
           </NavItem>
           <NavItem href="/lessons" icon={<Plus size={17} />}>
             New lesson
+          </NavItem>
+          <NavItem href="/roster" icon={<Users size={17} />}>
+            Class roster
           </NavItem>
         </nav>
 

@@ -4,6 +4,7 @@ import { recordGuardrailTrip } from "./guardrailIncidents";
 import { TEACHER_NAME, studentDisplayName } from "./teacher";
 import { COUNSELOR_NAME } from "./roles";
 import { NORTH_STUDENT_ID } from "./credentials";
+import { rosterRedactionTerms } from "./rosterNames";
 import {
   createDeterministicReflectionIntelligence,
   createLlmReflectionIntelligence,
@@ -93,7 +94,9 @@ export function buildIntelligence(
     fallback: deterministic,
     now,
     // Redact the known roster before any student/lesson text leaves the process.
-    config: { pii: piiRoster() },
+    // Resolved live: the static seed identities PLUS any names a teacher has
+    // registered since build, so the redaction set grows with real class data.
+    config: { pii: () => [...piiRoster(), ...rosterRedactionTerms()] },
     // Feed every guardrail-forced fallback into the self-improving loop.
     onIncident: (trip) => recordGuardrailTrip(trip, now()),
   });

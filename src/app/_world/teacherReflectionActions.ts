@@ -11,6 +11,7 @@ import { getSessionUser } from "./session";
 import { getWorld, type World } from "./world";
 import { studentDisplayName } from "./teacher";
 import { getLessonPhotos, saveLessonPhotos } from "./lessonMedia";
+import { getRoster, parseRoster, saveRoster } from "./rosterNames";
 import { recordAudit } from "./auditLog";
 
 /**
@@ -186,6 +187,25 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
     content: lesson.content,
     photos: await getLessonPhotos(reflectionId),
   };
+}
+
+/**
+ * The teacher's class roster — the student names for their class. Registering it
+ * does double duty: the teacher gets their roster back for display, and the names
+ * feed the intelligence adapter's PII redaction set (see rosterNames), so real
+ * student names are stripped before any model call instead of only the demo seed.
+ * One roster per teacher, scoped to their tenant.
+ */
+export async function saveClassRoster(rosterText: string): Promise<string[]> {
+  const teacher = await requireTeacher();
+  const names = parseRoster(rosterText);
+  await saveRoster(teacher.id, teacher.tenantId, names);
+  return names;
+}
+
+export async function getClassRoster(): Promise<string[]> {
+  const teacher = await requireTeacher();
+  return getRoster(teacher.id);
 }
 
 /**

@@ -80,8 +80,12 @@ export interface IntelLlmConfig {
     /** Narrative for the per-student summary (evidence + counts stay deterministic). */
     summarize: boolean;
   };
-  /** Known identifiers to redact before any call (student/teacher names, ids). */
-  pii: readonly string[];
+  /**
+   * Known identifiers to redact before any call (student/teacher names, ids).
+   * A function is resolved at each call, so a roster that grows after the adapter
+   * is built (e.g. a teacher importing their class) still gets redacted.
+   */
+  pii: readonly string[] | (() => readonly string[]);
 }
 
 export const DEFAULT_INTEL_LLM_CONFIG: IntelLlmConfig = {
@@ -556,6 +560,10 @@ export function createLlmReflectionIntelligence(deps: {
   };
   const enabled = (task: keyof IntelLlmConfig["tasks"]): boolean =>
     !config.killSwitch && config.tasks[task];
+  // Resolve the redaction terms fresh on every call so a roster that grows after
+  // build (roster import) is always reflected.
+  const piiTerms = (): readonly string[] =>
+    typeof config.pii === "function" ? config.pii() : config.pii;
   const report = (trip: GuardrailTrip): void => deps.onIncident?.(trip);
 
   return {
@@ -572,7 +580,7 @@ export function createLlmReflectionIntelligence(deps: {
           gradeLevel: input.gradeLevel,
           subject: input.subject,
         }),
-        config.pii,
+        piiTerms(),
       );
       try {
         const res = await gateway.send({
@@ -656,7 +664,7 @@ export function createLlmReflectionIntelligence(deps: {
           depth,
           questionCount: DEPTH_COUNT[depth],
         }),
-        config.pii,
+        piiTerms(),
       );
       try {
         const res = await gateway.send({
@@ -713,7 +721,7 @@ export function createLlmReflectionIntelligence(deps: {
           .join("\n");
         const { clean } = stripPii(
           `${convo}\n\nQuestion category: ${base.category}\nQuestion format: ${base.format}\nQuestion to rephrase: ${base.text}`,
-          config.pii,
+          piiTerms(),
         );
         const res = await gateway.send({
           task: "render",
@@ -740,7 +748,7 @@ export function createLlmReflectionIntelligence(deps: {
         .map((m) => m.text)
         .join("\n");
       if (convo.trim().length === 0) return fallback.extractSignals(input);
-      const { clean } = stripPii(convo, config.pii);
+      const { clean } = stripPii(convo, piiTerms());
       try {
         const res = await gateway.send({
           task: "classify",
@@ -784,7 +792,7 @@ export function createLlmReflectionIntelligence(deps: {
           })),
           signals,
         }),
-        config.pii,
+        piiTerms(),
       );
       try {
         const res = await gateway.send({
