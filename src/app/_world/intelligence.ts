@@ -88,31 +88,59 @@ export async function buildIntelRepos(
 
 /** The seeded demo lesson every student can reflect on (id == reflectionId). */
 export const DEMO_REFLECTION_ID = "lesson-demo";
+/** The second district's seeded lesson — proves a north student never sees it. */
+export const NORTH_REFLECTION_ID = "lesson-north-demo";
 
-/** Seed one lesson + its AI-generated question set so the chat runs out of the box. */
-export async function seedDemoReflection(
+interface SeedLessonSpec {
+  id: string;
+  tenantId: string;
+  teacherId: string;
+  title: string;
+  content: string;
+}
+
+const SEED_LESSONS: readonly SeedLessonSpec[] = [
+  {
+    id: DEMO_REFLECTION_ID,
+    tenantId: "district-demo",
+    teacherId: "teacher-1",
+    title: "Factoring quadratic equations",
+    content:
+      "I modeled three examples of factoring quadratic equations, then students solved six problems independently.",
+  },
+  {
+    id: NORTH_REFLECTION_ID,
+    tenantId: "district-north",
+    teacherId: "teacher-north",
+    title: "Photosynthesis lab",
+    content:
+      "Students ran a photosynthesis lab in pairs, measured oxygen output, then recorded observations independently.",
+  },
+];
+
+async function seedOne(
   intelligence: ReflectionIntelligence,
   intel: IntelRepos,
   now: () => Date,
+  spec: SeedLessonSpec,
 ): Promise<void> {
   // Already seeded (durable Postgres across restarts) → skip the analyze/generate
   // work and its LLM calls. In-memory always re-seeds since it starts empty.
   if (
-    (await intel.lessons.findById(DEMO_REFLECTION_ID)) !== null &&
-    (await intel.questionSets.findByLesson(DEMO_REFLECTION_ID)) !== null
+    (await intel.lessons.findById(spec.id)) !== null &&
+    (await intel.questionSets.findByLesson(spec.id)) !== null
   ) {
     return;
   }
   const lesson = createLesson({
-    id: DEMO_REFLECTION_ID,
-    tenantId: "district-demo",
-    classId: "class-1",
-    teacherId: "teacher-1",
-    title: "Factoring quadratic equations",
+    id: spec.id,
+    tenantId: spec.tenantId,
+    classId: "class-1", // shared class id — isolation is by tenant, not class
+    teacherId: spec.teacherId,
+    title: spec.title,
     date: now(),
     lessonType: "independent_practice",
-    content:
-      "I modeled three examples of factoring quadratic equations, then students solved six problems independently.",
+    content: spec.content,
     objectives: [],
     standards: [],
     createdAt: now(),
@@ -125,4 +153,15 @@ export async function seedDemoReflection(
     adaptiveFollowups: true,
   });
   await intel.questionSets.save(set);
+}
+
+/** Seed each district's demo lesson + questions so the chat runs out of the box. */
+export async function seedDemoReflection(
+  intelligence: ReflectionIntelligence,
+  intel: IntelRepos,
+  now: () => Date,
+): Promise<void> {
+  for (const spec of SEED_LESSONS) {
+    await seedOne(intelligence, intel, now, spec);
+  }
 }

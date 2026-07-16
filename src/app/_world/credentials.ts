@@ -23,6 +23,11 @@ export type AccountRole = "student" | "teacher" | "counselor";
  * resolves the tenant from the email domain or an invite at sign-up. */
 export const DEMO_TENANT_ID = "district-demo";
 
+/** A SECOND district, seeded so tenant isolation is demonstrable end to end. */
+export const NORTH_TENANT_ID = "district-north";
+export const NORTH_TEACHER_ID = "teacher-north";
+export const NORTH_STUDENT_ID = "student-nadia";
+
 export interface Account {
   id: string;
   email: string;
@@ -57,13 +62,22 @@ export const DEMO_PASSWORD = "plumb1234";
 
 /** The seed set both adapters provision idempotently, so the demo always works. */
 function seedAccounts(): Account[] {
-  const make = (id: string, email: string, role: AccountRole): Account => {
+  const make = (
+    id: string,
+    email: string,
+    role: AccountRole,
+    tenantId: string = DEMO_TENANT_ID,
+  ): Account => {
     const { salt, hash } = hashNew(DEMO_PASSWORD);
-    return { id, email: email.toLowerCase(), role, tenantId: DEMO_TENANT_ID, salt, hash };
+    return { id, email: email.toLowerCase(), role, tenantId, salt, hash };
   };
   const accounts = [
     make(TEACHER_ID, "rivera@demo.school", "teacher"),
     make(COUNSELOR_ID, "okafor@demo.school", "counselor"),
+    // A second district — proves tenant isolation: these accounts never see
+    // district-demo's data, and vice-versa, though they share the demo class id.
+    make(NORTH_TEACHER_ID, "chen@north.school", "teacher", NORTH_TENANT_ID),
+    make(NORTH_STUDENT_ID, "nadia@north.school", "student", NORTH_TENANT_ID),
   ];
   for (const s of SEED_STUDENTS) {
     const first = s.id.replace(/^student-/, "");
