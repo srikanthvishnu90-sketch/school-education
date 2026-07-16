@@ -10,6 +10,7 @@ import type { ConversationStep } from "@/domain/ports/intelligence";
 import { getSessionStudent } from "./session";
 import { hasReflectionConsent } from "./consentActions";
 import { hit } from "./rateLimit";
+import { withLock } from "./keyedMutex";
 import { screenReflectionText } from "./safetyActions";
 import { getWorld, type World } from "./world";
 import type {
@@ -239,46 +240,41 @@ export async function sendReflectionMessage(
   if (!(await hit(`msg:${sessionId}`, 20, 60_000)).ok) {
     throw new Error("You’re sending messages very quickly. Give it a moment.");
   }
-  const world = await getWorld();
-  const found = await world.intel.sessions.findById(sessionId);
-  if (found === null || found.studentId !== studentId) {
-    throw new Error("Session not found.");
-  }
-  if (found.status !== "active") {
-    throw new Error("This reflection is not accepting messages.");
-  }
-  const set = await world.intel.questionSets.findByLesson(found.reflectionId);
-  if (set === null) throw new Error("This reflection is not available.");
+  // Serialize the read-modify-write per session so two rapid submits can't both
+  // read the same base and clobber each other's message (and collide on ids).
+  return withLock(`session:${sessionId}`, async () => {
+    const world = await getWorld();
+    const found = await world.intel.sessions.findById(sessionId);
+    if (found === null || found.studentId !== studentId) {
+      throw new Error("Session not found.");
+    }
+    if (found.status !== "active") {
+      throw new Error("This reflection is not accepting messages.");
+    }
+    const set = await world.intel.questionSets.findByLesson(found.reflectionId);
+    if (set === null) throw new Error("This reflection is not available.");
 
-  // This boundary creates and routes the counselor escalation. The intelligence
-  // adapter's detector is only a stop signal and is not a substitute for routing.
-  const { crisis } = await screenReflectionText(answer);
-  const withAnswer = append(
-    found,
-    "student",
-    answer,
-    undefined,
-    world.clock.now(),
-  );
-  if (crisis) {
-    const escalated = createReflectionSession({
-      ...withAnswer,
-      status: "escalated",
+    // This boundary creates and routes the counselor escalation. The intelligence
+    // adapter's detector is only a stop signal and is not a substitute for routing.
+    const { crisis } = await screenReflectionText(answer);
+    const withAnswer = append(found, "student", answer, undefined, world.clock.now());
+    if (crisis) {
+      const escalated = createReflectionSession({ ...withAnswer, status: "escalated" });
+      await world.intel.sessions.save(escalated);
+      return {
+        kind: "safety",
+        sessionId: escalated.id,
+        history: historyOf(escalated),
+      };
+    }
+
+    await world.intel.sessions.save(withAnswer);
+    const step = await world.intelligence.nextTurn({
+      session: withAnswer,
+      questionSet: set,
     });
-    await world.intel.sessions.save(escalated);
-    return {
-      kind: "safety",
-      sessionId: escalated.id,
-      history: historyOf(escalated),
-    };
-  }
-
-  await world.intel.sessions.save(withAnswer);
-  const step = await world.intelligence.nextTurn({
-    session: withAnswer,
-    questionSet: set,
+    return advance(world, withAnswer, step);
   });
-  return advance(world, withAnswer, step);
 }
 
 export async function selectReflectionAction(
