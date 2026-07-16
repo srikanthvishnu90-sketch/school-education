@@ -13,7 +13,7 @@ export default function LoginButton({ role }: { role: Role }): ReactElement {
   return (
     <Link
       href={`/login?role=${role}`}
-      className="inline-flex h-10 items-center rounded-full bg-white px-5 text-[14px] font-medium text-black transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+      className="inline-flex h-10 items-center rounded-full bg-shell-sage px-5 text-[14px] font-medium text-shell-background transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage/60"
     >
       Login
     </Link>

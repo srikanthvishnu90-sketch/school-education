@@ -78,7 +78,7 @@ export default function LoginForm({ role }: { role: LoginRole }): ReactElement {
         <button
           type="submit"
           disabled={pending}
-          className="mt-4 h-11 rounded-full bg-white text-[14px] font-medium text-black transition-opacity hover:opacity-80 disabled:opacity-50"
+          className="mt-4 h-11 rounded-full bg-shell-sage text-[14px] font-medium text-shell-background transition-opacity hover:opacity-80 disabled:opacity-50"
         >
           {pending ? "Signing in…" : `Continue as ${isStudent ? "student" : "teacher"}`}
         </button>

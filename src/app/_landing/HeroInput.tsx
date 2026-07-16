@@ -24,8 +24,8 @@ export default function HeroInput({
         className="min-w-0 flex-1 bg-transparent text-[14px] text-shell-text outline-none placeholder:text-shell-muted disabled:cursor-not-allowed"
       />
       <Mic size={18} className="shrink-0 text-shell-muted" />
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white">
-        <AudioLines size={16} className="text-black" />
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-shell-sage">
+        <AudioLines size={16} className="text-shell-background" />
       </span>
     </div>
   );

@@ -1,6 +1,6 @@
 "use server";
 
-import { COURSES } from "./courses";
+import { COURSES, type Subject } from "./courses";
 import { getSessionUser } from "./session";
 import { getWorld } from "./world";
 
@@ -15,6 +15,7 @@ export interface CourseCard {
   name: string;
   code: string;
   teacher: string;
+  subject: Subject;
   monogram: string;
   /** Reflections the teacher has posted for this course. */
   total: number;

@@ -31,15 +31,24 @@
   --color-chat-muted: #bbc5cd;
   --color-chat-accent: #a9c5de;
 
-  /* App shell — monochrome dark entry surface, mirrored in src/ui/tokens.ts. */
-  --color-shell-background: #0d0d0d;
+  /* App shell — dark K-12 surface + sage accent, mirrored in src/ui/tokens.ts. */
+  --color-shell-background: #121212;
   --color-shell-sidebar: #171717;
+  --color-shell-card: #1a1a1a;
   --color-shell-panel: #2f2f2f;
   --color-shell-track: #212121;
   --color-shell-active: #414141;
   --color-shell-border: #3a3a3a;
   --color-shell-text: #ececec;
   --color-shell-muted: #8e8ea0;
+  --color-shell-sage: #8fbc9f;
+
+  /* Subject color coding — small tags / left-borders only, never full fills. */
+  --color-subject-math: #d97a7a;
+  --color-subject-english: #7a9bd9;
+  --color-subject-science: #7fc08f;
+  --color-subject-history: #a8c8e8;
+  --color-subject-spanish: #e8d284;
 
   /* Accuracy semantics — NEVER red/green. aligned = ink-tint, gap = warm. */
   --color-aligned: #3e6187;

@@ -38,17 +38,28 @@ export const color = {
   chatMuted: "#BBC5CD",
   chatAccent: "#A9C5DE",
 
-  // App shell — the monochrome dark entry surface (landing + login). Neutral by
-  // intent: no hue, no accent, so the single white Login pill is the only
-  // high-contrast element competing for attention.
-  shellBackground: "#0D0D0D",
+  // App shell — the dark K-12 surface (landing, login, courses). Calm and
+  // editorial: #121212 canvas (never pure black), one sage-green accent for
+  // buttons / active states / highlights.
+  shellBackground: "#121212",
   shellSidebar: "#171717",
+  shellCard: "#1A1A1A",
   shellPanel: "#2F2F2F",
   shellTrack: "#212121",
   shellActive: "#414141",
   shellBorder: "#3A3A3A",
   shellText: "#ECECEC",
   shellMuted: "#8E8EA0",
+  /** Primary accent. Buttons, active states, highlights. Dark text sits on it. */
+  shellSage: "#8FBC9F",
+
+  // Subject color coding — desaturated for a dark bg, used ONLY as small tags or
+  // left-borders on cards, never as a full fill.
+  subjectMath: "#D97A7A",
+  subjectEnglish: "#7A9BD9",
+  subjectScience: "#7FC08F",
+  subjectHistory: "#A8C8E8",
+  subjectSpanish: "#E8D284",
 } as const;
 
 /**
