@@ -26,6 +26,7 @@ import type {
   StudentSummaryRepository,
 } from "@/domain/ports/intelligenceRepositories";
 import type { SqlClient } from "./client";
+import { applyMigrations } from "./migrate";
 import { createDataCipher, type DataCipher } from "./cipher";
 
 /**
@@ -105,7 +106,7 @@ const SERVICE_ONLY = [
 ];
 
 async function provision(client: SqlClient): Promise<void> {
-  await client.query(DDL);
+  await applyMigrations(client, [{ id: "0003_intel_schema", sql: DDL }]);
   for (const t of SERVICE_ONLY) {
     // Enable RLS with no authenticated grant/policy → service-role-only.
     await client.query(`alter table ${t} enable row level security;`);

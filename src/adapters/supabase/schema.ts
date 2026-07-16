@@ -1,4 +1,5 @@
-import { runIdempotent, type SqlClient } from "./client";
+import { type SqlClient } from "./client";
+import { applyMigrations } from "./migrate";
 
 /**
  * The Postgres schema the frozen domain conforms to (the DB conforms to the
@@ -217,11 +218,11 @@ const ALL_TABLES = [
   // inserts, and truncating them would race with the RLS suite's seeds.
 ] as const;
 
-/** Applies the schema. Idempotent (every statement is `if not exists`). */
+/** Applies the core academic/emotional/pilot/safety schema via the ledger. */
 export async function runMigrations(client: SqlClient): Promise<void> {
-  await runIdempotent(async () => {
-    await client.query(SCHEMA_SQL);
-  });
+  await applyMigrations(client, [
+    { id: "0001_core_schema", sql: SCHEMA_SQL },
+  ]);
 }
 
 /** Truncates every table — for test isolation, never production. */

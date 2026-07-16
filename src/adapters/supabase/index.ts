@@ -1,4 +1,5 @@
 export * from "./client";
+export * from "./migrate";
 export * from "./schema";
 export * from "./rls";
 export * from "./authClient";

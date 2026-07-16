@@ -1,6 +1,6 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { SEED_STUDENTS } from "@/application";
-import { createPgClient, type SqlClient } from "@/adapters/supabase";
+import { applyMigrations, createPgClient, type SqlClient } from "@/adapters/supabase";
 import { COUNSELOR_ID } from "./roles";
 import { TEACHER_ID } from "./teacher";
 
@@ -178,7 +178,7 @@ type RawAccount = {
 } & Record<string, unknown>;
 
 async function createPgStore(client: SqlClient): Promise<CredentialStore> {
-  await client.query(ACCOUNTS_DDL);
+  await applyMigrations(client, [{ id: "0002_auth_accounts", sql: ACCOUNTS_DDL }]);
   // Seed the demo accounts once — insert-if-absent so restarts don't re-hash.
   for (const a of seedAccounts()) {
     await client.query(
