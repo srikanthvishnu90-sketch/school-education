@@ -45,6 +45,32 @@ describe("detectCrisis", () => {
     }
   });
 
+  it("sees through common obfuscation (spacing, punctuation, elongation)", () => {
+    for (const text of [
+      "k i l l myself", // spaced letters
+      "killlll myself", // elongation
+      "i want to k.i.l.l myself", // punctuation-separated
+      "s u i c i d e", // spaced single word
+      "s-u-i-c-i-d-e", // dash-separated
+      "suicidddde", // elongation on the tail
+      "i'm going to o v e r d o s e", // spaced tier_1 token
+    ]) {
+      expect(detectCrisis(text)?.tier).toBe("tier_1");
+    }
+    expect(detectCrisis("s e l f h a r m")?.tier).toBe("tier_2");
+  });
+
+  it("de-obfuscation does not create false positives on benign spaced text", () => {
+    for (const text of [
+      "I need to skill myself up for this test", // 'skill myself' must not read as 'kill myself'
+      "a b c d e f g", // spaced letters, no crisis token
+      "the answer is s o l a r energy", // spaced benign word
+      "I will not overdo it this time", // near 'overdose' but not it
+    ]) {
+      expect(detectCrisis(text)).toBeNull();
+    }
+  });
+
   it("is deterministic and records the detector version", () => {
     const a = detectCrisis("i want to kill myself");
     const b = detectCrisis("i want to kill myself");

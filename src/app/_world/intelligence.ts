@@ -1,5 +1,9 @@
 import { createLesson } from "@/domain/intelligence/lesson";
+import { SEED_STUDENTS } from "@/application";
 import { recordGuardrailTrip } from "./guardrailIncidents";
+import { TEACHER_NAME, studentDisplayName } from "./teacher";
+import { COUNSELOR_NAME } from "./roles";
+import { NORTH_STUDENT_ID } from "./credentials";
 import {
   createDeterministicReflectionIntelligence,
   createLlmReflectionIntelligence,
@@ -44,6 +48,33 @@ export interface IntelRepos {
   performances: PerformanceRepository;
 }
 
+/**
+ * The known-identity roster redacted from every payload before it reaches the
+ * model — student first names and staff names (full and title-stripped surname).
+ * This is what makes `stripPii`'s `extraTerms` non-empty in the request path: the
+ * generic email/id/number rules can't safely catch bare proper nouns without
+ * over-redacting ordinary words, so the caller supplies the names it holds. The
+ * union across tenants is intentional — redacting a name that can't appear only
+ * ever adds privacy, never removes it. Word-boundary matched, so "Chen" never
+ * touches "kitchen".
+ */
+export function piiRoster(): string[] {
+  const names = new Set<string>();
+  const add = (raw: string): void => {
+    const n = raw.trim();
+    if (n.length >= 3) names.add(n);
+  };
+  for (const s of SEED_STUDENTS) add(studentDisplayName(s.id));
+  add(studentDisplayName(NORTH_STUDENT_ID));
+  // Staff: keep the full display name AND the title-stripped surname, since a
+  // student may write either "Ms. Rivera" or "Rivera".
+  for (const full of [TEACHER_NAME, COUNSELOR_NAME, "Ms. Chen"]) {
+    add(full);
+    add(full.replace(/^(mr|ms|mrs|dr|mx)\.?\s+/i, ""));
+  }
+  return [...names];
+}
+
 export function buildIntelligence(
   now: () => Date,
   safetyCheck: (text: string) => boolean,
@@ -61,6 +92,8 @@ export function buildIntelligence(
     gateway,
     fallback: deterministic,
     now,
+    // Redact the known roster before any student/lesson text leaves the process.
+    config: { pii: piiRoster() },
     // Feed every guardrail-forced fallback into the self-improving loop.
     onIncident: (trip) => recordGuardrailTrip(trip, now()),
   });
