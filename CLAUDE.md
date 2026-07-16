@@ -67,6 +67,7 @@ The single source of truth is `src/ui/tokens.ts`, mirrored 1:1 into the Tailwind
     Text:      #0F1B26 (ink-black), secondary #536878
     Accent:    warm #E0A06A  (affective/human moments ONLY, <=5% of surface, never text color)
     State:     aligned = ink-tint #3E6187 ; gap = warm #E0A06A
+    Chat:      background #080A0D ; surface #12171C ; text #F7F9FA ; muted #BBC5CD
     Radius:    control 6px, card 12px
     Type:      sans = Inter (all data/academic UI); --font-voice serif slot reserved
 

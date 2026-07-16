@@ -1,4 +1,7 @@
-import type { QuestionCategory, QuestionFormat } from "@/domain/intelligence/question";
+import type {
+  QuestionCategory,
+  QuestionFormat,
+} from "@/domain/intelligence/question";
 import type { ReflectionStage } from "@/domain/intelligence/session";
 import type { StudentInsightSummary } from "@/domain/intelligence/insight";
 
@@ -8,23 +11,40 @@ import type { StudentInsightSummary } from "@/domain/intelligence/insight";
  * import the types.
  */
 
-export interface ChatQuestion {
+/** A JSON-safe copy of one persisted turn, oldest to newest. */
+export interface ChatHistoryMessage {
+  id: string;
+  sender: "student" | "ai";
+  text: string;
+  category?: QuestionCategory;
+  createdAt: string;
+}
+
+interface ChatHistory {
+  /** Persisted transcript after the server applies the latest state transition. */
+  history?: ChatHistoryMessage[];
+}
+
+export interface ChatQuestion extends ChatHistory {
   kind: "question";
   sessionId: string;
   stage: ReflectionStage;
   category: QuestionCategory;
   text: string;
   format: QuestionFormat;
+  required: boolean;
   options?: string[];
 }
 
-export interface ChatSummary {
+export interface ChatSummary extends ChatHistory {
   kind: "summary";
   sessionId: string;
   summary: StudentInsightSummary;
+  /** The student's already-persisted choice, when revisiting a completed chat. */
+  selectedAction?: string;
 }
 
-export interface ChatSafety {
+export interface ChatSafety extends ChatHistory {
   kind: "safety";
   sessionId: string;
 }

@@ -36,7 +36,10 @@ async function build(safetyCheck?: (t: string) => boolean): Promise<{
   ai: ReturnType<typeof createDeterministicReflectionIntelligence>;
   set: ReflectionQuestionSet;
 }> {
-  const ai = createDeterministicReflectionIntelligence({ now: () => NOW, safetyCheck });
+  const ai = createDeterministicReflectionIntelligence({
+    now: () => NOW,
+    safetyCheck,
+  });
   const analysis = await ai.analyzeLesson({ lesson });
   const set = await ai.generateReflectionQuestions({
     analysis,
@@ -53,15 +56,14 @@ const session = (texts: string[]): ReflectionSession =>
     studentId: "STU",
     status: "active",
     startedAt: NOW,
-    messages: texts.map(
-      (text, i): ReflectionMessage =>
-        createReflectionMessage({
-          id: `m${i}`,
-          sessionId: "S",
-          sender: "student",
-          text,
-          createdAt: NOW,
-        }),
+    messages: texts.map((text, i): ReflectionMessage =>
+      createReflectionMessage({
+        id: `m${i}`,
+        sessionId: "S",
+        sender: "student",
+        text,
+        createdAt: NOW,
+      }),
     ),
   });
 
@@ -73,22 +75,36 @@ describe("deterministic adaptive engine — nextTurn", () => {
     if (step.kind === "question") {
       expect(step.stage).toBe("overall");
       expect(step.text).toContain("Slope of a line");
+      expect(step.required).toBe(true);
     }
   });
 
   it("ends with a summary once all primaries are answered substantively", async () => {
     const { ai, set } = await build();
-    const answers = set.questions.map(() => "It made sense until I had to pick the method myself.");
-    const step = await ai.nextTurn({ session: session(answers), questionSet: set });
+    const answers = set.questions.map(
+      () => "It made sense until I had to pick the method myself.",
+    );
+    const step = await ai.nextTurn({
+      session: session(answers),
+      questionSet: set,
+    });
     expect(step.kind).toBe("summary");
   });
 
   it("asks one clarifying follow-up when the last answer is vague", async () => {
     const { ai, set } = await build();
-    const answers = set.questions.map((_, i) => (i === set.questions.length - 1 ? "idk" : "real answer here"));
-    const step = await ai.nextTurn({ session: session(answers), questionSet: set });
+    const answers = set.questions.map((_, i) =>
+      i === set.questions.length - 1 ? "maybe" : "real answer here",
+    );
+    const step = await ai.nextTurn({
+      session: session(answers),
+      questionSet: set,
+    });
     expect(step.kind).toBe("question");
-    if (step.kind === "question") expect(step.stage).toBe("support");
+    if (step.kind === "question") {
+      expect(step.stage).toBe("support");
+      expect(step.required).toBe(false);
+    }
     // ...and after the follow-up is answered, it summarizes.
     const after = await ai.nextTurn({
       session: session([...answers, "It was choosing which formula to use."]),
@@ -96,6 +112,36 @@ describe("deterministic adaptive engine — nextTurn", () => {
     });
     expect(after.kind).toBe("summary");
   });
+
+  it("accepts the offered uncertainty choice without treating it as missing detail", async () => {
+    const { ai, set } = await build();
+    const answers = set.questions.map((_, i) =>
+      i === set.questions.length - 1
+        ? "I'm not sure"
+        : "A concrete answer about today's task",
+    );
+    const step = await ai.nextTurn({
+      session: session(answers),
+      questionSet: set,
+    });
+    expect(step.kind).toBe("summary");
+  });
+
+  it.each(["I don't know", "idk", "No idea", "I'm not sure yet"])(
+    "accepts typed uncertainty %j without repeated follow-ups",
+    async (uncertain) => {
+      const { ai, set } = await build();
+      const answers = set.questions.map((_, i) =>
+        i === set.questions.length - 1
+          ? uncertain
+          : "A concrete answer about today's task",
+      );
+
+      await expect(
+        ai.nextTurn({ session: session(answers), questionSet: set }),
+      ).resolves.toMatchObject({ kind: "summary" });
+    },
+  );
 
   it("yields to a safety concern before anything else", async () => {
     const { ai, set } = await build((t) => /hurt myself/i.test(t));

@@ -10,7 +10,6 @@ import {
   type AuthUser,
 } from "./authCore";
 import { signIn } from "./session";
-import { DEMO_REFLECTION_ID } from "./intelligence";
 
 /**
  * Magic-link server actions. `requestMagicLink` never reveals whether an email is
@@ -22,7 +21,7 @@ import { DEMO_REFLECTION_ID } from "./intelligence";
 async function homeFor(user: AuthUser): Promise<string> {
   if (user.role === "counselor") return "/escalations";
   if (user.role === "teacher") return "/lessons";
-  return `/chat/${DEMO_REFLECTION_ID}`;
+  return "/reflections";
 }
 
 export interface RequestResult {

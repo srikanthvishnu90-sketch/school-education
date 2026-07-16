@@ -59,6 +59,8 @@ export type ConversationStep =
       category: QuestionCategory;
       text: string;
       format: QuestionFormat;
+      /** Optional prompts expose a neutral skip path in the student chat. */
+      required: boolean;
       options?: string[];
     }
   | { kind: "summary" }

@@ -1,11 +1,18 @@
-import { createLessonAnalysis, type LessonAnalysis } from "@/domain/intelligence/lesson";
+import {
+  createLessonAnalysis,
+  type LessonAnalysis,
+} from "@/domain/intelligence/lesson";
 import {
   createReflectionQuestionSet,
   type GeneratedQuestion,
   type QuestionCategory,
   type ReflectionQuestionSet,
 } from "@/domain/intelligence/question";
-import { studentAnswers, type ReflectionStage } from "@/domain/intelligence/session";
+import {
+  isReflectionUncertaintyOrSkip,
+  studentAnswers,
+  type ReflectionStage,
+} from "@/domain/intelligence/session";
 import {
   createExtractedSignals,
   type BehavioralSignal,
@@ -50,6 +57,93 @@ const DEPTH_COUNT: Record<GenerateQuestionsInput["depth"], number> = {
   deeper: 6,
 };
 
+const UNCERTAIN_OPTION = "I'm not sure";
+const PREDICTION_OPTIONS = [
+  "Not at all",
+  "A little",
+  "Somewhat",
+  "Mostly",
+  "Completely",
+  UNCERTAIN_OPTION,
+];
+
+const UNSAFE_PROMPT_ANCHOR =
+  /\b(good at|bad at|good student|bad student|smart|dumb|stupid|gifted|math person|kind of learner|natural at|students? (?:got stuck|were confused|felt frustrated|failed))\b/i;
+
+/**
+ * Keep teacher-authored lesson details usable inside a short student prompt.
+ * Quotation marks are normalized because the anchor is quoted in the generated
+ * questions; no meaning is inferred from the text.
+ */
+function compactPromptAnchor(value: string): string {
+  const compact = value
+    .replace(/[\r\n\t]+/g, " ")
+    .replace(/[“”"]/g, "'")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[.!?;:,\s]+$/, "");
+  if (compact.length <= 140) return compact;
+  return compact
+    .slice(0, 140)
+    .replace(/\s+\S*$/, "")
+    .trim();
+}
+
+function safePromptAnchor(value: string | undefined): string | null {
+  if (value === undefined) return null;
+  const compact = compactPromptAnchor(value);
+  if (
+    compact.length === 0 ||
+    compact.includes("?") ||
+    UNSAFE_PROMPT_ANCHOR.test(compact)
+  ) {
+    return null;
+  }
+  return compact;
+}
+
+/**
+ * The final clause usually describes what students most recently DID (for
+ * example, "then students completed six problems"). It is stronger episodic
+ * evidence for a reflection prompt than a generic topic label.
+ */
+function recentLessonEpisode(content: string): string {
+  const sentences = content
+    .replace(/[\r\n\t]+/g, " ")
+    .split(/[.!?]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  const latestSentence = sentences.at(-1) ?? content;
+  const clauses = latestSentence
+    .split(/\b(?:then|next|finally|afterward|afterwards)\b[,:]?\s*/i)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  return compactPromptAnchor(clauses.at(-1) ?? latestSentence);
+}
+
+/**
+ * Prefer the analyzed recent task/step for retrospective questions. Every
+ * fallback remains about this lesson rather than inventing a student trait or
+ * assuming that a particular moment was difficult.
+ */
+function taskAnchorFor(analysis: LessonAnalysis): string {
+  const candidate = [
+    analysis.technicalSteps.at(-1),
+    analysis.independentApplication[0],
+    analysis.difficultTransitions[0],
+    analysis.objectives[0],
+    analysis.topic,
+  ]
+    .map(safePromptAnchor)
+    .find((value): value is string => value !== null);
+  return candidate ?? "the assigned activity";
+}
+
+/** A prediction targets the teacher's learning objective when one was supplied. */
+function predictionAnchorFor(analysis: LessonAnalysis): string {
+  return safePromptAnchor(analysis.objectives[0]) ?? taskAnchorFor(analysis);
+}
+
 function extractVocabulary(content: string): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
@@ -80,17 +174,29 @@ const STAGE_BY_CATEGORY: Record<QuestionCategory, ReflectionStage> = {
   metacognitive: "support",
 };
 
-function stageForQuestion(q: GeneratedQuestion, order: number): ReflectionStage {
+function stageForQuestion(
+  q: GeneratedQuestion,
+  order: number,
+): ReflectionStage {
   return order === 0 ? "overall" : STAGE_BY_CATEGORY[q.category];
 }
 
 // Keyword → signal rules. Any number can fire per conversation; deduped.
 const TECHNICAL_RULES: readonly [RegExp, TechnicalSignal][] = [
   [/\b(made sense|understood|got it|i get it|clear)\b/i, "understood_concept"],
-  [/\b(confus\w*|didn'?t (get|understand)|lost|no idea what)\b/i, "misunderstood_concept"],
-  [/\b(which (method|way|formula)|where to start|how to (begin|start))\b/i, "application_difficulty"],
+  [
+    /\b(confus\w*|didn'?t (get|understand)|lost|no idea what)\b/i,
+    "misunderstood_concept",
+  ],
+  [
+    /\b(which (method|way|formula)|where to start|how to (begin|start))\b/i,
+    "application_difficulty",
+  ],
   [/\b(forgot|couldn'?t remember|blanked|which step)\b/i, "recall_difficulty"],
-  [/\b(ran out of time|no time|rushed the|didn'?t finish)\b/i, "time_management"],
+  [
+    /\b(ran out of time|no time|rushed the|didn'?t finish)\b/i,
+    "time_management",
+  ],
   [/\b(silly|careless|small) (mistake|error)\b/i, "careless_error"],
 ];
 const EMOTIONAL_RULES: readonly [RegExp, EmotionalSignal][] = [
@@ -106,8 +212,14 @@ const EMOTIONAL_RULES: readonly [RegExp, EmotionalSignal][] = [
   [/\b(nervous|anxious|scared|afraid)\b/i, "fear_of_mistakes"],
 ];
 const BEHAVIORAL_RULES: readonly [RegExp, BehavioralSignal][] = [
-  [/\b(asked (for help|the teacher|a question)|raised my hand)\b/i, "asked_for_help"],
-  [/\b(didn'?t ask|too (embarrassed|scared) to ask|waited|stayed quiet)\b/i, "avoided_help"],
+  [
+    /\b(asked (for help|the teacher|a question)|raised my hand)\b/i,
+    "asked_for_help",
+  ],
+  [
+    /\b(didn'?t ask|too (embarrassed|scared) to ask|waited|stayed quiet)\b/i,
+    "avoided_help",
+  ],
   [/\b(kept (trying|going)|tried again|didn'?t give up)\b/i, "kept_trying"],
   [/\b(gave up|stopped|quit|shut down)\b/i, "stopped_working"],
   [/\bguess\w*\b/i, "guessed"],
@@ -119,7 +231,10 @@ const CONTEXT_RULES: readonly [RegExp, ContextSignal][] = [
   [/\b(group|partner|together|classmate helped)\b/i, "group_work"],
   [/\b(test|quiz|exam|assessment)\b/i, "assessment"],
   [/\b(ran out of time|time pressure|clock|too fast)\b/i, "time_pressure"],
-  [/\b(everyone else|others finished|classmates|other people)\b/i, "peer_comparison"],
+  [
+    /\b(everyone else|others finished|classmates|other people)\b/i,
+    "peer_comparison",
+  ],
 ];
 
 function matchAll<S extends string>(
@@ -137,18 +252,27 @@ function matchAll<S extends string>(
 
 function technicalPhrase(s: ExtractedSignals): string {
   const t = s.technical;
-  if (t.includes("understood_concept") && (t.includes("application_difficulty") || t.includes("misunderstood_concept")))
+  if (
+    t.includes("understood_concept") &&
+    (t.includes("application_difficulty") ||
+      t.includes("misunderstood_concept"))
+  )
     return "Followed the guided examples but was unsure how to apply the concept independently.";
-  if (t.includes("misunderstood_concept")) return "Reported confusion about the core concept.";
-  if (t.includes("recall_difficulty")) return "Had trouble recalling a needed step.";
-  if (t.includes("understood_concept")) return "Reported understanding the concept.";
+  if (t.includes("misunderstood_concept"))
+    return "Reported confusion about the core concept.";
+  if (t.includes("recall_difficulty"))
+    return "Had trouble recalling a needed step.";
+  if (t.includes("understood_concept"))
+    return "Reported understanding the concept.";
   return "Understanding is unclear from this reflection.";
 }
 
 function emotionalPhrase(s: ExtractedSignals): string {
   const e = s.emotional;
-  if (e.includes("embarrassed")) return "Reported feeling embarrassed at a difficult moment.";
-  if (e.includes("discouraged")) return "Reported feeling discouraged after a mistake.";
+  if (e.includes("embarrassed"))
+    return "Reported feeling embarrassed at a difficult moment.";
+  if (e.includes("discouraged"))
+    return "Reported feeling discouraged after a mistake.";
   if (e.includes("overwhelmed")) return "Reported feeling overwhelmed.";
   if (e.includes("rushed")) return "Reported feeling rushed.";
   if (e.includes("frustrated")) return "Reported frustration during the work.";
@@ -161,7 +285,8 @@ function behavioralPhrase(s: ExtractedSignals): string {
   const b = s.behavioral;
   if (b.includes("avoided_help")) return "Did not ask for help when stuck.";
   if (b.includes("asked_for_help")) return "Asked for help when stuck.";
-  if (b.includes("stopped_working")) return "Stopped working after getting stuck.";
+  if (b.includes("stopped_working"))
+    return "Stopped working after getting stuck.";
   if (b.includes("kept_trying")) return "Kept trying after getting stuck.";
   if (b.includes("guessed")) return "Guessed when unsure.";
   if (b.includes("used_notes")) return "Leaned on notes or examples.";
@@ -171,37 +296,43 @@ function behavioralPhrase(s: ExtractedSignals): string {
 function relationshipPhrase(s: ExtractedSignals): string {
   const { emotional: e, behavioral: b, technical: t } = s;
   if (e.includes("embarrassed") && b.includes("avoided_help"))
-    return "Feeling embarrassed appears to have made it harder to ask for help, which may have let the confusion continue.";
+    return "The reflection included both feeling embarrassed and not asking for help in the same episode.";
   if (e.includes("rushed") && t.includes("careless_error"))
-    return "Feeling rushed appears to have led to avoidable errors.";
+    return "The reflection included both feeling rushed and a reported avoidable error.";
   if (b.includes("avoided_help") && t.includes("misunderstood_concept"))
-    return "Not asking for help appears to have let the misunderstanding continue.";
+    return "The reflection included both confusion and not asking for help.";
   if (e.includes("confident") && t.includes("understood_concept"))
-    return "Confidence tracked with genuine understanding here.";
-  return "No strong link between emotion, behavior, and understanding stood out.";
+    return "The reflection included both reported confidence and reported understanding.";
+  return "No same-episode relationship had direct support in this reflection.";
 }
 
 function actionsFor(s: ExtractedSignals): string[] {
   const out: string[] = [];
-  if (s.behavioral.includes("avoided_help") || s.emotional.includes("embarrassed"))
-    out.push("Offer a private, low-pressure check-in.");
-  if (s.technical.includes("application_difficulty") || s.technical.includes("misunderstood_concept"))
-    out.push("Give a first-step checklist for choosing a method.");
+  if (
+    s.behavioral.includes("avoided_help") ||
+    s.emotional.includes("embarrassed")
+  )
+    out.push("Ask for a private, low-pressure check-in.");
+  if (
+    s.technical.includes("application_difficulty") ||
+    s.technical.includes("misunderstood_concept")
+  )
+    out.push("Use a first-step checklist before choosing a method.");
   if (s.emotional.includes("rushed") || s.context.includes("time_pressure"))
-    out.push("Add a calm, untimed warm-up before independent work.");
+    out.push("Try one calm warm-up without a timer.");
   if (out.length === 0)
-    out.push("Confirm understanding with one quick independent example next class.");
+    out.push("Try one quick independent example next class.");
   return out;
 }
 
 function studentFacing(s: ExtractedSignals, action: string): string {
   const tech = s.technical.includes("application_difficulty")
-    ? "You understood the examples but weren't sure how to start on your own. "
-    : "You reflected on today's work. ";
+    ? "You shared that choosing a first step on your own was uncertain. "
+    : "You described what happened in today's work. ";
   const feel = s.emotional.includes("embarrassed")
-    ? "Feeling embarrassed made it harder to ask for help. "
+    ? "You also mentioned embarrassment and asking for help. "
     : "";
-  return `${tech}${feel}Your next step: ${action.toLowerCase().replace(/\.$/, "")}.`;
+  return `${tech}${feel}One next step you can choose: ${action.toLowerCase().replace(/\.$/, "")}.`;
 }
 
 function confidenceFor(s: ExtractedSignals, words: number): ConfidenceLevel {
@@ -218,18 +349,24 @@ const LOW_CONFIDENCE_EMOTIONS: readonly EmotionalSignal[] = [
   "fear_of_mistakes",
 ];
 
-function attentionGroupFor(s: ExtractedSignals): AttentionStudent["group"] | null {
+function attentionGroupFor(
+  s: ExtractedSignals,
+): AttentionStudent["group"] | null {
   const understood = s.technical.includes("understood_concept");
   const confused =
     s.technical.includes("misunderstood_concept") ||
     s.technical.includes("application_difficulty");
   const lowConf = s.emotional.some((e) => LOW_CONFIDENCE_EMOTIONS.includes(e));
   if (s.behavioral.includes("avoided_help")) return "repeated_help_avoidance";
-  if (s.emotional.includes("sense_of_progress") && s.behavioral.includes("kept_trying"))
+  if (
+    s.emotional.includes("sense_of_progress") &&
+    s.behavioral.includes("kept_trying")
+  )
     return "positive_improvement";
   if (confused && lowConf) return "low_understanding_low_confidence";
   if (understood && lowConf) return "high_understanding_low_confidence";
-  if (confused && s.emotional.includes("confident")) return "low_understanding_high_confidence";
+  if (confused && s.emotional.includes("confident"))
+    return "low_understanding_high_confidence";
   return null;
 }
 
@@ -244,6 +381,7 @@ export function createDeterministicReflectionIntelligence(deps: {
   function analyze(input: AnalyzeLessonInput): LessonAnalysis {
     const { lesson } = input;
     const topic = lesson.title.trim() || lesson.content.trim().slice(0, 60);
+    const recentEpisode = recentLessonEpisode(lesson.content);
     const independent =
       INDEPENDENT_MARKERS.test(lesson.content) ||
       lesson.lessonType === "independent_practice";
@@ -289,7 +427,8 @@ export function createDeterministicReflectionIntelligence(deps: {
       objectives: [...lesson.objectives],
       vocabulary: extractVocabulary(lesson.content),
       prerequisites: [],
-      technicalSteps: [],
+      // Preserve a concrete teacher-authored episode for downstream prompts.
+      technicalSteps: recentEpisode.length > 0 ? [recentEpisode] : [],
       misconceptions: [],
       difficultTransitions: [],
       independentApplication,
@@ -301,66 +440,83 @@ export function createDeterministicReflectionIntelligence(deps: {
 
   function generate(input: GenerateQuestionsInput): ReflectionQuestionSet {
     const { analysis, depth, adaptiveFollowups } = input;
-    const topic = analysis.topic;
+    const topic = safePromptAnchor(analysis.topic) ?? "the assigned activity";
+    const taskAnchor = taskAnchorFor(analysis);
+    const predictionAnchor = predictionAnchorFor(analysis);
+    const episode = `this part of today's lesson on ${topic}: "${taskAnchor}"`;
     // Ordered pool. Index 0 is technical, index 1 emotional, so any 4–6 prefix
-    // keeps the balance invariant (technical + emotional both present).
+    // keeps the balance invariant (technical + emotional both present). Index 4
+    // is a task prediction, so STANDARD and DEEPER reflections produce a
+    // metacognitive scale answer that can later be compared with performance.
     const pool: Omit<GeneratedQuestion, "id" | "order">[] = [
       {
         category: "technical",
-        text: `How clear did today's work on ${topic} feel overall?`,
-        format: "rating",
+        text: `Think back to ${episode}. Which moment is closest to what happened?`,
+        format: "multiple_choice",
+        options: [
+          "I started a first step without checking an example",
+          "I checked an example before choosing a first step",
+          "I started one way and then changed my approach",
+          "I was not sure which first step to choose",
+          "I did not reach this part of the lesson",
+          UNCERTAIN_OPTION,
+        ],
         required: true,
         aiGenerated: true,
       },
       {
         category: "emotional",
-        text: `Which word best fits how you felt working on ${topic} today?`,
+        text: `At the moment you chose in ${episode}, which feeling was closest to what you noticed?`,
         format: "emotion_select",
         options: [
-          "confident",
-          "frustrated",
-          "confused",
-          "rushed",
-          "calm",
-          "curious",
-          "discouraged",
-          "proud",
+          "Calm",
+          "Curious",
+          "Confused",
+          "Frustrated",
+          "Rushed",
+          "Discouraged",
+          "Proud",
+          "Something else",
+          UNCERTAIN_OPTION,
         ],
         required: true,
         aiGenerated: true,
       },
       {
         category: "technical",
-        text: `Where did ${topic} stop making sense — walk me through the moment it got hard.`,
-        format: "long_response",
+        text: `Pick one example from ${episode}. What was the last step you could explain in your own words?`,
+        format: "short_response",
         required: false,
         aiGenerated: true,
       },
       {
         category: "behavioral",
-        text: "When you got stuck, what did you do?",
+        text: `Right after that step in ${episode}, what did you do next?`,
         format: "multiple_choice",
         options: [
           "Kept trying on my own",
           "Asked for help",
-          "Used my notes or examples",
-          "Guessed",
+          "Used notes or an example",
+          "Tried a different approach",
+          "Finished and checked my work",
           "Waited or stopped",
+          UNCERTAIN_OPTION,
         ],
         required: false,
         aiGenerated: true,
       },
       {
         category: "metacognitive",
-        text: "What is one thing you would do differently next time?",
-        format: "short_response",
+        text: `Before seeing your score or an answer key for "${predictionAnchor}", how much of that work do you predict you completed correctly?`,
+        format: "rating",
+        options: PREDICTION_OPTIONS,
         required: false,
         aiGenerated: true,
       },
       {
-        category: "emotional",
-        text: `How confident do you feel doing ${topic} on your own now?`,
-        format: "confidence_slider",
+        category: "metacognitive",
+        text: `For the next task based on "${predictionAnchor}", what is one small step you would try first?`,
+        format: "short_response",
         required: false,
         aiGenerated: true,
       },
@@ -368,7 +524,11 @@ export function createDeterministicReflectionIntelligence(deps: {
 
     const questions: GeneratedQuestion[] = pool
       .slice(0, DEPTH_COUNT[depth])
-      .map((q, order) => ({ ...q, id: `${analysis.lessonId}-q${order}`, order }));
+      .map((q, order) => ({
+        ...q,
+        id: `${analysis.lessonId}-q${order}`,
+        order,
+      }));
 
     return createReflectionQuestionSet({
       lessonId: analysis.lessonId,
@@ -397,6 +557,7 @@ export function createDeterministicReflectionIntelligence(deps: {
         text: q.text,
         format: q.format,
         options: q.options,
+        required: q.required,
       };
     }
     // All primaries answered: one clarifying follow-up if the last reply was
@@ -405,14 +566,16 @@ export function createDeterministicReflectionIntelligence(deps: {
     if (
       followupsUsed < questionSet.maxFollowups &&
       latest !== undefined &&
+      !isReflectionUncertaintyOrSkip(latest.text) &&
       isVague(latest.text)
     ) {
       return {
         kind: "question",
         stage: "support",
         category: "metacognitive",
-        text: "Can you say a bit more about what specifically made that hard?",
+        text: "What is one more detail about what happened in that moment of today's task?",
         format: "short_response",
+        required: false,
       };
     }
     return { kind: "summary" };
@@ -420,6 +583,7 @@ export function createDeterministicReflectionIntelligence(deps: {
 
   function extract(input: ExtractSignalsInput): ExtractedSignals {
     const text = studentAnswers(input.session)
+      .filter((message) => !isReflectionUncertaintyOrSkip(message.text))
       .map((m) => m.text)
       .join("\n");
     return createExtractedSignals({
@@ -430,9 +594,15 @@ export function createDeterministicReflectionIntelligence(deps: {
     });
   }
 
-  function summarizeStudent(input: SummarizeStudentInput): StudentInsightSummary {
+  function summarizeStudent(
+    input: SummarizeStudentInput,
+  ): StudentInsightSummary {
     const { session, signals } = input;
-    const answers = studentAnswers(session).map((m) => m.text.trim()).filter(Boolean);
+    const answers = studentAnswers(session)
+      .map((m) => m.text.trim())
+      .filter(
+        (answer) => answer.length > 0 && !isReflectionUncertaintyOrSkip(answer),
+      );
     const words = answers.join(" ").split(/\s+/).filter(Boolean).length;
     const actions = actionsFor(signals);
     return createStudentInsightSummary({
@@ -445,7 +615,10 @@ export function createDeterministicReflectionIntelligence(deps: {
       relationshipSummary: relationshipPhrase(signals),
       recommendedActions: actions,
       studentFacingSummary: studentFacing(signals, actions[0]),
-      evidence: answers.length > 0 ? answers : ["No free-text responses were recorded."],
+      evidence:
+        answers.length > 0
+          ? answers
+          : ["No free-text responses were recorded."],
       confidenceLevel: confidenceFor(signals, words),
       createdAt: now(),
     });
@@ -462,10 +635,26 @@ export function createDeterministicReflectionIntelligence(deps: {
         s.technical.includes("application_difficulty"),
     );
     const lowConfidence = count(
-      (s) => s.emotional.includes("embarrassed") || s.behavioral.includes("avoided_help"),
+      (s) =>
+        s.emotional.includes("embarrassed") ||
+        s.behavioral.includes("avoided_help"),
     );
     const rushed = count(
-      (s) => s.emotional.includes("rushed") || s.context.includes("time_pressure"),
+      (s) =>
+        s.emotional.includes("rushed") || s.context.includes("time_pressure"),
+    );
+    const confusionWithLowConfidence = count(
+      (s) =>
+        (s.technical.includes("misunderstood_concept") ||
+          s.technical.includes("application_difficulty")) &&
+        (s.emotional.includes("embarrassed") ||
+          s.emotional.includes("discouraged") ||
+          s.emotional.includes("fear_of_mistakes")),
+    );
+    const embarrassmentWithHelpAvoidance = count(
+      (s) =>
+        s.emotional.includes("embarrassed") &&
+        s.behavioral.includes("avoided_help"),
     );
 
     const attentionStudents: AttentionStudent[] = input.students
@@ -476,16 +665,18 @@ export function createDeterministicReflectionIntelligence(deps: {
       .filter((x): x is AttentionStudent => x !== null);
 
     const keyRelationship =
-      lowConfidence > 0 && confused > 0
-        ? "Several students understood the guided examples but lost confidence working independently; those who felt embarrassed were less likely to ask for help."
-        : "No single technical–emotional pattern dominated the class.";
+      embarrassmentWithHelpAvoidance > 0
+        ? `${embarrassmentWithHelpAvoidance} of ${n} reported both feeling embarrassed and not asking for help in the same reflection.`
+        : confusionWithLowConfidence > 0
+          ? `${confusionWithLowConfidence} of ${n} reported both confusion and a low-confidence feeling in the same reflection.`
+          : "No same-student technical–emotional relationship had direct support in these reflections.";
 
     return createClassInsightSummary({
       id: `${input.reflectionId}-class`,
       classId: input.classId,
       reflectionId: input.reflectionId,
       technicalSummary: `${understood} of ${n} reported understanding the concept; ${confused} reported confusion or trouble applying it independently.`,
-      emotionalSummary: `${lowConfidence} of ${n} showed low confidence or hesitation to ask for help; ${rushed} reported feeling rushed.`,
+      emotionalSummary: `${lowConfidence} of ${n} reported embarrassment or avoiding help; ${rushed} reported feeling rushed or time pressure.`,
       behavioralSummary: `${count((s) => s.behavioral.includes("avoided_help"))} did not ask for help when stuck; ${count((s) => s.behavioral.includes("kept_trying"))} kept trying.`,
       keyRelationship,
       recommendedPlan: [

@@ -186,7 +186,7 @@ export const reflectionMessageSchema = z.object({
   id: idSchema,
   sessionId: idSchema,
   sender: messageSenderSchema,
-  text: z.string().min(1),
+  text: z.string().min(1).max(4_000),
   category: questionCategorySchema.optional(),
   createdAt: z.date(),
 });
@@ -197,7 +197,7 @@ export const reflectionSessionSchema = z.object({
   studentId: idSchema,
   status: sessionStatusSchema,
   messages: z.array(reflectionMessageSchema),
-  selectedAction: z.string().min(1).optional(),
+  selectedAction: z.string().min(1).max(500).optional(),
   studentConfirmedSummary: z.boolean().optional(),
   startedAt: z.date(),
   completedAt: z.date().optional(),

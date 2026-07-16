@@ -9,20 +9,24 @@ import { expect, test } from "@playwright/test";
 test("a student's crisis reaches the counselor, who acknowledges it", async ({
   page,
 }) => {
-  // Student triggers a crisis in reflection.
+  // Student opens a teacher-created reflection and triggers a crisis in chat.
   await page.goto("/signin");
   await page.getByRole("button", { name: "Avery" }).click();
-  for (let i = 1; i <= 4; i += 1) {
-    await page.getByLabel("Your answer").fill("0");
-    await page.getByRole("radio", { name: "Very sure" }).click();
-  }
-  await page.getByRole("radio", { name: "4 out of 5 or more" }).click();
-  await page.getByRole("link", { name: "Think about it" }).click();
-  await page.getByRole("button", { name: "Skip this" }).click();
-  const box = page.locator("textarea").first();
+  await expect(page).toHaveURL(/\/reflections$/);
+  await page
+    .getByRole("link", { name: /factoring quadratic equations/i })
+    .click();
+  await expect(page).toHaveURL(/\/chat\/lesson-demo/);
+
+  await page.getByRole("button", { name: "I'm not sure" }).click();
+  await page.getByRole("button", { name: "I'm not sure" }).click();
+  const box = page.getByLabel("Message");
   await box.fill("i want to kill myself");
-  await box.blur();
-  await expect(page.getByText("Call or text 988")).toBeVisible();
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByRole("link", { name: "Call 988" })).toBeVisible();
+  await expect(
+    page.getByRole("main", { name: "Reflection" }).getByRole("alert"),
+  ).toContainText("counselor alert");
 
   // The counselor signs in and sees the escalation.
   await page.goto("/signin");
@@ -30,7 +34,9 @@ test("a student's crisis reaches the counselor, who acknowledges it", async ({
   await expect(page).toHaveURL(/\/escalations/);
   await expect(page.getByText("Students who may need you")).toBeVisible();
   await expect(page.getByText("student-avery")).toBeVisible();
-  await expect(page.getByText("Needs attention now", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("Needs attention now", { exact: false }),
+  ).toBeVisible();
 
   // …and acknowledges it (which stops the retries).
   await page.getByRole("button", { name: "Acknowledge" }).first().click();

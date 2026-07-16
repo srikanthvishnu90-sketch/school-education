@@ -58,6 +58,10 @@ service-account*.json
 *serviceaccount*.json
 .netrc
 
+# tool caches & local working dirs (never commit)
+.pnpm-store/
+.impeccable/
+
 # vercel
 .vercel
 

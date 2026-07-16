@@ -21,6 +21,16 @@
   /* Accent — affective/human moments ONLY (<=5% of surface, never text color) */
   --color-warm: #e0a06a;
 
+  /* Reflection chat — focused dark surface, mirrored in src/ui/tokens.ts. */
+  --color-chat-background: #080a0d;
+  --color-chat-surface: #12171c;
+  --color-chat-raised: #1b232b;
+  --color-chat-divider: #2b3640;
+  --color-chat-control: #607384;
+  --color-chat-text: #f7f9fa;
+  --color-chat-muted: #bbc5cd;
+  --color-chat-accent: #a9c5de;
+
   /* Accuracy semantics — NEVER red/green. aligned = ink-tint, gap = warm. */
   --color-aligned: #3e6187;
   --color-gap: #e0a06a;
@@ -38,4 +48,21 @@ body {
   background: var(--color-paper);
   color: var(--color-ink-black);
   font-family: var(--font-sans);
+}
+
+[data-theme="reflection-dark"] {
+  color-scheme: dark;
+  height: 100vh;
+  height: 100dvh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-theme="reflection-dark"] *,
+  [data-theme="reflection-dark"] *::before,
+  [data-theme="reflection-dark"] *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

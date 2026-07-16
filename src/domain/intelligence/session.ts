@@ -16,12 +16,7 @@ import type { QuestionCategory } from "./question";
 export type MessageSender = "student" | "ai";
 
 export type ReflectionStage =
-  | "overall"
-  | "technical"
-  | "emotional"
-  | "behavioral"
-  | "support"
-  | "action";
+  "overall" | "technical" | "emotional" | "behavioral" | "support" | "action";
 
 export type SessionStatus = "active" | "completed" | "abandoned" | "escalated";
 
@@ -59,15 +54,28 @@ export const REFLECTION_STAGES: readonly ReflectionStage[] = [
   "action",
 ];
 
-export function createReflectionMessage(input: ReflectionMessage): ReflectionMessage {
+export function createReflectionMessage(
+  input: ReflectionMessage,
+): ReflectionMessage {
   return Object.freeze(reflectionMessageSchema.parse(input));
 }
 
-export function createReflectionSession(input: ReflectionSession): ReflectionSession {
+export function createReflectionSession(
+  input: ReflectionSession,
+): ReflectionSession {
   return Object.freeze(reflectionSessionSchema.parse(input));
 }
 
 /** The student answers so far, oldest → newest. */
-export function studentAnswers(session: ReflectionSession): ReflectionMessage[] {
+export function studentAnswers(
+  session: ReflectionSession,
+): ReflectionMessage[] {
   return session.messages.filter((m) => m.sender === "student");
+}
+
+/** Honest uncertainty/decline is a complete turn, but not evidence to interpret. */
+export function isReflectionUncertaintyOrSkip(text: string): boolean {
+  return /^(?:idk|i (?:do not|don['’]?t) know|i['’]?m not sure(?: yet)?|not sure|no idea|i['’]?d rather skip(?: this question)?)[.!?]*$/i.test(
+    text.trim(),
+  );
 }

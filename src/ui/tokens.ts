@@ -27,6 +27,16 @@ export const color = {
 
   // Accent — affective / human moments ONLY (<=5% of surface, never text color)
   warm: "#E0A06A",
+
+  // Reflection chat — a focused dark surface derived from the ink family.
+  chatBackground: "#080A0D",
+  chatSurface: "#12171C",
+  chatRaised: "#1B232B",
+  chatDivider: "#2B3640",
+  chatControl: "#607384",
+  chatText: "#F7F9FA",
+  chatMuted: "#BBC5CD",
+  chatAccent: "#A9C5DE",
 } as const;
 
 /**
