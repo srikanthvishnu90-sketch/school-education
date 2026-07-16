@@ -1,0 +1,211 @@
+"use client";
+
+import {
+  ChevronDown,
+  FileText,
+  Home,
+  LogOut,
+  Menu,
+  Plus,
+  Search,
+  Settings,
+  X,
+} from "lucide-react";
+import Link from "next/link";
+import { useState, type ReactElement, type ReactNode } from "react";
+import { signOutAction } from "@/app/_world/session";
+
+/**
+ * The teacher dashboard shell — a Stripe-style layout (left nav rail + top bar +
+ * a wide content area), rendered in plumb's light ink palette. It only reshapes
+ * the frame; the teacher's actual content (lesson entry, lists, briefs, scores)
+ * is passed in as children and unchanged.
+ */
+
+export interface ShellLesson {
+  reflectionId: string;
+  title: string;
+}
+
+export default function TeacherShell({
+  teacherName,
+  lessons,
+  activeId,
+  primaryAction,
+  children,
+}: {
+  teacherName: string;
+  lessons: ShellLesson[];
+  /** The reflectionId currently open (highlights its nav row), if any. */
+  activeId?: string;
+  /** Optional top-right primary button ({label, href}), Stripe's "Pay out funds" slot. */
+  primaryAction?: { label: string; href: string };
+  children: ReactNode;
+}): ReactElement {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const initials = teacherName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div className="flex min-h-[100svh] bg-paper text-ink-black">
+      {menuOpen && (
+        <button
+          type="button"
+          aria-label="Close menu"
+          onClick={() => setMenuOpen(false)}
+          className="fixed inset-0 z-30 bg-ink-black/30 md:hidden"
+        />
+      )}
+
+      {/* Left rail */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 flex w-[248px] flex-col border-r border-ink-wash bg-white transition-transform duration-200 ease-out md:static md:z-auto md:translate-x-0 ${
+          menuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Workspace header */}
+        <div className="flex items-center justify-between px-3 py-3">
+          <button
+            type="button"
+            className="flex min-w-0 items-center gap-2 rounded-control px-2 py-1.5 text-left hover:bg-paper"
+          >
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ink text-[11px] font-semibold text-white">
+              {initials}
+            </span>
+            <span className="truncate text-[14px] font-semibold text-ink-black">
+              {teacherName}
+            </span>
+            <ChevronDown size={15} className="shrink-0 text-secondary" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => setMenuOpen(false)}
+            aria-label="Close menu"
+            className="rounded-control p-1 text-secondary hover:bg-paper md:hidden"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <nav className="px-2">
+          <NavItem href="/lessons" icon={<Home size={17} />} active={activeId === undefined}>
+            Home
+          </NavItem>
+          <NavItem href="/lessons" icon={<Plus size={17} />}>
+            New lesson
+          </NavItem>
+        </nav>
+
+        {lessons.length > 0 && (
+          <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-2">
+            <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary">
+              Lessons
+            </p>
+            {lessons.map((l) => (
+              <NavItem
+                key={l.reflectionId}
+                href={`/lessons/${l.reflectionId}`}
+                icon={<FileText size={16} />}
+                active={l.reflectionId === activeId}
+              >
+                {l.title}
+              </NavItem>
+            ))}
+          </div>
+        )}
+
+        {/* Footer identity + sign out */}
+        <div className="mt-auto flex items-center gap-2 border-t border-ink-wash px-3 py-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink-wash text-[11px] font-medium text-ink">
+            {initials}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] text-ink-black">{teacherName}</p>
+            <p className="text-[11px] text-secondary">Teacher</p>
+          </div>
+          <form action={signOutAction}>
+            <button
+              type="submit"
+              aria-label="Sign out"
+              className="rounded-control p-1.5 text-secondary transition-colors hover:bg-paper hover:text-ink-black"
+            >
+              <LogOut size={16} aria-hidden />
+            </button>
+          </form>
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Top bar */}
+        <header className="flex items-center gap-3 border-b border-ink-wash bg-white px-4 py-2.5">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+            className="rounded-control p-1.5 text-secondary hover:bg-paper md:hidden"
+          >
+            <Menu size={18} />
+          </button>
+          <div className="flex h-9 max-w-md flex-1 items-center gap-2 rounded-control border border-ink-wash bg-paper px-3">
+            <Search size={15} className="shrink-0 text-secondary" aria-hidden />
+            <input
+              disabled
+              placeholder="Search"
+              className="min-w-0 flex-1 bg-transparent text-[14px] text-ink-black outline-none placeholder:text-secondary"
+            />
+          </div>
+          <button
+            type="button"
+            aria-label="Settings"
+            className="rounded-control p-2 text-secondary hover:bg-paper"
+          >
+            <Settings size={17} />
+          </button>
+          {primaryAction && (
+            <Link
+              href={primaryAction.href}
+              className="hidden rounded-control bg-ink px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-ink-tint sm:inline-flex"
+            >
+              {primaryAction.label}
+            </Link>
+          )}
+        </header>
+
+        <main className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function NavItem({
+  href,
+  icon,
+  active = false,
+  children,
+}: {
+  href: string;
+  icon: ReactNode;
+  active?: boolean;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <Link
+      href={href}
+      className={`flex items-center gap-2.5 rounded-control px-3 py-1.5 text-[13.5px] transition-colors ${
+        active
+          ? "bg-ink-wash font-medium text-ink"
+          : "text-secondary hover:bg-paper hover:text-ink-black"
+      }`}
+    >
+      <span className={active ? "text-ink-tint" : "text-secondary"}>{icon}</span>
+      <span className="truncate">{children}</span>
+    </Link>
+  );
+}

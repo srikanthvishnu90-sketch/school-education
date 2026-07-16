@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { getSessionUser } from "@/app/_world/session";
@@ -6,10 +5,12 @@ import {
   buildClassBrief,
   getLessonDetail,
   listScoreRows,
+  listTeacherLessons,
 } from "@/app/_world/teacherReflectionActions";
-import { studentDisplayName } from "@/app/_world/teacher";
+import { studentDisplayName, TEACHER_NAME } from "@/app/_world/teacher";
 import type { AttentionGroup } from "@/domain/intelligence/insight";
 import type { LessonType } from "@/domain/intelligence/lesson";
+import TeacherShell from "../TeacherShell";
 import ScoreEntry from "./ScoreEntry";
 
 const LESSON_TYPE_LABELS: Record<LessonType, string> = {
@@ -61,8 +62,11 @@ export default async function ClassBriefPage({
   const lesson = await getLessonDetail(reflectionId);
   if (lesson === null) notFound();
 
-  const view = await buildClassBrief(reflectionId);
-  const scoreRows = await listScoreRows(reflectionId);
+  const [view, scoreRows, allLessons] = await Promise.all([
+    buildClassBrief(reflectionId),
+    listScoreRows(reflectionId),
+    listTeacherLessons(),
+  ]);
   const byGroup = new Map<AttentionGroup, string[]>();
   if (view !== null) {
     for (const s of view.brief.attentionStudents) {
@@ -73,9 +77,11 @@ export default async function ClassBriefPage({
   }
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-14">
-      <BackLink />
-
+    <TeacherShell
+      teacherName={TEACHER_NAME}
+      lessons={allLessons.map((l) => ({ reflectionId: l.reflectionId, title: l.title }))}
+      activeId={reflectionId}
+    >
       {/* Today's lesson — the summary the teacher wrote, and any photos. */}
       <p className="mt-6 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
         {LESSON_TYPE_LABELS[lesson.lessonType]}
@@ -121,7 +127,7 @@ export default async function ClassBriefPage({
           <ScoreEntry reflectionId={reflectionId} rows={scoreRows} />
         </div>
       </section>
-    </main>
+    </TeacherShell>
   );
 }
 
@@ -200,14 +206,6 @@ function ClassBriefBody({
         </section>
       ) : null}
     </>
-  );
-}
-
-function BackLink(): ReactElement {
-  return (
-    <Link href="/lessons" className="text-[13px] text-ink-tint hover:underline">
-      ← All reflections
-    </Link>
   );
 }
 
