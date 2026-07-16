@@ -64,13 +64,18 @@ export default function SignInList({
     <main className="min-h-screen bg-paper">
       <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-6 py-16">
         <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
-          plumb
+          plumb · classroom reflection
         </p>
         <h1 className="mt-2 text-3xl font-medium tracking-tight text-ink-black">
-          How are you here today?
+          See how the class really went.
         </h1>
-        <p className="mt-2 text-[15px] text-secondary">
-          Choose your side. Teachers set the day; students reflect on it.
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-secondary">
+          Students talk through a lesson one question at a time and leave with one
+          next step they choose; teachers read the whole class back as a single,
+          honest brief. No ranking, no diagnosis, no surveillance.
+        </p>
+        <p className="mt-5 text-[13px] font-medium text-ink-black">
+          How are you here today?
         </p>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
