@@ -4,12 +4,13 @@ import { cookies } from "next/headers";
 import type { Id } from "@/domain";
 import { TEACHER_ID } from "./teacher";
 import { COUNSELOR_ID } from "./roles";
+import { roleForId } from "./credentials";
 
 /**
- * The sign-in session — the app's link between a browser and an identity. No
- * passwords in this pre-infra build: signing in picks a seeded user and stores
- * their id in an http-only cookie. Role is derived server-side; the client never
- * gets to name who it is (so one user cannot act as another).
+ * The sign-in session — the app's link between a browser and an identity. The
+ * cookie carries only the id; the ROLE is looked up server-side from the
+ * credential store (or, for the seeded demo, derived from the id), so the client
+ * never gets to name who it is — one user cannot act as another.
  */
 
 const COOKIE = "plumb_session";
@@ -32,7 +33,12 @@ export async function getSessionUser(): Promise<{
   const id = store.get(COOKIE)?.value ?? null;
   if (id === null) return null;
   const role =
-    id === TEACHER_ID ? "teacher" : id === COUNSELOR_ID ? "counselor" : "student";
+    roleForId(id) ??
+    (id === TEACHER_ID
+      ? "teacher"
+      : id === COUNSELOR_ID
+        ? "counselor"
+        : "student");
   return { id, role };
 }
 

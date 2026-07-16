@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
 import type { LoginRole } from "@/app/_world/loginActions";
+import { DEMO_PASSWORD } from "@/app/_world/credentials";
 import LoginForm from "./LoginForm";
 
 /**
@@ -35,7 +36,7 @@ export default async function LoginPage({
             : "Record the day, and read the class back."}
         </p>
 
-        <LoginForm role={resolved} />
+        <LoginForm role={resolved} demoPassword={DEMO_PASSWORD} />
       </div>
     </main>
   );
