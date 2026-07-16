@@ -1,20 +1,36 @@
 "use client";
 
-import { LogOut, PanelLeft, ShieldCheck, Sparkles, UserRound, X } from "lucide-react";
+import {
+  BookOpen,
+  Clock,
+  LogOut,
+  PanelLeft,
+  ShieldCheck,
+  Sparkles,
+  UserRound,
+  X,
+} from "lucide-react";
+import Link from "next/link";
 import type { ReactElement } from "react";
 import { signOutAction } from "@/app/_world/session";
 
 /**
- * The left rail on the signed-out landing. It carries no fake navigation — every
- * real destination lives behind sign-in — so instead it states, plainly, the
- * three things that make plumb trustworthy to a school. Under 768px it lifts out
- * into an overlay drawer driven by the hamburger in the header.
+ * The left rail. Two states, one component. Signed OUT (the landing): no fake
+ * navigation — every real destination lives behind sign-in — so it states plainly
+ * the three things that make plumb trustworthy to a school. Signed IN (a student's
+ * courses / a class): real navigation to the surfaces they own. Under 768px it
+ * lifts out into an overlay drawer driven by the hamburger in the header.
  */
 
 const PROMISES = [
   { label: "Task-focused, never a verdict about the student", Icon: UserRound },
   { label: "Private by default; safety alerts go to a real adult", Icon: ShieldCheck },
   { label: "AI drafts and classifies; people own every decision", Icon: Sparkles },
+] as const;
+
+const NAV = [
+  { label: "My courses", href: "/courses", Icon: BookOpen },
+  { label: "Timeline", href: "/timeline", Icon: Clock },
 ] as const;
 
 export default function Sidebar({
@@ -63,18 +79,38 @@ export default function Sidebar({
           />
         </div>
 
-        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-3">
-          <p className="px-0.5 pb-2 text-[12px] font-medium text-shell-text">
-            What plumb promises
-          </p>
-          <ul className="flex flex-col gap-3">
-            {PROMISES.map(({ label, Icon }) => (
-              <li key={label} className="flex items-start gap-2.5 text-[13px] text-shell-muted">
-                <Icon size={15} aria-hidden className="mt-0.5 shrink-0" />
-                <span className="leading-relaxed">{label}</span>
-              </li>
-            ))}
-          </ul>
+        <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-3">
+          {user !== undefined ? (
+            <nav className="flex flex-col gap-0.5" onClick={onClose}>
+              {NAV.map(({ label, href, Icon }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[14px] text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
+                >
+                  <Icon size={16} aria-hidden />
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          ) : (
+            <>
+              <p className="px-0.5 pb-2 pt-2 text-[12px] font-medium text-shell-text">
+                What plumb promises
+              </p>
+              <ul className="flex flex-col gap-3">
+                {PROMISES.map(({ label, Icon }) => (
+                  <li
+                    key={label}
+                    className="flex items-start gap-2.5 text-[13px] text-shell-muted"
+                  >
+                    <Icon size={15} aria-hidden className="mt-0.5 shrink-0" />
+                    <span className="leading-relaxed">{label}</span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
         </div>
 
         {user !== undefined && (

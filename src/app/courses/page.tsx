@@ -15,7 +15,7 @@ export default async function CoursesPage(): Promise<ReactElement> {
   return (
     <CoursesShell
       courses={courses}
-      greeting={`Hey, ${name}. Ready to dive in?`}
+      greeting={`Hi, ${name}.`}
       studentName={name}
     />
   );
