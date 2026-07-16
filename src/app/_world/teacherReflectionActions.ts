@@ -1,6 +1,6 @@
 "use server";
 
-import { createLesson, type LessonType } from "@/domain/intelligence/lesson";
+import { createLesson, type Lesson, type LessonType } from "@/domain/intelligence/lesson";
 import type {
   ClassInsightSummary,
   StudentInsightSummary,
@@ -8,8 +8,8 @@ import type {
 import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
 import type { ClassStudentInput } from "@/domain/ports/intelligence";
 import { getSessionUser } from "./session";
-import { getWorld } from "./world";
-import { TEACHER_ID, studentDisplayName } from "./teacher";
+import { getWorld, type World } from "./world";
+import { studentDisplayName } from "./teacher";
 import { getLessonPhotos, saveLessonPhotos } from "./lessonMedia";
 
 /**
@@ -22,6 +22,31 @@ import { getLessonPhotos, saveLessonPhotos } from "./lessonMedia";
 
 /** The demo teacher owns one class; a real build resolves this from the roster. */
 const TEACHER_CLASS_ID = "class-1";
+
+/** The signed-in teacher's id, or a thrown refusal. Role is server-authoritative. */
+async function requireTeacher(): Promise<string> {
+  const user = await getSessionUser();
+  if (user === null || user.role !== "teacher") {
+    throw new Error("Only a teacher can do this.");
+  }
+  return user.id;
+}
+
+/**
+ * Load a lesson only if the caller owns it (created it). Ownership is by
+ * `lesson.teacherId`, so one teacher can never read or grade another teacher's
+ * lesson or students. A missing OR non-owned lesson returns null with the same
+ * shape, so existence is never leaked.
+ */
+async function ownedLesson(
+  world: World,
+  reflectionId: string,
+  teacherId: string,
+): Promise<Lesson | null> {
+  const lesson = await world.intel.lessons.findById(reflectionId);
+  if (lesson === null || lesson.teacherId !== teacherId) return null;
+  return lesson;
+}
 
 export interface NewLessonInput {
   title: string;
@@ -60,13 +85,6 @@ export interface StudentScoreRow {
   scorePercent: number | null;
 }
 
-async function requireTeacher(): Promise<void> {
-  const user = await getSessionUser();
-  if (user === null || user.role !== "teacher") {
-    throw new Error("Only a teacher can do this.");
-  }
-}
-
 function slug(title: string): string {
   return title
     .toLowerCase()
@@ -77,9 +95,11 @@ function slug(title: string): string {
 
 /** Every lesson the teacher's class has, newest activity first, with reflection tallies. */
 export async function listTeacherLessons(): Promise<LessonListItem[]> {
-  await requireTeacher();
+  const teacherId = await requireTeacher();
   const world = await getWorld();
-  const lessons = await world.intel.lessons.listByClass(TEACHER_CLASS_ID);
+  const lessons = (await world.intel.lessons.listByClass(TEACHER_CLASS_ID)).filter(
+    (l) => l.teacherId === teacherId,
+  );
   const items = await Promise.all(
     lessons.map(async (lesson): Promise<LessonListItem> => {
       const sessions = await world.intel.sessions.listByReflection(lesson.id);
@@ -102,7 +122,7 @@ export async function listTeacherLessons(): Promise<LessonListItem[]> {
  * Returns the reflectionId (== lesson id) the student chat and brief hang off.
  */
 export async function createLessonReflection(input: NewLessonInput): Promise<string> {
-  await requireTeacher();
+  const teacherId = await requireTeacher();
   const world = await getWorld();
   const now = world.clock.now();
   const title = input.title.trim();
@@ -114,7 +134,7 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
   const lesson = createLesson({
     id,
     classId: TEACHER_CLASS_ID,
-    teacherId: TEACHER_ID,
+    teacherId,
     title,
     date: now,
     lessonType: input.lessonType,
@@ -139,9 +159,9 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
 
 /** The lesson's own content — the summary of the day and any photos the teacher added. */
 export async function getLessonDetail(reflectionId: string): Promise<LessonDetail | null> {
-  await requireTeacher();
+  const teacherId = await requireTeacher();
   const world = await getWorld();
-  const lesson = await world.intel.lessons.findById(reflectionId);
+  const lesson = await ownedLesson(world, reflectionId, teacherId);
   if (lesson === null) return null;
   return {
     reflectionId,
@@ -159,8 +179,9 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
  * Returns null until at least one student has finished reflecting.
  */
 export async function buildClassBrief(reflectionId: string): Promise<ClassBriefView | null> {
-  await requireTeacher();
+  const teacherId = await requireTeacher();
   const world = await getWorld();
+  if ((await ownedLesson(world, reflectionId, teacherId)) === null) return null;
   const sessions = (await world.intel.sessions.listByReflection(reflectionId)).filter(
     (s) => s.status === "completed",
   );
@@ -191,8 +212,9 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
  * — the roster the teacher enters graded results against (P7 score entry).
  */
 export async function listScoreRows(reflectionId: string): Promise<StudentScoreRow[]> {
-  await requireTeacher();
+  const teacherId = await requireTeacher();
   const world = await getWorld();
+  if ((await ownedLesson(world, reflectionId, teacherId)) === null) return [];
   const sessions = (await world.intel.sessions.listByReflection(reflectionId)).filter(
     (s) => s.status === "completed",
   );
@@ -224,11 +246,22 @@ export async function recordReflectionScore(
   studentId: string,
   scorePercent: number,
 ): Promise<void> {
-  await requireTeacher();
+  const teacherId = await requireTeacher();
   if (!Number.isFinite(scorePercent) || scorePercent < 0 || scorePercent > 100) {
     throw new Error("A score must be between 0 and 100.");
   }
   const world = await getWorld();
+  // The lesson must be the caller's, and the student must actually have a session
+  // on it — a teacher can't score another teacher's class or an arbitrary id.
+  if ((await ownedLesson(world, reflectionId, teacherId)) === null) {
+    throw new Error("That lesson isn’t available.");
+  }
+  const participated = (
+    await world.intel.sessions.listByReflection(reflectionId)
+  ).some((s) => s.studentId === studentId);
+  if (!participated) {
+    throw new Error("That student hasn’t reflected on this lesson.");
+  }
   await world.intel.performances.save(
     createReflectionPerformance({
       reflectionId,
