@@ -153,7 +153,7 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
   });
   await world.intel.lessons.save(lesson);
   if (input.photos !== undefined && input.photos.length > 0) {
-    saveLessonPhotos(id, input.photos);
+    await saveLessonPhotos(id, input.photos);
   }
   const analysis = await world.intelligence.analyzeLesson({ lesson });
   const set = await world.intelligence.generateReflectionQuestions({
@@ -184,7 +184,7 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
     title: lesson.title,
     lessonType: lesson.lessonType,
     content: lesson.content,
-    photos: getLessonPhotos(reflectionId),
+    photos: await getLessonPhotos(reflectionId),
   };
 }
 
