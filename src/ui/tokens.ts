@@ -37,6 +37,18 @@ export const color = {
   chatText: "#F7F9FA",
   chatMuted: "#BBC5CD",
   chatAccent: "#A9C5DE",
+
+  // App shell — the monochrome dark entry surface (landing + login). Neutral by
+  // intent: no hue, no accent, so the single white Login pill is the only
+  // high-contrast element competing for attention.
+  shellBackground: "#0D0D0D",
+  shellSidebar: "#171717",
+  shellPanel: "#2F2F2F",
+  shellTrack: "#212121",
+  shellActive: "#414141",
+  shellBorder: "#3A3A3A",
+  shellText: "#ECECEC",
+  shellMuted: "#8E8EA0",
 } as const;
 
 /**
