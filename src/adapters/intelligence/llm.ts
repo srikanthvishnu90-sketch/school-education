@@ -462,6 +462,13 @@ function isCompliantRephrase(text: string, base: ConversationStep): boolean {
   return true;
 }
 
+/**
+ * Version of the system prompts below. Bump on any wording change so a shift in
+ * model behavior can be traced to a prompt revision (and so the injection
+ * regression suite is pinned to a known prompt set).
+ */
+export const PROMPT_VERSION = "1.0.0";
+
 const ANALYZE_SYSTEM = [
   "You read one class lesson and return structured notes for a teacher's reflection.",
   "Reply with ONLY a JSON object with these keys: topic (string), subtopics,",
