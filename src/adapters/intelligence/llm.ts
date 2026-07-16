@@ -31,6 +31,11 @@ import {
   findDiagnosticLanguage,
   isNonDiagnostic,
 } from "@/domain/intelligence/nonDiagnostic";
+import {
+  gateTask,
+  recordTaskOutcome,
+  type MonitorTask,
+} from "@/domain/intelligence/taskHealth";
 import type {
   GuardrailRecorder,
   GuardrailTrip,
@@ -566,148 +571,178 @@ export function createLlmReflectionIntelligence(deps: {
     typeof config.pii === "function" ? config.pii() : config.pii;
   const report = (trip: GuardrailTrip): void => deps.onIncident?.(trip);
 
+  /**
+   * Run a model-backed task under the health monitor. The model is called only
+   * when the task is enabled AND the monitor lets it through (healthy, or a
+   * recovery probe). `attempt` returns the accepted value or signals a fallback;
+   * either way the accept/fallback outcome is recorded, so the monitor learns
+   * which tasks the model is currently good at and throttles the ones it isn't.
+   */
+  async function guardedTask<T>(
+    task: MonitorTask,
+    attempt: () => Promise<{ accepted: true; value: T } | { accepted: false }>,
+    fallbackFn: () => Promise<T>,
+  ): Promise<T> {
+    if (!enabled(task) || !gateTask(task).run) return fallbackFn();
+    let outcome: { accepted: true; value: T } | { accepted: false };
+    try {
+      outcome = await attempt();
+    } catch {
+      outcome = { accepted: false };
+    }
+    recordTaskOutcome(task, outcome.accepted);
+    return outcome.accepted ? outcome.value : fallbackFn();
+  }
+
   return {
     async analyzeLesson(input: AnalyzeLessonInput): Promise<LessonAnalysis> {
-      if (!enabled("analyze")) return fallback.analyzeLesson(input);
       const { lesson } = input;
-      const { clean } = stripPii(
-        JSON.stringify({
-          title: lesson.title,
-          lessonType: lesson.lessonType,
-          content: lesson.content,
-          objectives: lesson.objectives,
-          standards: lesson.standards,
-          gradeLevel: input.gradeLevel,
-          subject: input.subject,
-        }),
-        piiTerms(),
-      );
-      try {
-        const res = await gateway.send({
-          task: "analyze",
-          system: ANALYZE_SYSTEM,
-          prompt: clean,
-          maxTokens: 640,
-        });
-        const raw = rawAnalysisSchema.parse(firstJson(res.text));
-        // The model authored these fields and they render to the teacher — hold
-        // them to the same non-diagnostic bar as the summaries. A diagnostic trip
-        // drops to the deterministic analysis rather than shipping.
-        const authored = [
-          raw.topic,
-          raw.reflectionFocus,
-          ...raw.subtopics,
-          ...raw.vocabulary,
-          ...raw.prerequisites,
-          ...raw.technicalSteps,
-          ...raw.misconceptions,
-          ...raw.difficultTransitions,
-          ...raw.independentApplication,
-          ...raw.emotionalPressurePoints,
-        ];
-        const flagged = authored.filter((s) => !isNonDiagnostic(s));
-        if (flagged.length > 0) {
-          report({
-            guard: "analysis_non_diagnostic",
-            matched: flagged.flatMap((s) => findDiagnosticLanguage(s)),
-            sample: flagged.join(" | "),
+      return guardedTask<LessonAnalysis>(
+        "analyze",
+        async () => {
+          const { clean } = stripPii(
+            JSON.stringify({
+              title: lesson.title,
+              lessonType: lesson.lessonType,
+              content: lesson.content,
+              objectives: lesson.objectives,
+              standards: lesson.standards,
+              gradeLevel: input.gradeLevel,
+              subject: input.subject,
+            }),
+            piiTerms(),
+          );
+          const res = await gateway.send({
+            task: "analyze",
+            system: ANALYZE_SYSTEM,
+            prompt: clean,
+            maxTokens: 640,
           });
-          throw new Error("lesson analysis tripped the non-diagnostic guard");
-        }
-        return createLessonAnalysis({
-          lessonId: lesson.id,
-          topic: raw.topic.trim(),
-          subtopics: raw.subtopics,
-          objectives: [...lesson.objectives],
-          vocabulary: raw.vocabulary,
-          prerequisites: raw.prerequisites,
-          technicalSteps: raw.technicalSteps,
-          misconceptions: raw.misconceptions,
-          difficultTransitions: raw.difficultTransitions,
-          independentApplication: raw.independentApplication,
-          emotionalPressurePoints:
-            raw.emotionalPressurePoints.length > 0
-              ? raw.emotionalPressurePoints
-              : ["Students may hesitate to ask for help when confused."],
-          reflectionFocus: raw.reflectionFocus.trim(),
-          createdAt: now(),
-        });
-      } catch {
-        return fallback.analyzeLesson(input);
-      }
+          const raw = rawAnalysisSchema.parse(firstJson(res.text));
+          // The model authored these fields and they render to the teacher — hold
+          // them to the same non-diagnostic bar as the summaries. A diagnostic trip
+          // drops to the deterministic analysis rather than shipping.
+          const authored = [
+            raw.topic,
+            raw.reflectionFocus,
+            ...raw.subtopics,
+            ...raw.vocabulary,
+            ...raw.prerequisites,
+            ...raw.technicalSteps,
+            ...raw.misconceptions,
+            ...raw.difficultTransitions,
+            ...raw.independentApplication,
+            ...raw.emotionalPressurePoints,
+          ];
+          const flagged = authored.filter((s) => !isNonDiagnostic(s));
+          if (flagged.length > 0) {
+            report({
+              guard: "analysis_non_diagnostic",
+              matched: flagged.flatMap((s) => findDiagnosticLanguage(s)),
+              sample: flagged.join(" | "),
+            });
+            return { accepted: false };
+          }
+          return {
+            accepted: true,
+            value: createLessonAnalysis({
+              lessonId: lesson.id,
+              topic: raw.topic.trim(),
+              subtopics: raw.subtopics,
+              objectives: [...lesson.objectives],
+              vocabulary: raw.vocabulary,
+              prerequisites: raw.prerequisites,
+              technicalSteps: raw.technicalSteps,
+              misconceptions: raw.misconceptions,
+              difficultTransitions: raw.difficultTransitions,
+              independentApplication: raw.independentApplication,
+              emotionalPressurePoints:
+                raw.emotionalPressurePoints.length > 0
+                  ? raw.emotionalPressurePoints
+                  : ["Students may hesitate to ask for help when confused."],
+              reflectionFocus: raw.reflectionFocus.trim(),
+              createdAt: now(),
+            }),
+          };
+        },
+        () => fallback.analyzeLesson(input),
+      );
     },
 
     async generateReflectionQuestions(
       input: GenerateQuestionsInput,
     ): Promise<ReflectionQuestionSet> {
-      if (!enabled("generate"))
-        return fallback.generateReflectionQuestions(input);
       const { analysis, adaptiveFollowups, depth } = input;
-      const recentTask =
-        analysis.technicalSteps.at(-1) ??
-        analysis.independentApplication[0] ??
-        analysis.difficultTransitions[0] ??
-        analysis.objectives[0] ??
-        analysis.topic;
-      const { clean } = stripPii(
-        JSON.stringify({
-          topic: analysis.topic,
-          objectives: analysis.objectives,
-          recentTask,
-          technicalSteps: analysis.technicalSteps,
-          difficultTransitions: analysis.difficultTransitions,
-          independentApplication: analysis.independentApplication,
-          reflectionFocus: analysis.reflectionFocus,
-          emotionalPressurePoints: analysis.emotionalPressurePoints,
-          vocabulary: analysis.vocabulary,
-          gradeLevel: input.gradeLevel,
-          depth,
-          questionCount: DEPTH_COUNT[depth],
-        }),
-        piiTerms(),
-      );
-      try {
-        const res = await gateway.send({
-          task: "generate",
-          system: GENERATE_SYSTEM,
-          prompt: clean,
-          maxTokens: 700,
-        });
-        const rawQs = rawQuestionsSchema.parse(firstJson(res.text));
-        if (!questionsMeetDesignContract(rawQs, input)) {
-          report({
-            guard: "question_contract",
-            matched: [],
-            sample: rawQs.map((q) => q.text).join(" | "),
+      return guardedTask<ReflectionQuestionSet>(
+        "generate",
+        async () => {
+          const recentTask =
+            analysis.technicalSteps.at(-1) ??
+            analysis.independentApplication[0] ??
+            analysis.difficultTransitions[0] ??
+            analysis.objectives[0] ??
+            analysis.topic;
+          const { clean } = stripPii(
+            JSON.stringify({
+              topic: analysis.topic,
+              objectives: analysis.objectives,
+              recentTask,
+              technicalSteps: analysis.technicalSteps,
+              difficultTransitions: analysis.difficultTransitions,
+              independentApplication: analysis.independentApplication,
+              reflectionFocus: analysis.reflectionFocus,
+              emotionalPressurePoints: analysis.emotionalPressurePoints,
+              vocabulary: analysis.vocabulary,
+              gradeLevel: input.gradeLevel,
+              depth,
+              questionCount: DEPTH_COUNT[depth],
+            }),
+            piiTerms(),
+          );
+          const res = await gateway.send({
+            task: "generate",
+            system: GENERATE_SYSTEM,
+            prompt: clean,
+            maxTokens: 700,
           });
-          return fallback.generateReflectionQuestions(input);
-        }
-        // The first technical and first emotional question are required (the
-        // emotion↔learning pairing the summary depends on); the rest are optional.
-        const firstTech = rawQs.findIndex((q) => q.category === "technical");
-        const firstEmo = rawQs.findIndex((q) => q.category === "emotional");
-        const questions: GeneratedQuestion[] = rawQs.map((q, order) => ({
-          id: `${analysis.lessonId}-q${order}`,
-          category: q.category,
-          text: q.text.trim(),
-          format: q.format,
-          options: q.options,
-          order,
-          required: order === firstTech || order === firstEmo,
-          aiGenerated: true,
-        }));
-        // createReflectionQuestionSet enforces balance + options; a bad model
-        // output throws here and we fall back to the deterministic set.
-        return createReflectionQuestionSet({
-          lessonId: analysis.lessonId,
-          questions,
-          adaptiveFollowupsEnabled: adaptiveFollowups,
-          maxFollowups: adaptiveFollowups ? 4 : 0,
-          createdAt: now(),
-        });
-      } catch {
-        return fallback.generateReflectionQuestions(input);
-      }
+          const rawQs = rawQuestionsSchema.parse(firstJson(res.text));
+          if (!questionsMeetDesignContract(rawQs, input)) {
+            report({
+              guard: "question_contract",
+              matched: [],
+              sample: rawQs.map((q) => q.text).join(" | "),
+            });
+            return { accepted: false };
+          }
+          // The first technical and first emotional question are required (the
+          // emotion↔learning pairing the summary depends on); the rest are optional.
+          const firstTech = rawQs.findIndex((q) => q.category === "technical");
+          const firstEmo = rawQs.findIndex((q) => q.category === "emotional");
+          const questions: GeneratedQuestion[] = rawQs.map((q, order) => ({
+            id: `${analysis.lessonId}-q${order}`,
+            category: q.category,
+            text: q.text.trim(),
+            format: q.format,
+            options: q.options,
+            order,
+            required: order === firstTech || order === firstEmo,
+            aiGenerated: true,
+          }));
+          // createReflectionQuestionSet enforces balance + options; a bad model
+          // output throws here and we fall back to the deterministic set.
+          return {
+            accepted: true,
+            value: createReflectionQuestionSet({
+              lessonId: analysis.lessonId,
+              questions,
+              adaptiveFollowupsEnabled: adaptiveFollowups,
+              maxFollowups: adaptiveFollowups ? 4 : 0,
+              createdAt: now(),
+            }),
+          };
+        },
+        () => fallback.generateReflectionQuestions(input),
+      );
     },
 
     async nextTurn(input: NextTurnInput): Promise<ConversationStep> {

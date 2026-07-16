@@ -3,6 +3,10 @@
 import { getSessionUser } from "./session";
 import { getWorld } from "./world";
 import { listAudit, type AuditEvent } from "./auditLog";
+import {
+  taskHealthSummary,
+  type TaskHealthRow,
+} from "@/domain/intelligence/taskHealth";
 
 /**
  * The district-admin surface: usage for their tenant and the access audit log
@@ -22,6 +26,8 @@ export interface AdminOverview {
     students: number;
   };
   audit: AuditEvent[];
+  /** Per-task model-health from the self-throttling monitor (empty until exercised). */
+  assistantHealth: TaskHealthRow[];
 }
 
 async function requireAdmin(): Promise<{ id: string; tenantId: string }> {
@@ -60,5 +66,6 @@ export async function getAdminOverview(): Promise<AdminOverview> {
       students: students.size,
     },
     audit: listAudit(admin.tenantId, 100),
+    assistantHealth: taskHealthSummary(),
   };
 }

@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createLesson, type Lesson } from "@/domain/intelligence/lesson";
+import { resetTaskHealth } from "@/domain/intelligence/taskHealth";
 import { isBalancedQuestionSet } from "@/domain/intelligence/question";
 import {
   createFakeGateway,
@@ -95,6 +96,10 @@ const VALID_QUESTIONS = JSON.stringify([
     ],
   },
 ]);
+
+// The health monitor is module-global; reset it before every case so a task
+// throttled by one test never leaks into the next.
+beforeEach(() => resetTaskHealth());
 
 describe("LLM reflection intelligence (fake gateway)", () => {
   it("accepts valid model JSON for analysis", async () => {
@@ -294,5 +299,39 @@ describe("LLM reflection intelligence (fake gateway)", () => {
     const a = await ai.analyzeLesson({ lesson: lesson() });
     expect(a.topic).toBe("Balancing chemical equations");
     expect(gateway.audit()).toHaveLength(0); // no model call made
+  });
+
+  it("throttles a task the model keeps failing, then probes to recover", async () => {
+    // A gateway that first returns garbage (every call falls back), then can be
+    // flipped to return valid analysis.
+    let mode: "bad" | "good" = "bad";
+    const gateway = createFakeGateway(
+      () => (mode === "good" ? VALID_ANALYSIS : "not json at all"),
+      { models: PINNED_MODELS, now: () => NOW },
+    );
+    const ai = createLlmReflectionIntelligence({
+      gateway,
+      fallback: deterministic,
+      now: () => NOW,
+    });
+
+    // Hammer the failing task. Every result is the deterministic fallback, but
+    // after enough failures the monitor stops calling the model at all.
+    for (let i = 0; i < 15; i += 1) {
+      await ai.analyzeLesson({ lesson: lesson() });
+    }
+    const callsWhileFailing = gateway.audit().length;
+    // It gave up well before 15 attempts (throttled after the sample threshold).
+    expect(callsWhileFailing).toBeLessThan(15);
+
+    // The model recovers. A periodic recovery probe lets a call through — proven
+    // by the gateway being hit again after it had gone quiet.
+    mode = "good";
+    let probed = false;
+    for (let i = 0; i < 40 && !probed; i += 1) {
+      await ai.analyzeLesson({ lesson: lesson() });
+      probed = gateway.audit().length > callsWhileFailing;
+    }
+    expect(probed).toBe(true);
   });
 });

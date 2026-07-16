@@ -28,7 +28,14 @@ export default async function AdminPage(): Promise<ReactElement> {
   const user = await getSessionUser();
   if (user === null || user.role !== "admin") redirect("/signin");
 
-  const { tenantId, usage, audit } = await getAdminOverview();
+  const { tenantId, usage, audit, assistantHealth } = await getAdminOverview();
+  const TASK_LABEL: Record<string, string> = {
+    analyze: "Read the lesson",
+    generate: "Draft the questions",
+    converse: "Rephrase in chat",
+    signals: "Tag the conversation",
+    summarize: "Write the summary",
+  };
 
   return (
     <main className="mx-auto w-full max-w-3xl px-6 py-14">
@@ -43,6 +50,37 @@ export default async function AdminPage(): Promise<ReactElement> {
         <Stat label="Reflections started" value={usage.reflectionsStarted} />
         <Stat label="Completed" value={usage.reflectionsCompleted} />
       </div>
+
+      {assistantHealth.length > 0 && (
+        <section className="mt-10">
+          <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+            Assistant health
+          </h2>
+          <p className="mt-2 text-[14px] text-secondary">
+            The assistant only drafts; it never decides. This shows how often each
+            drafting task&rsquo;s output was good enough to keep — the system throttles
+            itself to the deterministic path when a task&rsquo;s quality drops, and
+            re-tests to recover.
+          </p>
+          <ul className="mt-4 divide-y divide-ink-wash rounded-card border border-ink-wash bg-white">
+            {assistantHealth.map((h) => (
+              <li key={h.task} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="text-[14px] text-ink-black">
+                  {TASK_LABEL[h.task] ?? h.task}
+                </span>
+                <span className="flex items-center gap-3 text-[13px] text-secondary">
+                  <span>
+                    {Math.round(h.acceptanceRate * 100)}% kept · {h.samples} recent
+                  </span>
+                  <span className="text-ink-black">
+                    {h.healthy ? "Using assistant" : "On deterministic path"}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mt-10">
         <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
