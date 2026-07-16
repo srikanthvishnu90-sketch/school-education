@@ -1,29 +1,35 @@
 "use client";
 
 import { Menu } from "lucide-react";
+import Link from "next/link";
 import { useState, type ReactElement } from "react";
-import HeroInput from "./HeroInput";
 import LoginButton from "./LoginButton";
 import QuickActions from "./QuickActions";
 import RoleToggle, { type Role } from "./RoleToggle";
 import Sidebar from "./Sidebar";
 
 /**
- * The signed-out entry surface. Two decisions live here and nowhere else: which
- * side you're on (the toggle) and walking through the door (the Login pill) —
- * the pill is the only white thing on the page, so nothing competes with it.
- *
- * `greeting` is a prop so it can be personalized once there's a session.
+ * The signed-out entry surface. Its whole job is to say, in five seconds, what
+ * plumb is and give one clear way in. Two choices live here: which side you're on
+ * (the toggle) and walking through the door (Get started / Login). Everything on
+ * the page is real — no dead controls a visitor can click into nothing.
  */
 export default function LandingShell({
-  greeting = "Hey there. Ready to dive in?",
   initialRole = "teacher",
 }: {
-  greeting?: string;
   initialRole?: Role;
 }): ReactElement {
   const [role, setRole] = useState<Role>(initialRole);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const headline =
+    role === "teacher"
+      ? "Read the class back."
+      : "See how the lesson really went.";
+  const subline =
+    role === "teacher"
+      ? "Add today's lesson and plumb turns your class's reflections into one honest, task-focused brief — what landed, what didn't, and where to go next. No ranking, no diagnosis, no surveillance."
+      : "Talk through today's lesson one question at a time, then leave with one small next step you choose. Your answers are private and never change your grade.";
 
   return (
     <div className="flex h-[100svh] overflow-hidden bg-shell-background text-shell-text">
@@ -40,7 +46,6 @@ export default function LandingShell({
             <Menu size={20} />
           </button>
 
-          {/* Centered on desktop; flows inline on narrow screens. */}
           <div className="md:absolute md:left-1/2 md:top-3 md:-translate-x-1/2">
             <RoleToggle role={role} onChange={setRole} />
           </div>
@@ -48,14 +53,33 @@ export default function LandingShell({
           <LoginButton role={role} />
         </header>
 
-        <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
+        <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-12">
           <div className="w-full max-w-xl">
-            <h1 className="text-center text-[22px] font-normal tracking-tight text-shell-text sm:text-[28px]">
-              {greeting}
+            <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-shell-muted">
+              plumb · classroom reflection
+            </p>
+            <h1 className="mt-3 text-[30px] font-normal leading-tight tracking-tight text-shell-text sm:text-[38px]">
+              {headline}
             </h1>
-            <div className="mt-6">
-              <HeroInput />
+            <p className="mt-4 text-[15px] leading-relaxed text-shell-muted">
+              {subline}
+            </p>
+
+            <div className="mt-7 flex flex-wrap items-center gap-3">
+              <Link
+                href={`/signin?role=${role}`}
+                className="inline-flex min-h-11 items-center rounded-full bg-white px-5 text-[14px] font-medium text-shell-background transition-opacity hover:opacity-90"
+              >
+                {role === "teacher" ? "Get started as a teacher" : "Start reflecting"}
+              </Link>
+              <Link
+                href="/signin"
+                className="inline-flex min-h-11 items-center rounded-full px-3 text-[14px] text-shell-muted transition-colors hover:text-shell-text"
+              >
+                Sign in with your school email →
+              </Link>
             </div>
+
             <QuickActions role={role} />
           </div>
         </main>

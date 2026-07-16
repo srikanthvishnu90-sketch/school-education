@@ -1,38 +1,20 @@
 "use client";
 
-import {
-  Blocks,
-  BookOpen,
-  GraduationCap,
-  LogOut,
-  PanelLeft,
-  SquarePen,
-  X,
-} from "lucide-react";
+import { LogOut, PanelLeft, ShieldCheck, Sparkles, UserRound, X } from "lucide-react";
 import type { ReactElement } from "react";
 import { signOutAction } from "@/app/_world/session";
 
 /**
- * The left rail: start a chat, or jump to a grade band. K–12 splits three ways
- * because the bands ask genuinely different things of a reflection — a 2nd
- * grader and a junior don't get the same question. Decorative for now (href="#")
- * until the signed-in surfaces own it. Under 768px it lifts out into an overlay
- * drawer driven by the hamburger in the header.
+ * The left rail on the signed-out landing. It carries no fake navigation — every
+ * real destination lives behind sign-in — so instead it states, plainly, the
+ * three things that make plumb trustworthy to a school. Under 768px it lifts out
+ * into an overlay drawer driven by the hamburger in the header.
  */
 
-const NAV = [
-  { label: "New chat", Icon: SquarePen },
-  { label: "K–5", Icon: Blocks },
-  { label: "6–8", Icon: BookOpen },
-  { label: "9–12", Icon: GraduationCap },
-] as const;
-
-const RECENTS = [
-  "Factoring quadratics — period 3",
-  "Slope from a table",
-  "Unit 2 review day",
-  "Lab: motion graphs",
-  "Exit ticket — Friday",
+const PROMISES = [
+  { label: "Task-focused, never a verdict about the student", Icon: UserRound },
+  { label: "Private by default; safety alerts go to a real adult", Icon: ShieldCheck },
+  { label: "AI drafts and classifies; people own every decision", Icon: Sparkles },
 ] as const;
 
 export default function Sidebar({
@@ -81,45 +63,29 @@ export default function Sidebar({
           />
         </div>
 
-        <nav className="px-2">
-          {NAV.map(({ label, Icon }) => (
-            <a
-              key={label}
-              href="#"
-              className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
-            >
-              <Icon size={16} aria-hidden />
-              {label}
-            </a>
-          ))}
-        </nav>
-
-        <div className="mt-5 min-h-0 flex-1 overflow-y-auto px-2">
-          <p className="px-2.5 pb-1.5 text-[12px] font-medium text-shell-text">
-            Recents
+        <div className="mt-4 min-h-0 flex-1 overflow-y-auto px-3">
+          <p className="px-0.5 pb-2 text-[12px] font-medium text-shell-text">
+            What plumb promises
           </p>
-          {RECENTS.map((title) => (
-            <a
-              key={title}
-              href="#"
-              className="block truncate rounded-lg px-2.5 py-1.5 text-[13px] text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
-            >
-              {title}
-            </a>
-          ))}
+          <ul className="flex flex-col gap-3">
+            {PROMISES.map(({ label, Icon }) => (
+              <li key={label} className="flex items-start gap-2.5 text-[13px] text-shell-muted">
+                <Icon size={15} aria-hidden className="mt-0.5 shrink-0" />
+                <span className="leading-relaxed">{label}</span>
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div className="flex items-center gap-2.5 border-t border-white/5 px-3 py-2.5">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-shell-panel text-[11px] font-medium text-shell-text">
-            {user?.initials ?? "VS"}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] text-shell-text">
-              {user?.name ?? "Vishnu Srikanth"}
-            </p>
-            <p className="text-[11px] text-shell-muted">{user?.plan ?? "Pro"}</p>
-          </div>
-          {user !== undefined && (
+        {user !== undefined && (
+          <div className="flex items-center gap-2.5 border-t border-white/5 px-3 py-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-shell-panel text-[11px] font-medium text-shell-text">
+              {user.initials}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[13px] text-shell-text">{user.name}</p>
+              <p className="text-[11px] text-shell-muted">{user.plan}</p>
+            </div>
             <form action={signOutAction}>
               <button
                 type="submit"
@@ -129,8 +95,8 @@ export default function Sidebar({
                 <LogOut size={16} aria-hidden />
               </button>
             </form>
-          )}
-        </div>
+          </div>
+        )}
       </aside>
     </>
   );
