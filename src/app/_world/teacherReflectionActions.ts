@@ -24,13 +24,13 @@ import { recordAudit } from "./auditLog";
 /** The demo teacher owns one class; a real build resolves this from the roster. */
 const TEACHER_CLASS_ID = "class-1";
 
-/** The signed-in teacher's id, or a thrown refusal. Role is server-authoritative. */
-async function requireTeacher(): Promise<string> {
+/** The signed-in teacher (id + tenant), or a thrown refusal. Server-authoritative. */
+async function requireTeacher(): Promise<{ id: string; tenantId: string }> {
   const user = await getSessionUser();
   if (user === null || user.role !== "teacher") {
     throw new Error("Only a teacher can do this.");
   }
-  return user.id;
+  return { id: user.id, tenantId: user.tenantId };
 }
 
 /**
@@ -42,10 +42,16 @@ async function requireTeacher(): Promise<string> {
 async function ownedLesson(
   world: World,
   reflectionId: string,
-  teacherId: string,
+  teacher: { id: string; tenantId: string },
 ): Promise<Lesson | null> {
   const lesson = await world.intel.lessons.findById(reflectionId);
-  if (lesson === null || lesson.teacherId !== teacherId) return null;
+  if (
+    lesson === null ||
+    lesson.teacherId !== teacher.id ||
+    lesson.tenantId !== teacher.tenantId
+  ) {
+    return null;
+  }
   return lesson;
 }
 
@@ -96,10 +102,10 @@ function slug(title: string): string {
 
 /** Every lesson the teacher's class has, newest activity first, with reflection tallies. */
 export async function listTeacherLessons(): Promise<LessonListItem[]> {
-  const teacherId = await requireTeacher();
+  const teacher = await requireTeacher();
   const world = await getWorld();
   const lessons = (await world.intel.lessons.listByClass(TEACHER_CLASS_ID)).filter(
-    (l) => l.teacherId === teacherId,
+    (l) => l.teacherId === teacher.id && l.tenantId === teacher.tenantId,
   );
   const items = await Promise.all(
     lessons.map(async (lesson): Promise<LessonListItem> => {
@@ -123,7 +129,7 @@ export async function listTeacherLessons(): Promise<LessonListItem[]> {
  * Returns the reflectionId (== lesson id) the student chat and brief hang off.
  */
 export async function createLessonReflection(input: NewLessonInput): Promise<string> {
-  const teacherId = await requireTeacher();
+  const teacher = await requireTeacher();
   const world = await getWorld();
   const now = world.clock.now();
   const title = input.title.trim();
@@ -134,8 +140,9 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
   const id = `lesson-${slug(title)}-${now.getTime()}`;
   const lesson = createLesson({
     id,
+    tenantId: teacher.tenantId,
     classId: TEACHER_CLASS_ID,
-    teacherId,
+    teacherId: teacher.id,
     title,
     date: now,
     lessonType: input.lessonType,
@@ -160,12 +167,12 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
 
 /** The lesson's own content — the summary of the day and any photos the teacher added. */
 export async function getLessonDetail(reflectionId: string): Promise<LessonDetail | null> {
-  const teacherId = await requireTeacher();
+  const teacher = await requireTeacher();
   const world = await getWorld();
-  const lesson = await ownedLesson(world, reflectionId, teacherId);
+  const lesson = await ownedLesson(world, reflectionId, teacher);
   if (lesson === null) return null;
   recordAudit({
-    actorId: teacherId,
+    actorId: teacher.id,
     actorRole: "teacher",
     action: "view_lesson",
     reflectionId,
@@ -187,9 +194,9 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
  * Returns null until at least one student has finished reflecting.
  */
 export async function buildClassBrief(reflectionId: string): Promise<ClassBriefView | null> {
-  const teacherId = await requireTeacher();
+  const teacher = await requireTeacher();
   const world = await getWorld();
-  if ((await ownedLesson(world, reflectionId, teacherId)) === null) return null;
+  if ((await ownedLesson(world, reflectionId, teacher)) === null) return null;
   const sessions = (await world.intel.sessions.listByReflection(reflectionId)).filter(
     (s) => s.status === "completed",
   );
@@ -216,7 +223,7 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
   // to each (FERPA who-saw-what).
   for (const s of students) {
     recordAudit({
-      actorId: teacherId,
+      actorId: teacher.id,
       actorRole: "teacher",
       action: "view_class_brief",
       reflectionId,
@@ -232,9 +239,9 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
  * — the roster the teacher enters graded results against (P7 score entry).
  */
 export async function listScoreRows(reflectionId: string): Promise<StudentScoreRow[]> {
-  const teacherId = await requireTeacher();
+  const teacher = await requireTeacher();
   const world = await getWorld();
-  if ((await ownedLesson(world, reflectionId, teacherId)) === null) return [];
+  if ((await ownedLesson(world, reflectionId, teacher)) === null) return [];
   const sessions = (await world.intel.sessions.listByReflection(reflectionId)).filter(
     (s) => s.status === "completed",
   );
@@ -266,14 +273,14 @@ export async function recordReflectionScore(
   studentId: string,
   scorePercent: number,
 ): Promise<void> {
-  const teacherId = await requireTeacher();
+  const teacher = await requireTeacher();
   if (!Number.isFinite(scorePercent) || scorePercent < 0 || scorePercent > 100) {
     throw new Error("A score must be between 0 and 100.");
   }
   const world = await getWorld();
   // The lesson must be the caller's, and the student must actually have a session
   // on it — a teacher can't score another teacher's class or an arbitrary id.
-  if ((await ownedLesson(world, reflectionId, teacherId)) === null) {
+  if ((await ownedLesson(world, reflectionId, teacher)) === null) {
     throw new Error("That lesson isn’t available.");
   }
   const participated = (
@@ -291,7 +298,7 @@ export async function recordReflectionScore(
     }),
   );
   recordAudit({
-    actorId: teacherId,
+    actorId: teacher.id,
     actorRole: "teacher",
     action: "record_score",
     reflectionId,

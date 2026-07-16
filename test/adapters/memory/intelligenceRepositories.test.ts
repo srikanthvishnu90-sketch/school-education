@@ -20,6 +20,7 @@ describe("in-memory intelligence repositories", () => {
     await repo.save(
       createLesson({
         id: "L1",
+        tenantId: "t",
         classId: "C",
         teacherId: "T",
         title: "Slope",

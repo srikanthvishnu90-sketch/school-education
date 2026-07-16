@@ -22,6 +22,8 @@ export type LessonType =
 
 export interface Lesson {
   id: Id;
+  /** The district (tenant) this lesson belongs to — the isolation boundary. */
+  tenantId: Id;
   classId: Id;
   teacherId: Id;
   title: string;

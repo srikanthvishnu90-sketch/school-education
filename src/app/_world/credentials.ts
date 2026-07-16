@@ -19,10 +19,15 @@ import { TEACHER_ID } from "./teacher";
 
 export type AccountRole = "student" | "teacher" | "counselor";
 
+/** The demo district every seeded/self-signup account belongs to. A real build
+ * resolves the tenant from the email domain or an invite at sign-up. */
+export const DEMO_TENANT_ID = "district-demo";
+
 export interface Account {
   id: string;
   email: string;
   role: AccountRole;
+  tenantId: string;
   salt: string;
   hash: string;
 }
@@ -54,7 +59,7 @@ export const DEMO_PASSWORD = "plumb1234";
 function seedAccounts(): Account[] {
   const make = (id: string, email: string, role: AccountRole): Account => {
     const { salt, hash } = hashNew(DEMO_PASSWORD);
-    return { id, email: email.toLowerCase(), role, salt, hash };
+    return { id, email: email.toLowerCase(), role, tenantId: DEMO_TENANT_ID, salt, hash };
   };
   const accounts = [
     make(TEACHER_ID, "rivera@demo.school", "teacher"),
@@ -84,6 +89,7 @@ function newStudentId(email: string): string {
 interface CredentialStore {
   verify(email: string, password: string): Promise<Account | null>;
   roleForId(id: string): Promise<AccountRole | null>;
+  tenantForId(id: string): Promise<string | null>;
   emailTaken(email: string): Promise<boolean>;
   createStudent(email: string, password: string): Promise<string>;
 }
@@ -104,6 +110,9 @@ function createMemoryStore(): CredentialStore {
     async roleForId(id) {
       return byId.get(id)?.role ?? null;
     },
+    async tenantForId(id) {
+      return byId.get(id)?.tenantId ?? null;
+    },
     async emailTaken(email) {
       return byEmail.has(email.trim().toLowerCase());
     },
@@ -117,6 +126,7 @@ function createMemoryStore(): CredentialStore {
         id: newStudentId(normalized),
         email: normalized,
         role: "student",
+        tenantId: DEMO_TENANT_ID,
         salt,
         hash,
       };
@@ -132,16 +142,19 @@ create table if not exists auth.accounts (
   id text primary key,
   email text not null unique,
   role text not null check (role in ('student','teacher','counselor')),
+  tenant_id text not null default '${DEMO_TENANT_ID}',
   salt text not null,
   hash text not null,
   created_at timestamptz not null default now()
 );
+alter table auth.accounts add column if not exists tenant_id text not null default '${DEMO_TENANT_ID}';
 `;
 
 type RawAccount = {
   id: string;
   email: string;
   role: AccountRole;
+  tenantId: string;
   salt: string;
   hash: string;
 } & Record<string, unknown>;
@@ -151,15 +164,15 @@ async function createPgStore(client: SqlClient): Promise<CredentialStore> {
   // Seed the demo accounts once — insert-if-absent so restarts don't re-hash.
   for (const a of seedAccounts()) {
     await client.query(
-      `insert into auth.accounts (id, email, role, salt, hash)
-       values ($1, $2, $3, $4, $5)
+      `insert into auth.accounts (id, email, role, tenant_id, salt, hash)
+       values ($1, $2, $3, $4, $5, $6)
        on conflict (email) do nothing`,
-      [a.id, a.email, a.role, a.salt, a.hash],
+      [a.id, a.email, a.role, a.tenantId, a.salt, a.hash],
     );
   }
   const findByEmail = async (email: string): Promise<Account | null> => {
     const { rows } = await client.query<RawAccount>(
-      "select id, email, role, salt, hash from auth.accounts where email = $1",
+      `select id, email, role, tenant_id as "tenantId", salt, hash from auth.accounts where email = $1`,
       [email.trim().toLowerCase()],
     );
     return rows[0] ?? null;
@@ -176,6 +189,13 @@ async function createPgStore(client: SqlClient): Promise<CredentialStore> {
       );
       return rows[0]?.role ?? null;
     },
+    async tenantForId(id) {
+      const { rows } = await client.query<{ tenantId: string } & Record<string, unknown>>(
+        `select tenant_id as "tenantId" from auth.accounts where id = $1`,
+        [id],
+      );
+      return rows[0]?.tenantId ?? null;
+    },
     async emailTaken(email) {
       return (await findByEmail(email)) !== null;
     },
@@ -187,8 +207,8 @@ async function createPgStore(client: SqlClient): Promise<CredentialStore> {
       const { salt, hash } = hashNew(password);
       const id = newStudentId(normalized);
       await client.query(
-        `insert into auth.accounts (id, email, role, salt, hash) values ($1, $2, 'student', $3, $4)`,
-        [id, normalized, salt, hash],
+        `insert into auth.accounts (id, email, role, tenant_id, salt, hash) values ($1, $2, 'student', $3, $4, $5)`,
+        [id, normalized, DEMO_TENANT_ID, salt, hash],
       );
       return id;
     },
@@ -220,6 +240,11 @@ export async function verifyCredentials(
 
 export async function roleForId(id: string): Promise<AccountRole | null> {
   return (await store()).roleForId(id);
+}
+
+/** The tenant (district) an account belongs to — the isolation boundary. */
+export async function tenantForId(id: string): Promise<string | null> {
+  return (await store()).tenantForId(id);
 }
 
 export async function emailTaken(email: string): Promise<boolean> {

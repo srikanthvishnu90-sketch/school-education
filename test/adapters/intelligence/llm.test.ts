@@ -25,6 +25,7 @@ const deterministic = createDeterministicReflectionIntelligence({
 const lesson = (over: Partial<Lesson> = {}): Lesson =>
   createLesson({
     id: "lesson-9",
+    tenantId: "t",
     classId: "c",
     teacherId: "t",
     title: "Balancing chemical equations",

@@ -17,6 +17,7 @@ const ai = createDeterministicReflectionIntelligence({ now: () => NOW });
 const lesson = (over: Partial<Lesson>): Lesson =>
   createLesson({
     id: "lesson-1",
+    tenantId: "district-demo",
     classId: "class-1",
     teacherId: "teacher-1",
     title: "Factoring quadratic equations",

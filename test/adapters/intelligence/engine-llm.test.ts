@@ -28,6 +28,7 @@ const deterministic = createDeterministicReflectionIntelligence({
 
 const lesson: Lesson = createLesson({
   id: "L",
+  tenantId: "t",
   classId: "C",
   teacherId: "T",
   title: "Slope",

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { Id } from "@/domain";
 import { TEACHER_ID } from "./teacher";
 import { COUNSELOR_ID } from "./roles";
-import { roleForId } from "./credentials";
+import { DEMO_TENANT_ID, roleForId, tenantForId } from "./credentials";
 import { signSession, verifySession } from "./sessionToken";
 
 /**
@@ -42,6 +42,8 @@ export async function signOutAction(): Promise<void> {
 export async function getSessionUser(): Promise<{
   id: Id;
   role: "student" | "teacher" | "counselor";
+  /** The district this account belongs to — the tenant isolation boundary. */
+  tenantId: string;
 } | null> {
   const store = await cookies();
   const raw = store.get(COOKIE)?.value ?? null;
@@ -54,7 +56,8 @@ export async function getSessionUser(): Promise<{
       : id === COUNSELOR_ID
         ? "counselor"
         : "student");
-  return { id, role };
+  const tenantId = (await tenantForId(id)) ?? DEMO_TENANT_ID;
+  return { id, role, tenantId };
 }
 
 /** The signed-in STUDENT id (null when there is no session, or it's a teacher). */

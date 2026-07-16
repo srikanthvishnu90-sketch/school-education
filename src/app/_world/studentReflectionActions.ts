@@ -34,10 +34,12 @@ export async function listStudentReflections(): Promise<
   const world = await getWorld();
   const enrolled = world.students.some((student) => student.id === user.id);
   if (!enrolled) return [];
-  const [lessons, sessions] = await Promise.all([
+  const [allLessons, sessions] = await Promise.all([
     world.intel.lessons.listByClass(STUDENT_CLASS_ID),
     world.intel.sessions.listByStudent(user.id),
   ]);
+  // A student only ever sees lessons from their own district (tenant).
+  const lessons = allLessons.filter((l) => l.tenantId === user.tenantId);
   const sessionByReflection = new Map(
     sessions.map((session) => [session.reflectionId, session]),
   );

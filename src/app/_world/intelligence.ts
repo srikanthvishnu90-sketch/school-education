@@ -105,6 +105,7 @@ export async function seedDemoReflection(
   }
   const lesson = createLesson({
     id: DEMO_REFLECTION_ID,
+    tenantId: "district-demo",
     classId: "class-1",
     teacherId: "teacher-1",
     title: "Factoring quadratic equations",

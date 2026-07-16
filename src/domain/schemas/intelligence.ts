@@ -28,6 +28,7 @@ export const lessonTypeSchema = z.enum([
 
 export const lessonSchema = z.object({
   id: idSchema,
+  tenantId: idSchema,
   classId: idSchema,
   teacherId: idSchema,
   title: z.string().min(1),

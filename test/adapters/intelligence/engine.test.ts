@@ -21,6 +21,7 @@ const NOW = new Date("2026-04-01T00:00:00Z");
 
 const lesson: Lesson = createLesson({
   id: "L",
+  tenantId: "t",
   classId: "C",
   teacherId: "T",
   title: "Slope of a line",

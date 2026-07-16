@@ -30,23 +30,26 @@ export interface CourseReflection {
   status: string;
 }
 
-async function requireStudent(): Promise<string> {
+async function requireStudent(): Promise<{ id: string; tenantId: string }> {
   const user = await getSessionUser();
   if (user === null || user.role !== "student") {
     throw new Error("Only a student can view courses.");
   }
-  return user.id;
+  return { id: user.id, tenantId: user.tenantId };
 }
 
 export async function listCourses(): Promise<CourseCard[]> {
-  const studentId = await requireStudent();
+  const student = await requireStudent();
   const world = await getWorld();
-  const sessions = await world.intel.sessions.listByStudent(studentId);
+  const sessions = await world.intel.sessions.listByStudent(student.id);
   const byReflection = new Map(sessions.map((s) => [s.reflectionId, s]));
 
   return Promise.all(
     COURSES.map(async (course): Promise<CourseCard> => {
-      const lessons = await world.intel.lessons.listByClass(course.id);
+      // Only count lessons from the student's own district (tenant).
+      const lessons = (await world.intel.lessons.listByClass(course.id)).filter(
+        (l) => l.tenantId === student.tenantId,
+      );
       const open = lessons.filter(
         (l) => byReflection.get(l.id)?.status !== "completed",
       ).length;
@@ -58,12 +61,13 @@ export async function listCourses(): Promise<CourseCard[]> {
 export async function listCourseReflections(
   courseId: string,
 ): Promise<CourseReflection[]> {
-  const studentId = await requireStudent();
+  const student = await requireStudent();
   const world = await getWorld();
-  const [lessons, sessions] = await Promise.all([
+  const [allLessons, sessions] = await Promise.all([
     world.intel.lessons.listByClass(courseId),
-    world.intel.sessions.listByStudent(studentId),
+    world.intel.sessions.listByStudent(student.id),
   ]);
+  const lessons = allLessons.filter((l) => l.tenantId === student.tenantId);
   const byReflection = new Map(sessions.map((s) => [s.reflectionId, s]));
 
   return lessons

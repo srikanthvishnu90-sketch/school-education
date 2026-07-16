@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   DEMO_PASSWORD,
+  DEMO_TENANT_ID,
   createStudentAccount,
   emailTaken,
   roleForId,
+  tenantForId,
   verifyCredentials,
 } from "@/app/_world/credentials";
 
@@ -45,6 +47,14 @@ describe("credential store — seeded demo accounts", () => {
     expect(await roleForId("student-avery")).toBe("student");
     expect(await roleForId("counselor-1")).toBe("counselor");
     expect(await roleForId("nobody")).toBeNull();
+  });
+
+  it("resolves the tenant (district) from an id — the isolation boundary", async () => {
+    expect(await tenantForId("teacher-1")).toBe(DEMO_TENANT_ID);
+    expect(await tenantForId("student-avery")).toBe(DEMO_TENANT_ID);
+    expect(await tenantForId("nobody")).toBeNull();
+    const account = await verifyCredentials("rivera@demo.school", DEMO_PASSWORD);
+    expect(account?.tenantId).toBe(DEMO_TENANT_ID);
   });
 });
 
