@@ -1,4 +1,5 @@
 import { DomainError } from "../common";
+import { learnedDiagnosticMatches } from "./learnedGuards";
 
 /**
  * The non-diagnostic guard (spec → Product principle 4: "Do not diagnose").
@@ -33,13 +34,18 @@ const PATTERNS: readonly RegExp[] = [
   FIXED_TRAIT,
 ];
 
-/** Every diagnostic phrase found in `text` (empty ⇒ the text is safe). */
+/**
+ * Every diagnostic phrase found in `text` (empty ⇒ the text is safe). Consults
+ * BOTH the base lexicon and the learned layer (learnedGuards), so a pattern
+ * promoted from a real incident strengthens this guard everywhere at once.
+ */
 export function findDiagnosticLanguage(text: string): string[] {
   const hits: string[] = [];
   for (const pattern of PATTERNS) {
     const match = pattern.exec(text);
     if (match) hits.push(match[0]);
   }
+  hits.push(...learnedDiagnosticMatches(text));
   return hits;
 }
 

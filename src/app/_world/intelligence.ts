@@ -1,4 +1,5 @@
 import { createLesson } from "@/domain/intelligence/lesson";
+import { recordGuardrailTrip } from "./guardrailIncidents";
 import {
   createDeterministicReflectionIntelligence,
   createLlmReflectionIntelligence,
@@ -54,7 +55,13 @@ export function buildIntelligence(
     now,
     timeoutMs: 8000,
   });
-  return createLlmReflectionIntelligence({ gateway, fallback: deterministic, now });
+  return createLlmReflectionIntelligence({
+    gateway,
+    fallback: deterministic,
+    now,
+    // Feed every guardrail-forced fallback into the self-improving loop.
+    onIncident: (trip) => recordGuardrailTrip(trip, now()),
+  });
 }
 
 export function buildIntelRepos(): IntelRepos {

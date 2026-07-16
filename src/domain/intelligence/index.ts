@@ -5,5 +5,7 @@ export * from "./question";
 export * from "./session";
 export * from "./signals";
 export * from "./nonDiagnostic";
+export * from "./learnedGuards";
+export * from "./guardrail";
 export * from "./insight";
 export * from "./metacognition";

@@ -27,7 +27,14 @@ import {
   questionCategorySchema,
   questionFormatSchema,
 } from "@/domain/schemas/intelligence";
-import { isNonDiagnostic } from "@/domain/intelligence/nonDiagnostic";
+import {
+  findDiagnosticLanguage,
+  isNonDiagnostic,
+} from "@/domain/intelligence/nonDiagnostic";
+import type {
+  GuardrailRecorder,
+  GuardrailTrip,
+} from "@/domain/intelligence/guardrail";
 import {
   createStudentInsightSummary,
   type ClassInsightSummary,
@@ -532,6 +539,8 @@ export function createLlmReflectionIntelligence(deps: {
   fallback: ReflectionIntelligence;
   now: () => Date;
   config?: Partial<IntelLlmConfig>;
+  /** Called when a model output trips a guard and we fall back — the learning signal. */
+  onIncident?: GuardrailRecorder;
 }): ReflectionIntelligence {
   const { gateway, fallback, now } = deps;
   const config: IntelLlmConfig = {
@@ -540,6 +549,7 @@ export function createLlmReflectionIntelligence(deps: {
   };
   const enabled = (task: keyof IntelLlmConfig["tasks"]): boolean =>
     !config.killSwitch && config.tasks[task];
+  const report = (trip: GuardrailTrip): void => deps.onIncident?.(trip);
 
   return {
     async analyzeLesson(input: AnalyzeLessonInput): Promise<LessonAnalysis> {
@@ -580,7 +590,13 @@ export function createLlmReflectionIntelligence(deps: {
           ...raw.independentApplication,
           ...raw.emotionalPressurePoints,
         ];
-        if (authored.some((s) => !isNonDiagnostic(s))) {
+        const flagged = authored.filter((s) => !isNonDiagnostic(s));
+        if (flagged.length > 0) {
+          report({
+            guard: "analysis_non_diagnostic",
+            matched: flagged.flatMap((s) => findDiagnosticLanguage(s)),
+            sample: flagged.join(" | "),
+          });
           throw new Error("lesson analysis tripped the non-diagnostic guard");
         }
         return createLessonAnalysis({
@@ -644,6 +660,11 @@ export function createLlmReflectionIntelligence(deps: {
         });
         const rawQs = rawQuestionsSchema.parse(firstJson(res.text));
         if (!questionsMeetDesignContract(rawQs, input)) {
+          report({
+            guard: "question_contract",
+            matched: [],
+            sample: rawQs.map((q) => q.text).join(" | "),
+          });
           return fallback.generateReflectionQuestions(input);
         }
         // The first technical and first emotional question are required (the
