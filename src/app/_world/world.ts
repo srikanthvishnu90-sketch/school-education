@@ -26,6 +26,7 @@ import {
 import {
   buildIntelRepos,
   buildIntelligence,
+  buildSeedIntelligence,
   seedDemoReflection,
   type IntelRepos,
 } from "./intelligence";
@@ -133,7 +134,14 @@ async function build(): Promise<World> {
 
   const intelligence = buildIntelligence(() => core.clock.now(), isSafetyConcern);
   const intel = await buildIntelRepos(pgClient);
-  await seedDemoReflection(intelligence, intel, () => core.clock.now());
+  // Seed with the DETERMINISTIC engine so a cold process's first request never
+  // blocks on live model calls (that was a 25–65s hang). Real teacher lessons
+  // still use `intelligence` (the model when keyed).
+  await seedDemoReflection(
+    buildSeedIntelligence(() => core.clock.now(), isSafetyConcern),
+    intel,
+    () => core.clock.now(),
+  );
 
   return {
     services: core.services,

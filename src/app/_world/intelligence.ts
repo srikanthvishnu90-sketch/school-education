@@ -76,6 +76,22 @@ export function piiRoster(): string[] {
   return [...names];
 }
 
+/**
+ * The deterministic engine on its own — used to SEED the demo lessons. Seeding
+ * must never make a network call: it runs on the first request into a cold
+ * process (and on every serverless cold start with the in-memory backend), so
+ * routing it through the live model would block that first page for tens of
+ * seconds on model latency/retries. The demo questions are fixed content the
+ * deterministic engine produces instantly; real teacher-authored lessons still
+ * get the model when it's keyed.
+ */
+export function buildSeedIntelligence(
+  now: () => Date,
+  safetyCheck: (text: string) => boolean,
+): ReflectionIntelligence {
+  return createDeterministicReflectionIntelligence({ now, safetyCheck });
+}
+
 export function buildIntelligence(
   now: () => Date,
   safetyCheck: (text: string) => boolean,
@@ -87,7 +103,11 @@ export function buildIntelligence(
     apiKey,
     models: PINNED_MODELS,
     now,
-    timeoutMs: 8000,
+    // These calls sit on the interactive request path (a teacher creating a
+    // lesson waits for them), so bound the worst case tightly and fall back to
+    // the deterministic engine rather than making anyone wait on a slow model.
+    timeoutMs: 6000,
+    maxRetries: 1,
   });
   return createLlmReflectionIntelligence({
     gateway,
