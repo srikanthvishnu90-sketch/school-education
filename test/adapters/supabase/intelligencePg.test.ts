@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { SqlClient } from "@/adapters/supabase";
 import {
+  createDataCipher,
   createPgReflectionSessionRepository,
   createPgPerformanceRepository,
 } from "@/adapters/supabase";
@@ -101,6 +102,50 @@ describe("pg intelligence adapter — serialize/revive round-trip", () => {
 
     expect((await repo.listByReflection("lesson-x")).length).toBe(1);
     expect(await repo.findById("lesson-x:student-a")).not.toBeNull();
+  });
+
+  it("encrypts the session payload at rest and decrypts on read", async () => {
+    // Capture the raw stored `data` param to prove it's sealed, not plaintext.
+    let storedData = "";
+    const capturing: SqlClient = {
+      async query(rawText, params = []) {
+        const text = rawText.replace(/\s+/g, " ").trim();
+        if (/insert into intel\.reflection_sessions/i.test(text)) {
+          storedData = String(params[4]); // the data column
+          return { rows: [] };
+        }
+        if (/select data from intel\.reflection_sessions/i.test(text)) {
+          return { rows: [{ data: JSON.parse(storedData) }] as never[] };
+        }
+        return { rows: [] };
+      },
+    };
+    const cipher = createDataCipher("b".repeat(64));
+    const repo = createPgReflectionSessionRepository(capturing, cipher);
+    const session = createReflectionSession({
+      id: "s",
+      reflectionId: "r",
+      studentId: "stu",
+      status: "active",
+      startedAt: AT,
+      messages: [
+        createReflectionMessage({
+          id: "m",
+          sessionId: "s",
+          sender: "student",
+          text: "I felt embarrassed asking for help.",
+          createdAt: AT,
+        }),
+      ],
+    });
+    await repo.save(session);
+
+    // At rest: an { enc } envelope, and the sensitive text does NOT appear.
+    expect(storedData).toContain("enc");
+    expect(storedData).not.toContain("embarrassed");
+    // On read: transparently decrypted.
+    const back = await repo.findById("s");
+    expect(back?.messages[0].text).toBe("I felt embarrassed asking for help.");
   });
 
   it("upserts a performance by (reflection, student) and revives the date", async () => {

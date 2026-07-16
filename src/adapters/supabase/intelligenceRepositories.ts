@@ -26,6 +26,7 @@ import type {
   StudentSummaryRepository,
 } from "@/domain/ports/intelligenceRepositories";
 import type { SqlClient } from "./client";
+import { createDataCipher, type DataCipher } from "./cipher";
 
 /**
  * Postgres persistence for the reflection-intelligence entities — the actual
@@ -114,22 +115,44 @@ async function provision(client: SqlClient): Promise<void> {
 
 type Row<T> = { data: T } & Record<string, unknown>;
 
+/**
+ * Encode an entity for storage. With a cipher, the payload is a self-describing
+ * `{ enc }` envelope (AES-256-GCM), so an at-rest row reveals nothing; without
+ * one it is the plain object. No schema change — the `data` jsonb holds either.
+ */
+function encode(entity: unknown, cipher: DataCipher | null): string {
+  if (cipher === null) return JSON.stringify(entity);
+  return JSON.stringify({ enc: cipher.seal(JSON.stringify(entity)) });
+}
+
+/** Reverse of encode: transparently decrypts an `{ enc }` envelope if present. */
+function decode<T>(raw: unknown, cipher: DataCipher | null): T {
+  if (raw !== null && typeof raw === "object" && "enc" in raw) {
+    const sealed = (raw as { enc: string }).enc;
+    if (cipher === null) throw new Error("encrypted row but no REFLECTION_KEY_HEX");
+    return JSON.parse(cipher.open(sealed)) as T;
+  }
+  return raw as T;
+}
+
 async function one<T>(
   client: SqlClient,
+  cipher: DataCipher | null,
   sql: string,
   params: readonly unknown[],
 ): Promise<T | null> {
-  const { rows } = await client.query<Row<T>>(sql, params);
-  return rows[0]?.data ?? null;
+  const { rows } = await client.query<Row<unknown>>(sql, params);
+  return rows[0] === undefined ? null : decode<T>(rows[0].data, cipher);
 }
 
 async function many<T>(
   client: SqlClient,
+  cipher: DataCipher | null,
   sql: string,
   params: readonly unknown[],
 ): Promise<T[]> {
-  const { rows } = await client.query<Row<T>>(sql, params);
-  return rows.map((r) => r.data);
+  const { rows } = await client.query<Row<unknown>>(sql, params);
+  return rows.map((r) => decode<T>(r.data, cipher));
 }
 
 // --- Revivers: jsonb stores dates as ISO strings; rebuild them at the boundary --
@@ -169,22 +192,26 @@ function revivePerformance(d: ReflectionPerformance): ReflectionPerformance {
 
 // --- The six adapters ---------------------------------------------------------
 
-export function createPgLessonRepository(client: SqlClient): LessonRepository {
+export function createPgLessonRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): LessonRepository {
   return {
     async save(lesson) {
       await client.query(
         `insert into intel.lessons (id, class_id, teacher_id, data) values ($1,$2,$3,$4)
          on conflict (id) do update set class_id=excluded.class_id, teacher_id=excluded.teacher_id, data=excluded.data`,
-        [lesson.id, lesson.classId, lesson.teacherId, JSON.stringify(lesson)],
+        [lesson.id, lesson.classId, lesson.teacherId, encode(lesson, cipher)],
       );
     },
     async findById(id) {
-      const d = await one<Lesson>(client, "select data from intel.lessons where id=$1", [id]);
+      const d = await one<Lesson>(client, cipher, "select data from intel.lessons where id=$1", [id]);
       return d === null ? null : reviveLesson(d);
     },
     async listByClass(classId) {
       const rows = await many<Lesson>(
         client,
+        cipher,
         "select data from intel.lessons where class_id=$1 order by created_at",
         [classId],
       );
@@ -193,18 +220,22 @@ export function createPgLessonRepository(client: SqlClient): LessonRepository {
   };
 }
 
-export function createPgQuestionSetRepository(client: SqlClient): QuestionSetRepository {
+export function createPgQuestionSetRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): QuestionSetRepository {
   return {
     async save(set) {
       await client.query(
         `insert into intel.question_sets (lesson_id, data) values ($1,$2)
          on conflict (lesson_id) do update set data=excluded.data`,
-        [set.lessonId, JSON.stringify(set)],
+        [set.lessonId, encode(set, cipher)],
       );
     },
     async findByLesson(lessonId) {
       const d = await one<ReflectionQuestionSet>(
         client,
+        cipher,
         "select data from intel.question_sets where lesson_id=$1",
         [lessonId],
       );
@@ -215,6 +246,7 @@ export function createPgQuestionSetRepository(client: SqlClient): QuestionSetRep
 
 export function createPgReflectionSessionRepository(
   client: SqlClient,
+  cipher: DataCipher | null = null,
 ): ReflectionSessionRepository {
   return {
     async save(session) {
@@ -228,13 +260,14 @@ export function createPgReflectionSessionRepository(
           session.reflectionId,
           session.studentId,
           session.status,
-          JSON.stringify(session),
+          encode(session, cipher),
         ],
       );
     },
     async findById(id) {
       const d = await one<ReflectionSession>(
         client,
+        cipher,
         "select data from intel.reflection_sessions where id=$1",
         [id],
       );
@@ -243,6 +276,7 @@ export function createPgReflectionSessionRepository(
     async findByReflectionAndStudent(reflectionId, studentId) {
       const d = await one<ReflectionSession>(
         client,
+        cipher,
         "select data from intel.reflection_sessions where reflection_id=$1 and student_id=$2",
         [reflectionId, studentId],
       );
@@ -252,6 +286,7 @@ export function createPgReflectionSessionRepository(
       return (
         await many<ReflectionSession>(
           client,
+          cipher,
           "select data from intel.reflection_sessions where student_id=$1 order by created_at",
           [studentId],
         )
@@ -261,6 +296,7 @@ export function createPgReflectionSessionRepository(
       return (
         await many<ReflectionSession>(
           client,
+          cipher,
           "select data from intel.reflection_sessions where reflection_id=$1 order by created_at",
           [reflectionId],
         )
@@ -271,6 +307,7 @@ export function createPgReflectionSessionRepository(
 
 export function createPgStudentSummaryRepository(
   client: SqlClient,
+  cipher: DataCipher | null = null,
 ): StudentSummaryRepository {
   return {
     async save(summary) {
@@ -279,12 +316,13 @@ export function createPgStudentSummaryRepository(
          values ($1,$2,$3,$4)
          on conflict (id) do update set reflection_id=excluded.reflection_id,
            student_id=excluded.student_id, data=excluded.data`,
-        [summary.id, summary.reflectionId, summary.studentId, JSON.stringify(summary)],
+        [summary.id, summary.reflectionId, summary.studentId, encode(summary, cipher)],
       );
     },
     async findByReflectionAndStudent(reflectionId, studentId) {
       const d = await one<StudentInsightSummary>(
         client,
+        cipher,
         "select data from intel.student_summaries where reflection_id=$1 and student_id=$2",
         [reflectionId, studentId],
       );
@@ -294,6 +332,7 @@ export function createPgStudentSummaryRepository(
       return (
         await many<StudentInsightSummary>(
           client,
+          cipher,
           "select data from intel.student_summaries where student_id=$1 order by created_at",
           [studentId],
         )
@@ -303,6 +342,7 @@ export function createPgStudentSummaryRepository(
       return (
         await many<StudentInsightSummary>(
           client,
+          cipher,
           "select data from intel.student_summaries where reflection_id=$1 order by created_at",
           [reflectionId],
         )
@@ -311,18 +351,22 @@ export function createPgStudentSummaryRepository(
   };
 }
 
-export function createPgClassSummaryRepository(client: SqlClient): ClassSummaryRepository {
+export function createPgClassSummaryRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): ClassSummaryRepository {
   return {
     async save(summary) {
       await client.query(
         `insert into intel.class_summaries (reflection_id, class_id, data) values ($1,$2,$3)
          on conflict (reflection_id) do update set class_id=excluded.class_id, data=excluded.data`,
-        [summary.reflectionId, summary.classId, JSON.stringify(summary)],
+        [summary.reflectionId, summary.classId, encode(summary, cipher)],
       );
     },
     async findByReflection(reflectionId) {
       const d = await one<ClassInsightSummary>(
         client,
+        cipher,
         "select data from intel.class_summaries where reflection_id=$1",
         [reflectionId],
       );
@@ -331,19 +375,23 @@ export function createPgClassSummaryRepository(client: SqlClient): ClassSummaryR
   };
 }
 
-export function createPgPerformanceRepository(client: SqlClient): PerformanceRepository {
+export function createPgPerformanceRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): PerformanceRepository {
   return {
     async save(performance) {
       await client.query(
         `insert into intel.reflection_performances (reflection_id, student_id, data)
          values ($1,$2,$3)
          on conflict (reflection_id, student_id) do update set data=excluded.data`,
-        [performance.reflectionId, performance.studentId, JSON.stringify(performance)],
+        [performance.reflectionId, performance.studentId, encode(performance, cipher)],
       );
     },
     async findByReflectionAndStudent(reflectionId, studentId) {
       const d = await one<ReflectionPerformance>(
         client,
+        cipher,
         "select data from intel.reflection_performances where reflection_id=$1 and student_id=$2",
         [reflectionId, studentId],
       );
@@ -353,6 +401,7 @@ export function createPgPerformanceRepository(client: SqlClient): PerformanceRep
       return (
         await many<ReflectionPerformance>(
           client,
+          cipher,
           "select data from intel.reflection_performances where student_id=$1 order by created_at",
           [studentId],
         )
@@ -370,15 +419,20 @@ export interface PgIntelRepos {
   performances: PerformanceRepository;
 }
 
-/** Provision the schema and return the six Postgres-backed intelligence repos. */
+/**
+ * Provision the schema and return the six Postgres-backed intelligence repos.
+ * When REFLECTION_KEY_HEX is set, every payload (student chat text, emotional
+ * summaries, scores) is AES-256-GCM encrypted at rest.
+ */
 export async function createPgIntelRepos(client: SqlClient): Promise<PgIntelRepos> {
   await provision(client);
+  const cipher = createDataCipher();
   return {
-    lessons: createPgLessonRepository(client),
-    questionSets: createPgQuestionSetRepository(client),
-    sessions: createPgReflectionSessionRepository(client),
-    studentSummaries: createPgStudentSummaryRepository(client),
-    classSummaries: createPgClassSummaryRepository(client),
-    performances: createPgPerformanceRepository(client),
+    lessons: createPgLessonRepository(client, cipher),
+    questionSets: createPgQuestionSetRepository(client, cipher),
+    sessions: createPgReflectionSessionRepository(client, cipher),
+    studentSummaries: createPgStudentSummaryRepository(client, cipher),
+    classSummaries: createPgClassSummaryRepository(client, cipher),
+    performances: createPgPerformanceRepository(client, cipher),
   };
 }
