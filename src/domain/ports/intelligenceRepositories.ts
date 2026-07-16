@@ -35,6 +35,8 @@ export interface ReflectionSessionRepository {
   ): Promise<ReflectionSession | null>;
   listByStudent(studentId: Id): Promise<ReflectionSession[]>;
   listByReflection(reflectionId: Id): Promise<ReflectionSession[]>;
+  /** Hard-delete every session for a student (right-to-erasure). Returns the count. */
+  deleteByStudent(studentId: Id): Promise<number>;
 }
 
 export interface StudentSummaryRepository {
@@ -45,6 +47,8 @@ export interface StudentSummaryRepository {
   ): Promise<StudentInsightSummary | null>;
   listByStudent(studentId: Id): Promise<StudentInsightSummary[]>;
   listByReflection(reflectionId: Id): Promise<StudentInsightSummary[]>;
+  /** Hard-delete every summary for a student (right-to-erasure). Returns the count. */
+  deleteByStudent(studentId: Id): Promise<number>;
 }
 
 export interface ClassSummaryRepository {
@@ -63,4 +67,6 @@ export interface PerformanceRepository {
     studentId: Id,
   ): Promise<ReflectionPerformance | null>;
   listByStudent(studentId: Id): Promise<ReflectionPerformance[]>;
+  /** Hard-delete every performance for a student (right-to-erasure). Returns the count. */
+  deleteByStudent(studentId: Id): Promise<number>;
 }

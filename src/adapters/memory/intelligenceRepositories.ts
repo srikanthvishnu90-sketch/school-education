@@ -71,6 +71,16 @@ export function createMemoryReflectionSessionRepository(): ReflectionSessionRepo
     async listByReflection(reflectionId) {
       return [...byId.values()].filter((s) => s.reflectionId === reflectionId);
     },
+    async deleteByStudent(studentId) {
+      let n = 0;
+      for (const [id, s] of byId) {
+        if (s.studentId === studentId) {
+          byId.delete(id);
+          n += 1;
+        }
+      }
+      return n;
+    },
   };
 }
 
@@ -92,6 +102,16 @@ export function createMemoryStudentSummaryRepository(): StudentSummaryRepository
     },
     async listByReflection(reflectionId) {
       return [...byId.values()].filter((s) => s.reflectionId === reflectionId);
+    },
+    async deleteByStudent(studentId) {
+      let n = 0;
+      for (const [id, s] of byId) {
+        if (s.studentId === studentId) {
+          byId.delete(id);
+          n += 1;
+        }
+      }
+      return n;
     },
   };
 }
@@ -121,6 +141,16 @@ export function createMemoryPerformanceRepository(): PerformanceRepository {
     },
     async listByStudent(studentId) {
       return [...byKey.values()].filter((p) => p.studentId === studentId);
+    },
+    async deleteByStudent(studentId) {
+      let n = 0;
+      for (const [k, p] of byKey) {
+        if (p.studentId === studentId) {
+          byKey.delete(k);
+          n += 1;
+        }
+      }
+      return n;
     },
   };
 }

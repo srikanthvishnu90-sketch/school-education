@@ -5,6 +5,7 @@ import {
   getStudentTimeline,
   type TimelineEntry,
 } from "@/app/_world/timelineActions";
+import EraseButton from "./EraseButton";
 import type {
   MetacognitiveAlignment,
   TrendDirection,
@@ -62,6 +63,18 @@ export default async function TimelinePage(): Promise<ReactElement> {
           </ul>
         </>
       )}
+
+      <div className="mt-12 border-t border-ink-wash pt-6">
+        <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-secondary">
+          Your data
+        </p>
+        <p className="mt-2 text-[14px] leading-relaxed text-secondary">
+          Your reflections are yours. You can delete them whenever you want.
+        </p>
+        <div className="mt-3">
+          <EraseButton />
+        </div>
+      </div>
     </main>
   );
 }

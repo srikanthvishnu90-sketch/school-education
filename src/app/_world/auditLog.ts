@@ -12,7 +12,8 @@ export type AuditAction =
   | "view_scores"
   | "record_score"
   | "view_escalations"
-  | "view_escalation";
+  | "view_escalation"
+  | "erase_data";
 
 export interface AuditEvent {
   at: string;

@@ -81,4 +81,32 @@ describe("in-memory intelligence repositories", () => {
     expect(await repo.listByStudent("stu")).toHaveLength(1);
     expect(await repo.findByReflectionAndStudent("L1", "other")).toBeNull();
   });
+
+  it("deletes a student's data (right-to-erasure) without touching others", async () => {
+    const sessions = createMemoryReflectionSessionRepository();
+    const perfs = createMemoryPerformanceRepository();
+    const mk = (studentId: string) =>
+      createReflectionSession({
+        id: `s:${studentId}`,
+        reflectionId: "L1",
+        studentId,
+        status: "completed",
+        startedAt: NOW,
+        messages: [],
+      });
+    await sessions.save(mk("stu"));
+    await sessions.save(mk("other"));
+    await perfs.save(
+      createReflectionPerformance({ reflectionId: "L1", studentId: "stu", score: 0.5, recordedAt: NOW }),
+    );
+
+    expect(await sessions.deleteByStudent("stu")).toBe(1);
+    expect(await perfs.deleteByStudent("stu")).toBe(1);
+    // The erased student is gone; the other student is untouched.
+    expect(await sessions.listByStudent("stu")).toHaveLength(0);
+    expect(await sessions.listByStudent("other")).toHaveLength(1);
+    expect(await perfs.listByStudent("stu")).toHaveLength(0);
+    // Deleting again is a no-op (idempotent).
+    expect(await sessions.deleteByStudent("stu")).toBe(0);
+  });
 });

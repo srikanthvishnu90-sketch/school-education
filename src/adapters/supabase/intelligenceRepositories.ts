@@ -302,6 +302,13 @@ export function createPgReflectionSessionRepository(
         )
       ).map(reviveSession);
     },
+    async deleteByStudent(studentId) {
+      const { rows } = await client.query<{ id: string } & Record<string, unknown>>(
+        "delete from intel.reflection_sessions where student_id=$1 returning id",
+        [studentId],
+      );
+      return rows.length;
+    },
   };
 }
 
@@ -347,6 +354,13 @@ export function createPgStudentSummaryRepository(
           [reflectionId],
         )
       ).map(reviveStudentSummary);
+    },
+    async deleteByStudent(studentId) {
+      const { rows } = await client.query<{ id: string } & Record<string, unknown>>(
+        "delete from intel.student_summaries where student_id=$1 returning id",
+        [studentId],
+      );
+      return rows.length;
     },
   };
 }
@@ -406,6 +420,13 @@ export function createPgPerformanceRepository(
           [studentId],
         )
       ).map(revivePerformance);
+    },
+    async deleteByStudent(studentId) {
+      const { rows } = await client.query<{ reflection_id: string } & Record<string, unknown>>(
+        "delete from intel.reflection_performances where student_id=$1 returning reflection_id",
+        [studentId],
+      );
+      return rows.length;
     },
   };
 }
