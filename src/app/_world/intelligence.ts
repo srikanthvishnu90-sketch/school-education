@@ -104,10 +104,12 @@ export function buildIntelligence(
     models: PINNED_MODELS,
     now,
     // These calls sit on the interactive request path (a teacher creating a
-    // lesson waits for them), so bound the worst case tightly and fall back to
-    // the deterministic engine rather than making anyone wait on a slow model.
-    timeoutMs: 6000,
-    maxRetries: 1,
+    // lesson waits for two of them, back to back), so bound each one tightly and
+    // DON'T retry — a slow or unreachable model falls straight to the
+    // deterministic engine instead of making a teacher wait. Worst case is ~2×4s,
+    // and the health monitor throttles a persistently-slow model to instant.
+    timeoutMs: 4000,
+    maxRetries: 0,
   });
   return createLlmReflectionIntelligence({
     gateway,

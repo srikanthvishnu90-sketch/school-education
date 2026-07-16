@@ -68,8 +68,8 @@ function getGateway(): ReturnType<typeof createHttpGateway> | null {
             models: PINNED_MODELS,
             now: () => new Date(),
             // On the interactive chat path — bound the wait, fall back fast.
-            timeoutMs: 6000,
-            maxRetries: 1,
+            timeoutMs: 4000,
+            maxRetries: 0,
           })
         : null;
   }
