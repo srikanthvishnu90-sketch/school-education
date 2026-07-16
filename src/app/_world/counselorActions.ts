@@ -2,6 +2,7 @@
 
 import { getSessionUser } from "./session";
 import { COUNSELOR_ID } from "./roles";
+import { recordAudit } from "./auditLog";
 import { CRISIS_TENANT, getSafetyWorld } from "./safetyWorld";
 
 /**
@@ -32,6 +33,16 @@ export async function listEscalations(): Promise<EscalationView[]> {
   if (!(await requireCounselor())) return [];
   const { escalations } = await getSafetyWorld();
   const rows = await escalations.listByTenant(CRISIS_TENANT);
+  // Reading crisis escalations exposes at-risk students by name — record each.
+  for (const e of rows) {
+    recordAudit({
+      actorId: COUNSELOR_ID,
+      actorRole: "counselor",
+      action: "view_escalation",
+      studentId: e.studentId,
+      at: new Date(),
+    });
+  }
   return rows
     .slice()
     .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())

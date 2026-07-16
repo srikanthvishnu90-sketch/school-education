@@ -11,6 +11,7 @@ import { getSessionUser } from "./session";
 import { getWorld, type World } from "./world";
 import { studentDisplayName } from "./teacher";
 import { getLessonPhotos, saveLessonPhotos } from "./lessonMedia";
+import { recordAudit } from "./auditLog";
 
 /**
  * The teacher side of the reflection loop: enter a lesson, and the AI reads it,
@@ -163,6 +164,13 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
   const world = await getWorld();
   const lesson = await ownedLesson(world, reflectionId, teacherId);
   if (lesson === null) return null;
+  recordAudit({
+    actorId: teacherId,
+    actorRole: "teacher",
+    action: "view_lesson",
+    reflectionId,
+    at: world.clock.now(),
+  });
   return {
     reflectionId,
     title: lesson.title,
@@ -204,6 +212,18 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
     students,
   });
   await world.intel.classSummaries.save(brief);
+  // Reading a brief exposes each contributing student's summary — record access
+  // to each (FERPA who-saw-what).
+  for (const s of students) {
+    recordAudit({
+      actorId: teacherId,
+      actorRole: "teacher",
+      action: "view_class_brief",
+      reflectionId,
+      studentId: s.studentId,
+      at: world.clock.now(),
+    });
+  }
   return { brief, students: summaries };
 }
 
@@ -270,4 +290,12 @@ export async function recordReflectionScore(
       recordedAt: world.clock.now(),
     }),
   );
+  recordAudit({
+    actorId: teacherId,
+    actorRole: "teacher",
+    action: "record_score",
+    reflectionId,
+    studentId,
+    at: world.clock.now(),
+  });
 }
