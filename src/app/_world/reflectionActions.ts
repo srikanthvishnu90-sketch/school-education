@@ -8,6 +8,7 @@ import {
 } from "@/domain/intelligence";
 import type { ConversationStep } from "@/domain/ports/intelligence";
 import { getSessionStudent } from "./session";
+import { hasReflectionConsent } from "./consentActions";
 import { hit } from "./rateLimit";
 import { screenReflectionText } from "./safetyActions";
 import { getWorld, type World } from "./world";
@@ -207,6 +208,12 @@ export async function startReflection(
   }
   if (existing?.status === "abandoned") {
     throw new Error("This reflection can no longer be resumed.");
+  }
+
+  // No emotional data is captured without consent on file (COPPA). The chat page
+  // redirects first; this is the defense-in-depth stop for a direct action call.
+  if (!(await hasReflectionConsent())) {
+    throw new Error("Consent is required before starting a reflection.");
   }
 
   const session = createReflectionSession({
