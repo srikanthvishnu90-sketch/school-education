@@ -13,6 +13,8 @@ import {
   createMemoryReflectionSessionRepository,
   createMemoryStudentSummaryRepository,
 } from "@/adapters/memory/intelligenceRepositories";
+import { createPgIntelRepos } from "@/adapters/supabase";
+import type { SqlClient } from "@/adapters/supabase";
 import type { ReflectionIntelligence } from "@/domain/ports/intelligence";
 import type {
   ClassSummaryRepository,
@@ -64,7 +66,16 @@ export function buildIntelligence(
   });
 }
 
-export function buildIntelRepos(): IntelRepos {
+/**
+ * The reflection-intelligence repositories. Postgres-backed (durable, survives
+ * restart / serverless) when a client is provided, else in-memory. The client is
+ * the same one the rest of the persistent world uses, so backend selection stays
+ * in one place (world.ts, gated on DATABASE_URL).
+ */
+export async function buildIntelRepos(
+  pgClient: SqlClient | null,
+): Promise<IntelRepos> {
+  if (pgClient !== null) return createPgIntelRepos(pgClient);
   return {
     lessons: createMemoryLessonRepository(),
     questionSets: createMemoryQuestionSetRepository(),
@@ -84,6 +95,14 @@ export async function seedDemoReflection(
   intel: IntelRepos,
   now: () => Date,
 ): Promise<void> {
+  // Already seeded (durable Postgres across restarts) → skip the analyze/generate
+  // work and its LLM calls. In-memory always re-seeds since it starts empty.
+  if (
+    (await intel.lessons.findById(DEMO_REFLECTION_ID)) !== null &&
+    (await intel.questionSets.findByLesson(DEMO_REFLECTION_ID)) !== null
+  ) {
+    return;
+  }
   const lesson = createLesson({
     id: DEMO_REFLECTION_ID,
     classId: "class-1",

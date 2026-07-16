@@ -132,7 +132,7 @@ async function build(): Promise<World> {
   }
 
   const intelligence = buildIntelligence(() => core.clock.now(), isSafetyConcern);
-  const intel = buildIntelRepos();
+  const intel = await buildIntelRepos(pgClient);
   await seedDemoReflection(intelligence, intel, () => core.clock.now());
 
   return {
