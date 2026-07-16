@@ -8,6 +8,7 @@ import {
 } from "@/domain/intelligence";
 import type { ConversationStep } from "@/domain/ports/intelligence";
 import { getSessionStudent } from "./session";
+import { hit } from "./rateLimit";
 import { screenReflectionText } from "./safetyActions";
 import { getWorld, type World } from "./world";
 import type {
@@ -226,6 +227,11 @@ export async function sendReflectionMessage(
 ): Promise<ChatResult> {
   const studentId = await requireStudent();
   const answer = boundedText(text, "Message", MAX_MESSAGE_LENGTH);
+  // Cap the message rate per session so the chat can't be spammed into the LLM
+  // cost ledger or the crisis screener.
+  if (!(await hit(`msg:${sessionId}`, 20, 60_000)).ok) {
+    throw new Error("You’re sending messages very quickly. Give it a moment.");
+  }
   const world = await getWorld();
   const found = await world.intel.sessions.findById(sessionId);
   if (found === null || found.studentId !== studentId) {

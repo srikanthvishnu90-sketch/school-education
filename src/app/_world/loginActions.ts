@@ -4,6 +4,7 @@ import {
   createStudentAccount,
   verifyCredentials,
 } from "./credentials";
+import { clientIp, hit } from "./rateLimit";
 import { signIn } from "./session";
 
 /**
@@ -36,6 +37,11 @@ export async function signInWithPassword(
   if (email.trim().length === 0 || password.length === 0) {
     return { ok: false, error: "Enter your email and password." };
   }
+  // Throttle per (ip, email) so a bad actor can't brute-force one account or spray.
+  const gate = hit(`signin:${await clientIp()}:${email.trim().toLowerCase()}`, 5, 5 * 60_000);
+  if (!gate.ok) {
+    return { ok: false, error: "Too many attempts. Wait a minute and try again." };
+  }
   const account = await verifyCredentials(email, password);
   if (account === null) {
     return { ok: false, error: "That email or password isn’t right." };
@@ -63,6 +69,10 @@ export async function signUpStudent(
   }
   if (password.length < 8) {
     return { ok: false, error: "Use a password of at least 8 characters." };
+  }
+  const gate = hit(`signup:${await clientIp()}`, 3, 10 * 60_000);
+  if (!gate.ok) {
+    return { ok: false, error: "Too many sign-ups from here. Try again later." };
   }
   try {
     const id = await createStudentAccount(email, password);

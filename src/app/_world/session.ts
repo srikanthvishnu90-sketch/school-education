@@ -6,19 +6,26 @@ import type { Id } from "@/domain";
 import { TEACHER_ID } from "./teacher";
 import { COUNSELOR_ID } from "./roles";
 import { roleForId } from "./credentials";
+import { signSession, verifySession } from "./sessionToken";
 
 /**
  * The sign-in session — the app's link between a browser and an identity. The
- * cookie carries only the id; the ROLE is looked up server-side from the
- * credential store (or, for the seeded demo, derived from the id), so the client
- * never gets to name who it is — one user cannot act as another.
+ * cookie carries a SIGNED token (`id.HMAC`), not the raw id, so a browser cannot
+ * forge a session for a known id. The role is then looked up server-side from the
+ * credential store (or, for the seeded demo, derived from the id) — the client
+ * never gets to name who it is.
  */
 
 const COOKIE = "plumb_session";
 
 export async function signIn(userId: Id): Promise<void> {
   const store = await cookies();
-  store.set(COOKIE, userId, { httpOnly: true, sameSite: "lax", path: "/" });
+  store.set(COOKIE, signSession(userId), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+  });
 }
 
 export async function signOut(): Promise<void> {
@@ -37,7 +44,8 @@ export async function getSessionUser(): Promise<{
   role: "student" | "teacher" | "counselor";
 } | null> {
   const store = await cookies();
-  const id = store.get(COOKIE)?.value ?? null;
+  const raw = store.get(COOKIE)?.value ?? null;
+  const id = raw === null ? null : verifySession(raw);
   if (id === null) return null;
   const role =
     (await roleForId(id)) ??

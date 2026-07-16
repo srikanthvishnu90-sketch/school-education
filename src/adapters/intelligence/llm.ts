@@ -287,6 +287,20 @@ function isNeutralQuestionText(text: string): boolean {
   );
 }
 
+/**
+ * An answer OPTION held to the same non-diagnostic / no-fixed-trait bar as a
+ * question, minus the single-"?" rule (options are statements, not questions).
+ */
+function isNeutralOptionText(text: string): boolean {
+  const t = text.trim();
+  return (
+    t.length > 0 &&
+    t.length <= 260 &&
+    isNonDiagnostic(t) &&
+    !TRAIT_OR_IDENTITY_LANGUAGE.test(t)
+  );
+}
+
 function preservesCategoryConstruct(
   text: string,
   category: RawQuestion["category"],
@@ -370,6 +384,15 @@ function questionsMeetDesignContract(
   for (const [order, question] of questions.entries()) {
     if (question.category !== CATEGORY_SEQUENCE[order]) return false;
     if (!isNeutralQuestionText(question.text)) return false;
+    // Option text reaches the student too — hold every choice to the same
+    // neutral, non-diagnostic bar as the question stem (a leading or self-focused
+    // option like "I'm just bad at this" would otherwise pass to a minor).
+    if (
+      question.options !== undefined &&
+      !question.options.every((o) => isNeutralOptionText(o))
+    ) {
+      return false;
+    }
     if (!preservesCategoryConstruct(question.text, question.category)) {
       return false;
     }
@@ -542,6 +565,24 @@ export function createLlmReflectionIntelligence(deps: {
           maxTokens: 640,
         });
         const raw = rawAnalysisSchema.parse(firstJson(res.text));
+        // The model authored these fields and they render to the teacher — hold
+        // them to the same non-diagnostic bar as the summaries. A diagnostic trip
+        // drops to the deterministic analysis rather than shipping.
+        const authored = [
+          raw.topic,
+          raw.reflectionFocus,
+          ...raw.subtopics,
+          ...raw.vocabulary,
+          ...raw.prerequisites,
+          ...raw.technicalSteps,
+          ...raw.misconceptions,
+          ...raw.difficultTransitions,
+          ...raw.independentApplication,
+          ...raw.emotionalPressurePoints,
+        ];
+        if (authored.some((s) => !isNonDiagnostic(s))) {
+          throw new Error("lesson analysis tripped the non-diagnostic guard");
+        }
         return createLessonAnalysis({
           lessonId: lesson.id,
           topic: raw.topic.trim(),

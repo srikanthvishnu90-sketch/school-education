@@ -179,6 +179,23 @@ function tablePolicies(): string {
       `using (app.role() = 'counselor' and tenant_id = app.tenant());`,
   );
 
+  // Service-role-only tables. The blanket "grant ... on all tables in schema
+  // academic/app to authenticated" (above) would otherwise leave these reachable
+  // with NO policy — i.e. wide open cross-tenant. Enabling RLS with no policy
+  // makes authenticated match zero rows (deny), while the service role (which
+  // bypasses RLS) and the SECURITY DEFINER helper functions still read them.
+  const serviceOnly = [
+    "academic.canonical_evidence", // per-student evidence — no authenticated path
+    "academic.field_maps", // provider field mappings — never client data
+    "academic.flag_acknowledgements", // teacher flags — read via functions only
+    "app.class_enrollments", // roster — read only via app.teacher_sees()
+    "app.class_teachers",
+  ];
+  for (const t of serviceOnly) {
+    out.push(enable(t));
+    out.push(`revoke all on ${t} from authenticated;`);
+  }
+
   return out.join("\n");
 }
 

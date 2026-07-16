@@ -9,6 +9,7 @@ import {
   pilotGateAccepts,
   type AuthUser,
 } from "./authCore";
+import { clientIp, hit } from "./rateLimit";
 import { signIn } from "./session";
 
 /**
@@ -36,6 +37,11 @@ export async function requestMagicLink(
   email: string,
   code?: string,
 ): Promise<RequestResult> {
+  // Throttle link minting per IP so the endpoint can't be sprayed to flood
+  // email/token creation. Reports "sent" on throttle so it leaks nothing.
+  if (!(await hit(`magic:${await clientIp()}`, 5, 10 * 60_000)).ok) {
+    return { sent: true };
+  }
   // Closed-pilot gate first. Rejecting a bad shared code is safe to surface (it
   // is not tied to any account); email existence is still never revealed below.
   if (!pilotGateAccepts(email, code)) {
