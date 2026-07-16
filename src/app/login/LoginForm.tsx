@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type ReactElement } from "react";
+import { useEffect, useState, useTransition, type ReactElement } from "react";
 import { loginAs, type LoginRole } from "@/app/_world/loginActions";
 
 /**
@@ -17,6 +17,13 @@ export default function LoginForm({ role }: { role: LoginRole }): ReactElement {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const isStudent = role === "student";
+  const destination = isStudent ? "/courses" : "/lessons";
+
+  // Warm the destination while they're still typing, so the jump after sign-in
+  // is instant instead of a dead pause on the button.
+  useEffect(() => {
+    router.prefetch(destination);
+  }, [router, destination]);
 
   function submit(): void {
     setError(null);
