@@ -1,22 +1,25 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { SEED_STUDENTS } from "@/application";
+import { createPgClient, type SqlClient } from "@/adapters/supabase";
 import { COUNSELOR_ID } from "./roles";
 import { TEACHER_ID } from "./teacher";
 
 /**
- * Real credential auth — passwords are salted + scrypt-hashed and verified in
- * constant time, never compared as plaintext. This is the authority on WHO an
- * account is and WHAT role it has; the session cookie only carries the id.
+ * Real credential auth. Passwords are salted + scrypt-hashed and verified in
+ * constant time (never compared as plaintext). The hashing is pure; only STORAGE
+ * differs between adapters:
  *
- * Storage is an in-memory Map (process lifetime) so the whole app runs with zero
- * infrastructure, exactly like the rest of the demo world. The functions below
- * are the seam: a Postgres or Supabase adapter swaps in behind them later without
- * touching the login surface.
+ *   - In-memory (default): a process-lifetime Map, zero infrastructure.
+ *   - Postgres (when DATABASE_URL is set): an `auth.accounts` table that survives
+ *     restarts. Accounts are service-role-only — never reachable from a client.
+ *
+ * The store is the authority on WHO an account is and WHAT role it has; the
+ * session cookie carries only the id.
  */
 
 export type AccountRole = "student" | "teacher" | "counselor";
 
-interface Account {
+export interface Account {
   id: string;
   email: string;
   role: AccountRole;
@@ -24,63 +27,44 @@ interface Account {
   hash: string;
 }
 
-const byEmail = new Map<string, Account>();
-const byId = new Map<string, Account>();
-
 const KEYLEN = 64;
 
 function derive(password: string, salt: string): Buffer {
   return scryptSync(password, salt, KEYLEN);
 }
 
-function put(id: string, email: string, role: AccountRole, password: string): void {
+/** A fresh salted hash for a new password. */
+function hashNew(password: string): { salt: string; hash: string } {
   const salt = randomBytes(16).toString("hex");
-  const account: Account = {
-    id,
-    email: email.toLowerCase(),
-    role,
-    salt,
-    hash: derive(password, salt).toString("hex"),
-  };
-  byEmail.set(account.email, account);
-  byId.set(account.id, account);
+  return { salt, hash: derive(password, salt).toString("hex") };
+}
+
+/** Constant-time password check against a stored account. */
+function passwordMatches(account: Account, password: string): boolean {
+  const candidate = derive(password, account.salt);
+  const expected = Buffer.from(account.hash, "hex");
+  if (candidate.length !== expected.length) return false;
+  return timingSafeEqual(candidate, expected);
 }
 
 /** The password every seeded demo account shares — shown on the login screen. */
 export const DEMO_PASSWORD = "plumb1234";
 
-let seeded = false;
-function ensureSeeded(): void {
-  if (seeded) return;
-  seeded = true;
-  put(TEACHER_ID, "rivera@demo.school", "teacher", DEMO_PASSWORD);
-  put(COUNSELOR_ID, "okafor@demo.school", "counselor", DEMO_PASSWORD);
+/** The seed set both adapters provision idempotently, so the demo always works. */
+function seedAccounts(): Account[] {
+  const make = (id: string, email: string, role: AccountRole): Account => {
+    const { salt, hash } = hashNew(DEMO_PASSWORD);
+    return { id, email: email.toLowerCase(), role, salt, hash };
+  };
+  const accounts = [
+    make(TEACHER_ID, "rivera@demo.school", "teacher"),
+    make(COUNSELOR_ID, "okafor@demo.school", "counselor"),
+  ];
   for (const s of SEED_STUDENTS) {
     const first = s.id.replace(/^student-/, "");
-    put(s.id, `${first}@demo.school`, "student", DEMO_PASSWORD);
+    accounts.push(make(s.id, `${first}@demo.school`, "student"));
   }
-}
-
-/** The account for these credentials, or null if the email or password is wrong. */
-export function verifyCredentials(email: string, password: string): Account | null {
-  ensureSeeded();
-  const account = byEmail.get(email.trim().toLowerCase());
-  if (account === undefined) return null;
-  const candidate = derive(password, account.salt);
-  const expected = Buffer.from(account.hash, "hex");
-  if (candidate.length !== expected.length) return null;
-  return timingSafeEqual(candidate, expected) ? account : null;
-}
-
-/** The role owning an id, or null. The session uses this so role is never client-set. */
-export function roleForId(id: string): AccountRole | null {
-  ensureSeeded();
-  return byId.get(id)?.role ?? null;
-}
-
-export function emailTaken(email: string): boolean {
-  ensureSeeded();
-  return byEmail.has(email.trim().toLowerCase());
+  return accounts;
 }
 
 function slug(email: string): string {
@@ -91,18 +75,160 @@ function slug(email: string): string {
     .slice(0, 32);
 }
 
-/**
- * Create a new account for a chosen role and return its id. Throws if the email
- * is already registered. Teachers and counselors can't self-provision here — a
- * real deployment gates those; self-signup mints students only.
- */
-export function createStudentAccount(email: string, password: string): string {
-  ensureSeeded();
-  const normalized = email.trim().toLowerCase();
-  if (byEmail.has(normalized)) {
-    throw new Error("An account with that email already exists.");
+function newStudentId(email: string): string {
+  return `student-${slug(email)}-${randomBytes(3).toString("hex")}`;
+}
+
+// --- The store port -----------------------------------------------------------
+
+interface CredentialStore {
+  verify(email: string, password: string): Promise<Account | null>;
+  roleForId(id: string): Promise<AccountRole | null>;
+  emailTaken(email: string): Promise<boolean>;
+  createStudent(email: string, password: string): Promise<string>;
+}
+
+function createMemoryStore(): CredentialStore {
+  const byEmail = new Map<string, Account>();
+  const byId = new Map<string, Account>();
+  const put = (a: Account): void => {
+    byEmail.set(a.email, a);
+    byId.set(a.id, a);
+  };
+  seedAccounts().forEach(put);
+  return {
+    async verify(email, password) {
+      const a = byEmail.get(email.trim().toLowerCase());
+      return a !== undefined && passwordMatches(a, password) ? a : null;
+    },
+    async roleForId(id) {
+      return byId.get(id)?.role ?? null;
+    },
+    async emailTaken(email) {
+      return byEmail.has(email.trim().toLowerCase());
+    },
+    async createStudent(email, password) {
+      const normalized = email.trim().toLowerCase();
+      if (byEmail.has(normalized)) {
+        throw new Error("An account with that email already exists.");
+      }
+      const { salt, hash } = hashNew(password);
+      const account: Account = {
+        id: newStudentId(normalized),
+        email: normalized,
+        role: "student",
+        salt,
+        hash,
+      };
+      put(account);
+      return account.id;
+    },
+  };
+}
+
+const ACCOUNTS_DDL = `
+create schema if not exists auth;
+create table if not exists auth.accounts (
+  id text primary key,
+  email text not null unique,
+  role text not null check (role in ('student','teacher','counselor')),
+  salt text not null,
+  hash text not null,
+  created_at timestamptz not null default now()
+);
+`;
+
+type RawAccount = {
+  id: string;
+  email: string;
+  role: AccountRole;
+  salt: string;
+  hash: string;
+} & Record<string, unknown>;
+
+async function createPgStore(client: SqlClient): Promise<CredentialStore> {
+  await client.query(ACCOUNTS_DDL);
+  // Seed the demo accounts once — insert-if-absent so restarts don't re-hash.
+  for (const a of seedAccounts()) {
+    await client.query(
+      `insert into auth.accounts (id, email, role, salt, hash)
+       values ($1, $2, $3, $4, $5)
+       on conflict (email) do nothing`,
+      [a.id, a.email, a.role, a.salt, a.hash],
+    );
   }
-  const id = `student-${slug(normalized)}-${randomBytes(3).toString("hex")}`;
-  put(id, normalized, "student", password);
-  return id;
+  const findByEmail = async (email: string): Promise<Account | null> => {
+    const { rows } = await client.query<RawAccount>(
+      "select id, email, role, salt, hash from auth.accounts where email = $1",
+      [email.trim().toLowerCase()],
+    );
+    return rows[0] ?? null;
+  };
+  return {
+    async verify(email, password) {
+      const a = await findByEmail(email);
+      return a !== null && passwordMatches(a, password) ? a : null;
+    },
+    async roleForId(id) {
+      const { rows } = await client.query<{ role: AccountRole } & Record<string, unknown>>(
+        "select role from auth.accounts where id = $1",
+        [id],
+      );
+      return rows[0]?.role ?? null;
+    },
+    async emailTaken(email) {
+      return (await findByEmail(email)) !== null;
+    },
+    async createStudent(email, password) {
+      const normalized = email.trim().toLowerCase();
+      if (await findByEmail(normalized)) {
+        throw new Error("An account with that email already exists.");
+      }
+      const { salt, hash } = hashNew(password);
+      const id = newStudentId(normalized);
+      await client.query(
+        `insert into auth.accounts (id, email, role, salt, hash) values ($1, $2, 'student', $3, $4)`,
+        [id, normalized, salt, hash],
+      );
+      return id;
+    },
+  };
+}
+
+// --- Store selection (Postgres when configured, else in-memory) ---------------
+
+let storePromise: Promise<CredentialStore> | null = null;
+
+function store(): Promise<CredentialStore> {
+  if (storePromise === null) {
+    const url = process.env.DATABASE_URL ?? "";
+    const usePostgres =
+      process.env.WORLD_BACKEND === "postgres" || url.length > 0;
+    storePromise = usePostgres
+      ? createPgStore(createPgClient(url))
+      : Promise.resolve(createMemoryStore());
+  }
+  return storePromise;
+}
+
+export async function verifyCredentials(
+  email: string,
+  password: string,
+): Promise<Account | null> {
+  return (await store()).verify(email, password);
+}
+
+export async function roleForId(id: string): Promise<AccountRole | null> {
+  return (await store()).roleForId(id);
+}
+
+export async function emailTaken(email: string): Promise<boolean> {
+  return (await store()).emailTaken(email);
+}
+
+export async function createStudentAccount(
+  email: string,
+  password: string,
+): Promise<string> {
+  return (await store()).createStudent(email, password);
 }

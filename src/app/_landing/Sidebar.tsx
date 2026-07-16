@@ -4,11 +4,13 @@ import {
   Blocks,
   BookOpen,
   GraduationCap,
+  LogOut,
   PanelLeft,
   SquarePen,
   X,
 } from "lucide-react";
 import type { ReactElement } from "react";
+import { signOutAction } from "@/app/_world/session";
 
 /**
  * The left rail: start a chat, or jump to a grade band. K–12 splits three ways
@@ -36,9 +38,12 @@ const RECENTS = [
 export default function Sidebar({
   open,
   onClose,
+  user,
 }: {
   open: boolean;
   onClose: () => void;
+  /** When signed in, the footer shows this identity + a working Sign out. */
+  user?: { name: string; plan: string; initials: string };
 }): ReactElement {
   return (
     <>
@@ -106,12 +111,25 @@ export default function Sidebar({
 
         <div className="flex items-center gap-2.5 border-t border-white/5 px-3 py-2.5">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-shell-panel text-[11px] font-medium text-shell-text">
-            VS
+            {user?.initials ?? "VS"}
           </span>
-          <div className="min-w-0">
-            <p className="truncate text-[13px] text-shell-text">Vishnu Srikanth</p>
-            <p className="text-[11px] text-shell-muted">Pro</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] text-shell-text">
+              {user?.name ?? "Vishnu Srikanth"}
+            </p>
+            <p className="text-[11px] text-shell-muted">{user?.plan ?? "Pro"}</p>
           </div>
+          {user !== undefined && (
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                aria-label="Sign out"
+                className="rounded-lg p-1.5 text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
+              >
+                <LogOut size={16} aria-hidden />
+              </button>
+            </form>
+          )}
         </div>
       </aside>
     </>

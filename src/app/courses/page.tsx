@@ -11,10 +11,12 @@ export default async function CoursesPage(): Promise<ReactElement> {
   if (user === null || user.role !== "student") redirect("/signin");
 
   const courses = await listCourses();
+  const name = studentDisplayName(user.id);
   return (
     <CoursesShell
       courses={courses}
-      greeting={`Hey, ${studentDisplayName(user.id)}. Ready to dive in?`}
+      greeting={`Hey, ${name}. Ready to dive in?`}
+      studentName={name}
     />
   );
 }

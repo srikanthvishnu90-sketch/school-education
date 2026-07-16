@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { listCourseReflections } from "@/app/_world/courseActions";
 import { findCourse } from "@/app/_world/courses";
 import { getSessionUser } from "@/app/_world/session";
+import { studentDisplayName } from "@/app/_world/teacher";
 import CourseShell from "./CourseShell";
 
 export default async function CoursePage({
@@ -18,5 +19,11 @@ export default async function CoursePage({
   if (course === null) notFound();
 
   const reflections = await listCourseReflections(courseId);
-  return <CourseShell course={course} reflections={reflections} />;
+  return (
+    <CourseShell
+      course={course}
+      reflections={reflections}
+      studentName={studentDisplayName(user.id)}
+    />
+  );
 }

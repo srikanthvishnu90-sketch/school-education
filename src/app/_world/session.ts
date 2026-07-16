@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { Id } from "@/domain";
 import { TEACHER_ID } from "./teacher";
 import { COUNSELOR_ID } from "./roles";
@@ -25,6 +26,12 @@ export async function signOut(): Promise<void> {
   store.delete(COOKIE);
 }
 
+/** Sign out and return to the entry surface. A form action (POST), never a GET. */
+export async function signOutAction(): Promise<void> {
+  await signOut();
+  redirect("/");
+}
+
 export async function getSessionUser(): Promise<{
   id: Id;
   role: "student" | "teacher" | "counselor";
@@ -33,7 +40,7 @@ export async function getSessionUser(): Promise<{
   const id = store.get(COOKIE)?.value ?? null;
   if (id === null) return null;
   const role =
-    roleForId(id) ??
+    (await roleForId(id)) ??
     (id === TEACHER_ID
       ? "teacher"
       : id === COUNSELOR_ID

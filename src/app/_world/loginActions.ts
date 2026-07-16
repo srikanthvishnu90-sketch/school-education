@@ -36,7 +36,7 @@ export async function signInWithPassword(
   if (email.trim().length === 0 || password.length === 0) {
     return { ok: false, error: "Enter your email and password." };
   }
-  const account = verifyCredentials(email, password);
+  const account = await verifyCredentials(email, password);
   if (account === null) {
     return { ok: false, error: "That email or password isn’t right." };
   }
@@ -65,7 +65,7 @@ export async function signUpStudent(
     return { ok: false, error: "Use a password of at least 8 characters." };
   }
   try {
-    const id = createStudentAccount(email, password);
+    const id = await createStudentAccount(email, password);
     await signIn(id);
     return { ok: true, redirect: "/courses" };
   } catch (e) {

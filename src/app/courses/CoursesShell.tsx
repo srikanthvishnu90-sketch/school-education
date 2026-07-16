@@ -27,15 +27,27 @@ const SUBJECT: Record<Subject, { label: string; border: string; text: string; do
 export default function CoursesShell({
   courses,
   greeting,
+  studentName,
 }: {
   courses: CourseCard[];
   greeting: string;
+  studentName: string;
 }): ReactElement {
   const [menuOpen, setMenuOpen] = useState(false);
+  const initials = studentName
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="flex h-[100svh] overflow-hidden bg-shell-background text-shell-text">
-      <Sidebar open={menuOpen} onClose={() => setMenuOpen(false)} />
+      <Sidebar
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        user={{ name: studentName, plan: "Student", initials }}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex shrink-0 items-center gap-2 px-4 py-3">
