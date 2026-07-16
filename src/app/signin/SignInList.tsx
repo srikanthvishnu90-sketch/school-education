@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactElement } from "react";
 import { requestMagicLink } from "@/app/_world/authActions";
-import { signIn } from "@/app/_world/session";
+import { signIn, signOutAction } from "@/app/_world/session";
 import { CRISIS_DISCLOSURE } from "@/compliance/disclosure";
 
 /**
@@ -19,10 +20,19 @@ export interface SignInEntry {
   href: string;
 }
 
+export interface CurrentUser {
+  name: string;
+  role: string;
+  href: string;
+}
+
 export default function SignInList({
   entries,
+  current = null,
 }: {
   entries: SignInEntry[];
+  /** The signed-in user, if any — shows a "continue" shortcut without hiding roles. */
+  current?: CurrentUser | null;
 }): ReactElement {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -74,11 +84,37 @@ export default function SignInList({
           next step they choose; teachers read the whole class back as a single,
           honest brief. No ranking, no diagnosis, no surveillance.
         </p>
-        <p className="mt-5 text-[13px] font-medium text-ink-black">
-          How are you here today?
+        {current !== null && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-card border border-ink-wash bg-white px-4 py-3">
+            <p className="text-[14px] text-secondary">
+              You&rsquo;re signed in as{" "}
+              <span className="font-medium text-ink-black">{current.name}</span>{" "}
+              <span className="text-secondary">({current.role})</span>.
+            </p>
+            <div className="flex items-center gap-3">
+              <Link
+                href={current.href}
+                className="inline-flex min-h-9 items-center rounded-control bg-ink px-4 text-[13px] font-medium text-white transition-colors hover:bg-ink-tint"
+              >
+                Continue to your workspace →
+              </Link>
+              <form action={signOutAction}>
+                <button
+                  type="submit"
+                  className="text-[13px] text-ink-tint hover:underline"
+                >
+                  Sign out
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        <p className="mt-6 text-[13px] font-medium text-ink-black">
+          {current !== null ? "Or switch to another role:" : "How are you here today?"}
         </p>
 
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <RolePanel
             title="I'm a teacher"
             blurb="Add today's lesson, photos, and scores — and read the class back."
