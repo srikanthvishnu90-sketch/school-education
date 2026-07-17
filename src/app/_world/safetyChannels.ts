@@ -2,6 +2,7 @@ import type {
   CrisisDeliveryChannel,
   OperatorAlertChannel,
 } from "@/safety";
+import { isProduction } from "./productionConfig";
 
 /**
  * The REAL crisis channels — an active counselor notification (not just a queue a
@@ -22,7 +23,15 @@ async function sendMail(to: string, subject: string, html: string): Promise<void
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM;
   if (apiKey === undefined || apiKey.length === 0 || from === undefined || from.length === 0) {
-    // Dev / unconfigured: log so the flow is observable, and treat as "sent".
+    // Unconfigured email must NEVER count as delivered in production — throw so the
+    // service's failure path fires (operator alert + undelivered + retry). A crisis
+    // notification that silently "succeeded" into a console.log is the exact
+    // silent-failure this pipeline exists to prevent. Dev keeps the observable log.
+    if (isProduction()) {
+      throw new Error(
+        "crisis email not configured (RESEND_API_KEY/EMAIL_FROM) — refusing to treat notification as delivered",
+      );
+    }
     console.log(`[crisis-notify] ${to} :: ${subject}`);
     return;
   }
