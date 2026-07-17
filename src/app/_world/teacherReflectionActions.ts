@@ -10,7 +10,11 @@ import type { ClassStudentInput } from "@/domain/ports/intelligence";
 import { getSessionUser } from "./session";
 import { getWorld, type World } from "./world";
 import { studentDisplayName } from "./teacher";
-import { getLessonPhotos, saveLessonPhotos } from "./lessonMedia";
+import {
+  deleteLessonPhotos,
+  getLessonPhotos,
+  saveLessonPhotos,
+} from "./lessonMedia";
 import { getRoster, parseRoster, saveRoster } from "./rosterNames";
 import { recordAudit } from "./auditLog";
 
@@ -190,6 +194,33 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
     content: lesson.content,
     photos: await getLessonPhotos(reflectionId),
   };
+}
+
+/**
+ * Delete a lesson the caller owns: the lesson, its generated question set, and its
+ * photos. Students' already-submitted reflections are intentionally NOT erased —
+ * a student's reflection is the student's data (it stays on their timeline). This
+ * removes the lesson from the teacher's board and stops new reflections on it.
+ */
+export async function deleteLesson(reflectionId: string): Promise<{ ok: boolean }> {
+  const teacher = await requireTeacher();
+  const world = await getWorld();
+  const lesson = await ownedLesson(world, reflectionId, teacher);
+  if (lesson === null) return { ok: false };
+
+  await world.intel.lessons.delete(lesson.id);
+  await world.intel.questionSets.deleteByLesson(lesson.id);
+  await deleteLessonPhotos(reflectionId);
+
+  recordAudit({
+    tenantId: teacher.tenantId,
+    actorId: teacher.id,
+    actorRole: "teacher",
+    action: "delete_lesson",
+    reflectionId,
+    at: world.clock.now(),
+  });
+  return { ok: true };
 }
 
 /**

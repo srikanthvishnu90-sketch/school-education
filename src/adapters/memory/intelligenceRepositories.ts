@@ -34,6 +34,9 @@ export function createMemoryLessonRepository(): LessonRepository {
     async listByClass(classId) {
       return [...byId.values()].filter((l) => l.classId === classId);
     },
+    async delete(id) {
+      byId.delete(id);
+    },
   };
 }
 
@@ -45,6 +48,9 @@ export function createMemoryQuestionSetRepository(): QuestionSetRepository {
     },
     async findByLesson(lessonId) {
       return byLesson.get(lessonId) ?? null;
+    },
+    async deleteByLesson(lessonId) {
+      byLesson.delete(lessonId);
     },
   };
 }

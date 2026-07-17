@@ -218,6 +218,9 @@ export function createPgLessonRepository(
       );
       return rows.map(reviveLesson);
     },
+    async delete(id) {
+      await client.query("delete from intel.lessons where id=$1", [id]);
+    },
   };
 }
 
@@ -241,6 +244,11 @@ export function createPgQuestionSetRepository(
         [lessonId],
       );
       return d === null ? null : reviveQuestionSet(d);
+    },
+    async deleteByLesson(lessonId) {
+      await client.query("delete from intel.question_sets where lesson_id=$1", [
+        lessonId,
+      ]);
     },
   };
 }

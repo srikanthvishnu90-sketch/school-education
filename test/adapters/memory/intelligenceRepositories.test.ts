@@ -9,8 +9,10 @@ import { createReflectionPerformance } from "@/domain/intelligence/metacognition
 import {
   createMemoryLessonRepository,
   createMemoryPerformanceRepository,
+  createMemoryQuestionSetRepository,
   createMemoryReflectionSessionRepository,
 } from "@/adapters/memory/intelligenceRepositories";
+import { createDeterministicReflectionIntelligence } from "@/adapters/intelligence/deterministic";
 
 const NOW = new Date("2026-07-01T00:00:00Z");
 
@@ -108,5 +110,45 @@ describe("in-memory intelligence repositories", () => {
     expect(await perfs.listByStudent("stu")).toHaveLength(0);
     // Deleting again is a no-op (idempotent).
     expect(await sessions.deleteByStudent("stu")).toBe(0);
+  });
+
+  it("deletes a lesson and its question set (teacher delete)", async () => {
+    const lessons = createMemoryLessonRepository();
+    const questionSets = createMemoryQuestionSetRepository();
+    const det = createDeterministicReflectionIntelligence({ now: () => NOW });
+    const lesson = createLesson({
+      id: "L9",
+      tenantId: "t",
+      classId: "C",
+      teacherId: "T",
+      title: "Slope from a table",
+      date: NOW,
+      lessonType: "independent_practice",
+      content: "Students found slope from five tables on their own.",
+      objectives: [],
+      standards: [],
+      createdAt: NOW,
+    });
+    await lessons.save(lesson);
+    const analysis = await det.analyzeLesson({ lesson });
+    const set = await det.generateReflectionQuestions({
+      analysis,
+      depth: "standard",
+      adaptiveFollowups: false,
+    });
+    await questionSets.save(set);
+
+    expect(await lessons.findById("L9")).not.toBeNull();
+    expect(await questionSets.findByLesson("L9")).not.toBeNull();
+
+    await lessons.delete("L9");
+    await questionSets.deleteByLesson("L9");
+
+    expect(await lessons.findById("L9")).toBeNull();
+    expect(await lessons.listByClass("C")).toHaveLength(0);
+    expect(await questionSets.findByLesson("L9")).toBeNull();
+    // Idempotent.
+    await lessons.delete("L9");
+    await questionSets.deleteByLesson("L9");
   });
 });

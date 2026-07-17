@@ -8,6 +8,7 @@
 
 export type AuditAction =
   | "view_lesson"
+  | "delete_lesson"
   | "view_class_brief"
   | "view_scores"
   | "record_score"

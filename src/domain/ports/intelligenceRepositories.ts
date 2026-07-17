@@ -19,11 +19,15 @@ export interface LessonRepository {
   save(lesson: Lesson): Promise<void>;
   findById(id: Id): Promise<Lesson | null>;
   listByClass(classId: Id): Promise<Lesson[]>;
+  /** Remove a lesson (teacher delete). No-op if it doesn't exist. */
+  delete(id: Id): Promise<void>;
 }
 
 export interface QuestionSetRepository {
   save(set: ReflectionQuestionSet): Promise<void>;
   findByLesson(lessonId: Id): Promise<ReflectionQuestionSet | null>;
+  /** Remove the question set for a lesson (teacher delete). No-op if absent. */
+  deleteByLesson(lessonId: Id): Promise<void>;
 }
 
 export interface ReflectionSessionRepository {

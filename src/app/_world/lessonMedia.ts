@@ -123,6 +123,11 @@ export async function getLessonPhotos(lessonId: string): Promise<string[]> {
   return (await store()).get(lessonId);
 }
 
+/** Remove a lesson's photos (teacher delete). */
+export async function deleteLessonPhotos(lessonId: string): Promise<void> {
+  await (await store()).delete(lessonId);
+}
+
 /** For tests: swap in an explicit store (e.g. memory) and reset the singleton. */
 export function __setMediaStoreForTest(next: MediaStore | null): void {
   storePromise = next === null ? null : Promise.resolve(next);
