@@ -11,10 +11,14 @@ import { describe, expect, it } from "vitest";
  */
 
 const SRC = "src";
-// The ONLY files permitted to import src/safety (besides src/safety itself):
-// the shared safety world that the capture boundary and the counselor surface
-// both build on.
-const ALLOWLIST = new Set(["src/app/_world/safetyWorld.ts"]);
+// The ONLY files permitted to import src/safety (besides src/safety itself): the
+// shared safety world that the capture boundary and the counselor surface both
+// build on, and its delivery channels (which implement the safety ports and are
+// wired only by the safety world).
+const ALLOWLIST = new Set([
+  "src/app/_world/safetyWorld.ts",
+  "src/app/_world/safetyChannels.ts",
+]);
 const IMPORTS_SAFETY = /from\s+["'](@\/safety|(?:\.\.?\/)+safety)(\/[^"']*)?["']/;
 
 function walk(dir: string): string[] {

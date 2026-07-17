@@ -91,12 +91,35 @@ export function createCrisisSafetyService(
       return updated;
     }
 
-    await deps.delivery.deliver({
-      escalation,
-      contacts,
-      tier: escalation.tier,
-      urgency,
-    });
+    try {
+      await deps.delivery.deliver({
+        escalation,
+        contacts,
+        tier: escalation.tier,
+        urgency,
+      });
+    } catch (err) {
+      // Delivery to the counselor FAILED — never silently drop a life-safety alert.
+      // Alert the operator as a fallback and flag it undelivered so retryPending()
+      // (the scheduled retry) picks it up again.
+      await deps.operator.alert({
+        escalationId: escalation.id,
+        tenantId: escalation.tenantId,
+        reason: `delivery to designated counselor failed: ${
+          err instanceof Error ? err.message : "unknown error"
+        }`,
+        urgency,
+        at: now,
+      });
+      const failed: CrisisEscalation = {
+        ...escalation,
+        undelivered: true,
+        attempts,
+        lastAttemptAt: now,
+      };
+      await deps.escalations.save(failed);
+      return failed;
+    }
     const updated: CrisisEscalation = {
       ...escalation,
       deliveredTo: contacts.map((c) => c.handle),

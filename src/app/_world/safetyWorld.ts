@@ -4,14 +4,16 @@ import {
   createCrisisEscalationRepository,
   createCrisisSafetyService,
   createPgCrisisEscalationRepository,
-  createRecordingDeliveryChannel,
-  createRecordingOperatorChannel,
   createTenantProtocolRepository,
   detectCrisis,
   type CrisisEscalationRepository,
   type CrisisSafetyService,
 } from "@/safety";
 import { createPgClient, runMigrations, applyRls } from "@/adapters/supabase";
+import {
+  createEmailCrisisDeliveryChannel,
+  createEmailOperatorChannel,
+} from "./safetyChannels";
 
 /**
  * A boolean-only safety check the reflection engine uses to yield to a concern.
@@ -77,8 +79,10 @@ export function getSafetyWorld(): Promise<SafetyWorld> {
         cipher: createAesCipher(cipherKeyFromHex(DEV_KEY_HEX)),
         escalations,
         protocols,
-        delivery: createRecordingDeliveryChannel(),
-        operator: createRecordingOperatorChannel(),
+        // Active notification: email the designated counselor (Resend when
+        // configured), with the operator as the last-resort fallback.
+        delivery: createEmailCrisisDeliveryChannel(),
+        operator: createEmailOperatorChannel(),
       });
       return { service, escalations };
     })();

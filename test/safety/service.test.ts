@@ -110,6 +110,47 @@ describe("screen", () => {
     // It PERSISTS — a crisis is never silently dropped.
     expect(await escalations.listByTenant("school-none")).toHaveLength(1);
   });
+
+  it("delivery FAILS → operator alerted, escalation flagged undelivered (never silent)", async () => {
+    const escalations = createCrisisEscalationRepository();
+    const protocols = createTenantProtocolRepository();
+    const operator = createRecordingOperatorChannel();
+    await protocols.save({ tenantId: "school-1", contacts: [COUNSELOR], channel: "email" });
+    let t = Date.UTC(2026, 6, 3, 12, 0, 0);
+    let n = 0;
+    const service = createCrisisSafetyService({
+      now: () => {
+        t += 60_000;
+        return new Date(t);
+      },
+      nextId: () => `esc-${++n}`,
+      cipher: createAesCipher(KEY),
+      escalations,
+      protocols,
+      // A delivery channel that fails, e.g. the email provider is down.
+      delivery: {
+        async deliver() {
+          throw new Error("email provider 503");
+        },
+      },
+      operator,
+    });
+
+    const result = await service.screen({
+      studentId: "stu-1",
+      tenantId: "school-1",
+      text: "i want to kill myself",
+    });
+
+    // Flagged undelivered so the scheduled retry re-attempts it — not lost.
+    expect(result.escalation?.undelivered).toBe(true);
+    expect(result.escalation?.deliveredAt).toBeNull();
+    // The operator fallback fired with the failure reason.
+    expect(operator.log()).toHaveLength(1);
+    expect(operator.log()[0].reason).toMatch(/delivery to designated counselor failed/i);
+    // It persists and remains pending (retry work-list).
+    expect(await escalations.listPending()).toHaveLength(1);
+  });
 });
 
 describe("retry with escalating urgency until acknowledged", () => {
