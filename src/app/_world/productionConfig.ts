@@ -30,7 +30,7 @@ export const REQUIRED_IN_PRODUCTION = [
 ] as const;
 
 /** The required vars that are currently unset/empty. Empty array = fully configured. */
-export function missingProductionConfig(env: NodeJS.ProcessEnv = process.env): string[] {
+export function missingProductionConfig(env: Record<string, string | undefined> = process.env): string[] {
   return REQUIRED_IN_PRODUCTION.filter((key) => {
     const value = env[key];
     return value === undefined || value.length === 0;
@@ -38,7 +38,7 @@ export function missingProductionConfig(env: NodeJS.ProcessEnv = process.env): s
 }
 
 /** The all-zero dev crisis key must never be used in production. */
-function usesInsecureCrisisKey(env: NodeJS.ProcessEnv = process.env): boolean {
+function usesInsecureCrisisKey(env: Record<string, string | undefined> = process.env): boolean {
   const key = env.CRISIS_KEY_HEX ?? "";
   return key.length > 0 && /^0+$/.test(key);
 }
@@ -47,7 +47,10 @@ function usesInsecureCrisisKey(env: NodeJS.ProcessEnv = process.env): boolean {
  * Refuse to start when production config is missing/insecure. No-op in dev/test.
  * Throwing here (from the boot hook) is the intended "refuse to start" behavior.
  */
-export function assertProductionConfig(env: NodeJS.ProcessEnv = process.env): void {
+export function assertProductionConfig(env: Record<string, string | undefined> = process.env): void {
+  // `next build` runs with NODE_ENV=production but the runtime env isn't present
+  // yet — never fail the build; only refuse to START a running server.
+  if (env.NEXT_PHASE === "phase-production-build") return;
   if (!(env.VERCEL_ENV === "production" || env.NODE_ENV === "production")) return;
 
   const missing = missingProductionConfig(env);

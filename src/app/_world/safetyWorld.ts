@@ -14,6 +14,7 @@ import {
   createEmailCrisisDeliveryChannel,
   createEmailOperatorChannel,
 } from "./safetyChannels";
+import { assertProductionConfig } from "./productionConfig";
 
 /**
  * A boolean-only safety check the reflection engine uses to yield to a concern.
@@ -52,6 +53,9 @@ let safetyPromise: Promise<SafetyWorld> | null = null;
 export function getSafetyWorld(): Promise<SafetyWorld> {
   if (safetyPromise === null) {
     safetyPromise = (async () => {
+      // The crisis path is a composition root of its own — enforce prod config here
+      // too, so a misconfigured deployment can't quietly screen students.
+      assertProductionConfig();
       // Persistence by default: PG-backed escalations when a database is configured
       // (so escalations + retry state survive restarts), else in-memory.
       let escalations: CrisisEscalationRepository;

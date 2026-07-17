@@ -30,6 +30,7 @@ import {
   seedDemoReflection,
   type IntelRepos,
 } from "./intelligence";
+import { assertProductionConfig } from "./productionConfig";
 import { isSafetyConcern } from "./safetyWorld";
 import type { ReflectionIntelligence } from "@/domain/ports/intelligence";
 
@@ -79,6 +80,9 @@ export const DEFAULT_STUDENT_ID = "student-avery";
 export const DEMO_ASSESSMENT_ID = ASSESSMENT_ID;
 
 async function build(): Promise<World> {
+  // Refuse to serve on missing/insecure production config (defense in depth beside
+  // the boot hook) — the first request to build the world fails loud, never silent.
+  assertProductionConfig();
   // Persistence by default: whenever a database is configured (DATABASE_URL, or an
   // explicit WORLD_BACKEND=postgres), use Postgres — buildPersistentCore
   // self-provisions (idempotent migrations + RLS), so an empty DB just works and
