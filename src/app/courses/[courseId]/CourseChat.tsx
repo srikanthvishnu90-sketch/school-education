@@ -10,7 +10,6 @@ import {
 } from "react";
 import { sendAssistantMessage } from "@/app/_world/assistantActions";
 import type { AssistantMessage } from "@/app/_world/assistant";
-import { CRISIS_DISCLOSURE } from "@/compliance/disclosure";
 
 /**
  * The open study chat for a course — a GPT-style thread the student can talk in
@@ -54,8 +53,13 @@ export default function CourseChat({
     startTransition(async () => {
       try {
         const turn = await sendAssistantMessage(courseId, text);
-        setMessages((prev) => [...prev, { role: "assistant", text: turn.reply }]);
-        if (turn.crisis) setCrisis(true);
+        // On a crisis signal show ONE resource panel (below) — not a normal reply
+        // bubble as well — so the student never sees two stacked crisis messages.
+        if (turn.crisis) {
+          setCrisis(true);
+        } else {
+          setMessages((prev) => [...prev, { role: "assistant", text: turn.reply }]);
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : "Something went wrong.");
       }
@@ -87,11 +91,7 @@ export default function CourseChat({
               <span className="text-[14px] text-shell-muted">thinking…</span>
             </div>
           )}
-          {crisis && (
-            <div className="rounded-xl border border-shell-border bg-shell-panel px-4 py-3 text-[13px] leading-relaxed text-shell-muted">
-              {CRISIS_DISCLOSURE}
-            </div>
-          )}
+          {crisis && <SafetyPanel />}
           <div ref={endRef} />
         </div>
       </div>
@@ -126,9 +126,47 @@ export default function CourseChat({
           </button>
         </div>
         <p className="mt-2 text-center text-[12px] text-shell-muted">
-          This chat is private and never changes your grade. If you mention being in danger,
+          This chat is private and never changes your score. If you mention being in danger,
           a caring adult is told so you can get help.
         </p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The crisis resource panel — identical intent and hotline guidance to the
+ * reflection chat's SafetyTurn, so the two surfaces are consistent: a supportive
+ * message, the counselor-alert note, and concrete 988 call/text.
+ */
+function SafetyPanel(): ReactElement {
+  return (
+    <div
+      role="alert"
+      className="rounded-xl border border-shell-border bg-shell-card p-4 text-[15px] leading-relaxed text-shell-text"
+    >
+      <p>
+        Thank you for sharing that. What you wrote sounds important. A counselor
+        alert was added to your school&rsquo;s support queue so a caring adult can
+        check in with you.
+      </p>
+      <p className="mt-3 text-[13px] text-shell-muted">
+        If you might be in immediate danger, tell a nearby trusted adult or call
+        emergency services now. In the U.S., you can also call or text 988.
+      </p>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <a
+          href="tel:988"
+          className="inline-flex min-h-11 items-center rounded-lg bg-shell-text px-4 text-sm font-medium text-shell-background"
+        >
+          Call 988
+        </a>
+        <a
+          href="sms:988"
+          className="inline-flex min-h-11 items-center rounded-lg border border-shell-border bg-shell-panel px-4 text-sm font-medium text-shell-text"
+        >
+          Text 988
+        </a>
       </div>
     </div>
   );
