@@ -151,6 +151,51 @@ describe("screen", () => {
     // It persists and remains pending (retry work-list).
     expect(await escalations.listPending()).toHaveLength(1);
   });
+
+  it("routes each tenant's escalation ONLY to that tenant's contacts — no cross-tenant delivery", async () => {
+    const escalations = createCrisisEscalationRepository();
+    const protocols = createTenantProtocolRepository();
+    await protocols.save({
+      tenantId: "school-a",
+      contacts: [{ id: "a", role: "counselor", handle: "a@a.school" }],
+      channel: "email",
+    });
+    await protocols.save({
+      tenantId: "school-b",
+      contacts: [{ id: "b", role: "counselor", handle: "b@b.school" }],
+      channel: "email",
+    });
+    const delivery = createRecordingDeliveryChannel();
+    let t = Date.UTC(2026, 6, 3, 12, 0, 0);
+    let n = 0;
+    const service = createCrisisSafetyService({
+      now: () => {
+        t += 60_000;
+        return new Date(t);
+      },
+      nextId: () => `esc-${++n}`,
+      cipher: createAesCipher(KEY),
+      escalations,
+      protocols,
+      delivery,
+      operator: createRecordingOperatorChannel(),
+    });
+
+    await service.screen({ studentId: "stu-a", tenantId: "school-a", text: "i want to kill myself" });
+    await service.screen({ studentId: "stu-b", tenantId: "school-b", text: "i want to kill myself" });
+
+    // Each delivery reached only its own tenant's contact.
+    for (const req of delivery.log()) {
+      const tenant = req.escalation.tenantId;
+      const expected = tenant === "school-a" ? "a@a.school" : "b@b.school";
+      expect(req.contacts.every((c) => c.handle === expected)).toBe(true);
+    }
+    // The counselor read surface is tenant-scoped; A's escalation never appears under B.
+    const aRows = await escalations.listByTenant("school-a");
+    const bRows = await escalations.listByTenant("school-b");
+    expect(aRows.map((e) => e.studentId)).toEqual(["stu-a"]);
+    expect(bRows.map((e) => e.studentId)).toEqual(["stu-b"]);
+  });
 });
 
 describe("retry with escalating urgency until acknowledged", () => {

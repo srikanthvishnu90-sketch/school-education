@@ -14,7 +14,9 @@ import {
   createEmailCrisisDeliveryChannel,
   createEmailOperatorChannel,
 } from "./safetyChannels";
-import { assertProductionConfig } from "./productionConfig";
+import { assertProductionConfig, isProduction } from "./productionConfig";
+import { DEMO_TENANT_ID } from "./credentials";
+import { COUNSELOR_ID } from "./roles";
 
 /**
  * A boolean-only safety check the reflection engine uses to yield to a concern.
@@ -36,8 +38,6 @@ export function isSafetyConcern(text: string): boolean {
  * In production the cipher key comes from a KMS and the channels are real; here
  * they are in-memory with an audit trail.
  */
-
-export const CRISIS_TENANT = "school-1";
 
 const DEV_KEY_HEX =
   process.env.CRISIS_KEY_HEX ??
@@ -69,13 +69,19 @@ export function getSafetyWorld(): Promise<SafetyWorld> {
         escalations = createCrisisEscalationRepository();
       }
       const protocols = createTenantProtocolRepository();
-      await protocols.save({
-        tenantId: CRISIS_TENANT,
-        contacts: [
-          { id: "counselor-1", role: "counselor", handle: "counselor@demo.school" },
-        ],
-        channel: "operator-console",
-      });
+      // Demo counselor protocol — DEV/TEST ONLY. In production each tenant supplies
+      // its own designated contact; a tenant with none configured routes to the
+      // operator fallback (never a silent drop). A demo contact must NEVER be seeded
+      // into production.
+      if (!isProduction()) {
+        await protocols.save({
+          tenantId: DEMO_TENANT_ID,
+          contacts: [
+            { id: COUNSELOR_ID, role: "counselor", handle: "okafor@demo.school" },
+          ],
+          channel: "operator-console",
+        });
+      }
       let seq = 0;
       const service = createCrisisSafetyService({
         now: () => new Date(),

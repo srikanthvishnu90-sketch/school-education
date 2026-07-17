@@ -3,7 +3,7 @@
 import { getSessionUser } from "./session";
 import { COUNSELOR_ID } from "./roles";
 import { recordAudit } from "./auditLog";
-import { CRISIS_TENANT, getSafetyWorld } from "./safetyWorld";
+import { getSafetyWorld } from "./safetyWorld";
 
 /**
  * The counselor surface's data access (P16). The counselor is the district-
@@ -33,7 +33,8 @@ export async function listEscalations(): Promise<EscalationView[]> {
   const user = await getSessionUser();
   if (user === null || user.role !== "counselor") return [];
   const { escalations } = await getSafetyWorld();
-  const rows = await escalations.listByTenant(CRISIS_TENANT);
+  // A counselor sees ONLY their own school's escalations — never cross-tenant.
+  const rows = await escalations.listByTenant(user.tenantId);
   // Reading crisis escalations exposes at-risk students by name — record each.
   for (const e of rows) {
     recordAudit({

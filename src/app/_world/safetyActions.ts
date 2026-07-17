@@ -1,7 +1,7 @@
 "use server";
 
-import { getSessionStudent } from "./session";
-import { CRISIS_TENANT, getSafetyWorld } from "./safetyWorld";
+import { getSessionUser } from "./session";
+import { getSafetyWorld } from "./safetyWorld";
 
 /**
  * The crisis capture boundary (P16). Free text submitted by a student is screened
@@ -18,14 +18,16 @@ import { CRISIS_TENANT, getSafetyWorld } from "./safetyWorld";
 export async function screenReflectionText(
   text: string,
 ): Promise<{ crisis: boolean }> {
-  const studentId = await getSessionStudent();
-  if (studentId === null || text.trim().length === 0) {
+  const user = await getSessionUser();
+  if (user === null || user.role !== "student" || text.trim().length === 0) {
     return { crisis: false };
   }
   const { service } = await getSafetyWorld();
+  // Route by the student's OWN tenant (the same source of truth as RLS), never a
+  // hardcoded one — so an alert reaches that school's designated counselor.
   const result = await service.screen({
-    studentId,
-    tenantId: CRISIS_TENANT,
+    studentId: user.id,
+    tenantId: user.tenantId,
     text,
   });
   return { crisis: result.detected !== null };
