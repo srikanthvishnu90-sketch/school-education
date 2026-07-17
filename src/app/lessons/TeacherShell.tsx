@@ -1,19 +1,8 @@
 "use client";
 
-import {
-  ChevronDown,
-  FileText,
-  Home,
-  LogOut,
-  Menu,
-  Plus,
-  Search,
-  Settings,
-  Users,
-  X,
-} from "lucide-react";
+import { FileText, Home, LogOut, Menu, Search, Users, X } from "lucide-react";
 import Link from "next/link";
-import { useState, type ReactElement, type ReactNode } from "react";
+import { useMemo, useState, type ReactElement, type ReactNode } from "react";
 import { signOutAction } from "@/app/_world/session";
 
 /**
@@ -32,24 +21,27 @@ export default function TeacherShell({
   teacherName,
   lessons,
   activeId,
-  primaryAction,
   children,
 }: {
   teacherName: string;
   lessons: ShellLesson[];
   /** The reflectionId currently open (highlights its nav row), if any. */
   activeId?: string;
-  /** Optional top-right primary button ({label, href}), Stripe's "Pay out funds" slot. */
-  primaryAction?: { label: string; href: string };
   children: ReactNode;
 }): ReactElement {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [query, setQuery] = useState("");
   const initials = teacherName
     .split(" ")
     .map((w) => w[0])
     .join("")
     .slice(0, 2)
     .toUpperCase();
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q === "" ? lessons : lessons.filter((l) => l.title.toLowerCase().includes(q));
+  }, [lessons, query]);
 
   return (
     <div className="flex min-h-[100svh] bg-paper text-ink-black">
@@ -68,20 +60,16 @@ export default function TeacherShell({
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Workspace header */}
+        {/* Workspace header — the app + teacher, not a switcher (there's one workspace) */}
         <div className="flex items-center justify-between px-3 py-3">
-          <button
-            type="button"
-            className="flex min-w-0 items-center gap-2 rounded-control px-2 py-1.5 text-left hover:bg-paper"
-          >
+          <div className="flex min-w-0 items-center gap-2 px-2 py-1.5">
             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ink text-[11px] font-semibold text-white">
               {initials}
             </span>
             <span className="truncate text-[14px] font-semibold text-ink-black">
               {teacherName}
             </span>
-            <ChevronDown size={15} className="shrink-0 text-secondary" aria-hidden />
-          </button>
+          </div>
           <button
             type="button"
             onClick={() => setMenuOpen(false)}
@@ -96,9 +84,6 @@ export default function TeacherShell({
           <NavItem href="/lessons" icon={<Home size={17} />} active={activeId === undefined}>
             Home
           </NavItem>
-          <NavItem href="/lessons" icon={<Plus size={17} />}>
-            New lesson
-          </NavItem>
           <NavItem href="/roster" icon={<Users size={17} />}>
             Class roster
           </NavItem>
@@ -109,16 +94,22 @@ export default function TeacherShell({
             <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-secondary">
               Lessons
             </p>
-            {lessons.map((l) => (
-              <NavItem
-                key={l.reflectionId}
-                href={`/lessons/${l.reflectionId}`}
-                icon={<FileText size={16} />}
-                active={l.reflectionId === activeId}
-              >
-                {l.title}
-              </NavItem>
-            ))}
+            {filtered.length === 0 ? (
+              <p className="px-3 py-1.5 text-[13px] text-secondary">
+                No lessons match “{query.trim()}”.
+              </p>
+            ) : (
+              filtered.map((l) => (
+                <NavItem
+                  key={l.reflectionId}
+                  href={`/lessons/${l.reflectionId}`}
+                  icon={<FileText size={16} />}
+                  active={l.reflectionId === activeId}
+                >
+                  {l.title}
+                </NavItem>
+              ))
+            )}
           </div>
         )}
 
@@ -155,29 +146,17 @@ export default function TeacherShell({
           >
             <Menu size={18} />
           </button>
-          <div className="flex h-9 max-w-md flex-1 items-center gap-2 rounded-control border border-ink-wash bg-paper px-3">
+          <label className="flex h-9 max-w-md flex-1 items-center gap-2 rounded-control border border-ink-wash bg-paper px-3 focus-within:border-ink-tint">
             <Search size={15} className="shrink-0 text-secondary" aria-hidden />
             <input
-              disabled
-              placeholder="Search"
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search your lessons"
+              aria-label="Search your lessons"
               className="min-w-0 flex-1 bg-transparent text-[14px] text-ink-black outline-none placeholder:text-secondary"
             />
-          </div>
-          <button
-            type="button"
-            aria-label="Settings"
-            className="rounded-control p-2 text-secondary hover:bg-paper"
-          >
-            <Settings size={17} />
-          </button>
-          {primaryAction && (
-            <Link
-              href={primaryAction.href}
-              className="hidden rounded-control bg-ink px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-ink-tint sm:inline-flex"
-            >
-              {primaryAction.label}
-            </Link>
-          )}
+          </label>
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
