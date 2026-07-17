@@ -118,7 +118,8 @@ export default function NewLessonForm(): ReactElement {
         Photos of the day (optional)
       </label>
       <p className="mt-1 text-[13px] text-secondary">
-        Board work, an anchor chart, student work — up to {MAX_PHOTOS}.
+        Board work, an anchor chart, student work — up to {MAX_PHOTOS}. The assistant
+        reads these along with your notes when it drafts the reflection.
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {photos.map((src, i) => (

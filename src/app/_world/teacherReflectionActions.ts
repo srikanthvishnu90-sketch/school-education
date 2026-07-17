@@ -153,10 +153,13 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
     createdAt: now,
   });
   await world.intel.lessons.save(lesson);
-  if (input.photos !== undefined && input.photos.length > 0) {
-    await saveLessonPhotos(id, input.photos);
+  const photos =
+    input.photos !== undefined && input.photos.length > 0 ? input.photos : undefined;
+  if (photos !== undefined) {
+    await saveLessonPhotos(id, photos);
   }
-  const analysis = await world.intelligence.analyzeLesson({ lesson });
+  // The AI reads the photos of the day's work together with the text.
+  const analysis = await world.intelligence.analyzeLesson({ lesson, photos });
   const set = await world.intelligence.generateReflectionQuestions({
     analysis,
     depth: "standard",

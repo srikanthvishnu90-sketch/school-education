@@ -31,6 +31,12 @@ export interface AnalyzeLessonInput {
   lesson: Lesson;
   gradeLevel?: string;
   subject?: string;
+  /**
+   * Optional photos of the day's work (board, anchor chart, student work) as data
+   * URLs. A vision-capable adapter grounds its analysis in what they show; the
+   * deterministic adapter ignores them.
+   */
+  photos?: readonly string[];
 }
 
 export interface GenerateQuestionsInput {

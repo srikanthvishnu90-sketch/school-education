@@ -110,6 +110,32 @@ describe("LLM reflection intelligence (fake gateway)", () => {
     expect(a.lessonId).toBe("lesson-9"); // domain adds this, not the model
   });
 
+  it("forwards lesson photos to the model for analysis", async () => {
+    let seen: GatewayRequest | null = null;
+    const gateway = createFakeGateway(
+      (r) => {
+        seen = r;
+        return VALID_ANALYSIS;
+      },
+      { models: PINNED_MODELS, now: () => NOW },
+    );
+    const ai = createLlmReflectionIntelligence({
+      gateway,
+      fallback: deterministic,
+      now: () => NOW,
+    });
+    await ai.analyzeLesson({
+      lesson: lesson(),
+      photos: ["data:image/png;base64,AAAA", "data:image/jpeg;base64,BBBB"],
+    });
+    expect(seen).not.toBeNull();
+    expect((seen as unknown as GatewayRequest).task).toBe("analyze");
+    expect((seen as unknown as GatewayRequest).images).toEqual([
+      "data:image/png;base64,AAAA",
+      "data:image/jpeg;base64,BBBB",
+    ]);
+  });
+
   it("falls back to deterministic on garbage analysis output", async () => {
     const ai = intel(() => "not json at all");
     const a = await ai.analyzeLesson({ lesson: lesson() });

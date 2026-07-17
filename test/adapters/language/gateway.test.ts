@@ -98,7 +98,47 @@ describe("http transport", () => {
     expect(headers["x-api-key"]).toBe("sk-test");
     expect(headers["anthropic-version"]).toBe("2023-06-01");
     expect(JSON.parse(init.body as string).model).toBe("claude-haiku-4-5");
+    // No images → content is a plain string (unchanged wire shape).
+    expect(JSON.parse(init.body as string).messages[0].content).toBe("hello");
     expect(gw.ledger()[0].inputTokens).toBe(10);
+  });
+
+  it("attaches valid photos as image content blocks, dropping malformed ones", async () => {
+    let capturedInit: RequestInit | undefined;
+    const fetchImpl = vi.fn(
+      async (_url: string | URL | Request, init?: RequestInit): Promise<Response> => {
+        capturedInit = init;
+        return messagesResponse("ok");
+      },
+    );
+    const gw = createHttpGateway({
+      ...DEPS,
+      apiKey: "sk-test",
+      fetchImpl: fetchImpl as unknown as typeof fetch,
+    });
+
+    await gw.send({
+      task: "analyze",
+      system: "sys",
+      prompt: "read this",
+      maxTokens: 8,
+      images: ["data:image/png;base64,AAAABBBB", "not-a-data-url"],
+    });
+
+    const content = JSON.parse((capturedInit as RequestInit).body as string)
+      .messages[0].content as Array<Record<string, unknown>>;
+    expect(Array.isArray(content)).toBe(true);
+    expect(content[0]).toEqual({ type: "text", text: "read this" });
+    // One valid image kept, the malformed one dropped.
+    expect(content.filter((b) => b.type === "image")).toHaveLength(1);
+    const img = content.find((b) => b.type === "image") as {
+      source: { type: string; media_type: string; data: string };
+    };
+    expect(img.source).toEqual({
+      type: "base64",
+      media_type: "image/png",
+      data: "AAAABBBB",
+    });
   });
 
   it("retries a 429 then succeeds", async () => {

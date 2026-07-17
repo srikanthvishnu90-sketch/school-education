@@ -32,6 +32,29 @@ export interface GatewayRequest {
   prompt: string;
   /** Hard ceiling on generated tokens for this task. */
   maxTokens: number;
+  /**
+   * Optional images (data URLs) attached to the user turn — e.g. photos of the
+   * day's board work. Sent to a vision-capable pinned model as image content
+   * blocks alongside the text. Ignored by the fake/deterministic paths.
+   */
+  images?: readonly string[];
+  /**
+   * Per-request timeout override (ms). Deliberate, non-latency-critical calls
+   * (e.g. lesson analysis with photos) can raise it above the gateway default.
+   */
+  timeoutMs?: number;
+}
+
+/** Parse a `data:image/png;base64,…` URL into an Anthropic image source block. */
+export function dataUrlToImageBlock(
+  dataUrl: string,
+): { type: "image"; source: { type: "base64"; media_type: string; data: string } } | null {
+  const match = /^data:(image\/[a-zA-Z.+-]+);base64,([\s\S]+)$/.exec(dataUrl.trim());
+  if (match === null) return null;
+  return {
+    type: "image",
+    source: { type: "base64", media_type: match[1], data: match[2] },
+  };
 }
 
 export interface GatewayResponse {
@@ -190,6 +213,21 @@ const DEFAULT_URL = "https://api.anthropic.com/v1/messages";
  * (429 / 5xx) failures. No SDK dependency — a single fetch keeps the surface
  * minimal and the ZDR assumption explicit.
  */
+/**
+ * The user-turn content. Plain string when there are no images (unchanged wire
+ * shape); an array of a text block plus valid image blocks when photos are
+ * attached. Malformed data URLs are dropped rather than sent.
+ */
+function userContent(
+  request: GatewayRequest,
+): string | Array<Record<string, unknown>> {
+  const images = (request.images ?? [])
+    .map(dataUrlToImageBlock)
+    .filter((b): b is NonNullable<typeof b> => b !== null);
+  if (images.length === 0) return request.prompt;
+  return [{ type: "text", text: request.prompt }, ...images];
+}
+
 export function createHttpGateway(config: HttpGatewayConfig): Gateway {
   const fetchImpl = config.fetchImpl ?? fetch;
   const timeoutMs = config.timeoutMs ?? 8_000;
@@ -199,7 +237,10 @@ export function createHttpGateway(config: HttpGatewayConfig): Gateway {
     let lastErr: unknown;
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      const timer = setTimeout(
+        () => controller.abort(),
+        request.timeoutMs ?? timeoutMs,
+      );
       try {
         const res = await fetchImpl(config.baseUrl ?? DEFAULT_URL, {
           method: "POST",
@@ -213,7 +254,7 @@ export function createHttpGateway(config: HttpGatewayConfig): Gateway {
             model: price.model,
             max_tokens: request.maxTokens,
             system: request.system,
-            messages: [{ role: "user", content: request.prompt }],
+            messages: [{ role: "user", content: userContent(request) }],
           }),
         });
         if (res.status === 429 || res.status >= 500) {
