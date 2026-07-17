@@ -19,15 +19,15 @@ import type {
  */
 
 const ALIGNMENT_COPY: Record<MetacognitiveAlignment, string> = {
-  aligned: "Your sense of it matched the result",
-  confidence_ahead_of_result: "Your sense of it ran ahead of the result",
+  aligned: "How sure you felt matched the result",
+  confidence_ahead_of_result: "You felt surer than the result showed",
   result_ahead_of_confidence: "You did better than you felt you would",
 };
 
 const TREND_COPY: Record<TrendDirection, string> = {
-  converging: "Your read on your work is getting closer to your results.",
-  diverging: "Your read and your results have been drifting apart.",
-  steady: "Your read on your work has held steady.",
+  converging: "How sure you feel and your results are getting closer.",
+  diverging: "How sure you feel and your results have been drifting apart.",
+  steady: "How sure you feel about your work has held steady.",
   insufficient: "One more reflection and a trend starts to show.",
 };
 
@@ -43,7 +43,7 @@ export default async function TimelinePage(): Promise<ReactElement> {
         Your reflections over time
       </p>
       <h1 className="mt-2 text-3xl font-medium tracking-tight text-ink-black">
-        How your read compares to your results
+        How sure you felt, next to your results
       </h1>
 
       {entries.length === 0 ? (

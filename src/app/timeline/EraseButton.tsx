@@ -52,8 +52,8 @@ export default function EraseButton(): ReactElement {
       ) : (
         <div className="rounded-card border border-warm/40 bg-white p-4">
           <p className="text-[14px] text-ink-black">
-            This permanently deletes every reflection, summary, and score tied to
-            your account, and withdraws your consent. It can’t be undone.
+            This permanently deletes every reflection, summary, and graded result
+            tied to your account, and withdraws your consent. It can’t be undone.
           </p>
           <div className="mt-3 flex gap-2">
             <button

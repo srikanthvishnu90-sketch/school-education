@@ -583,7 +583,7 @@ function SummaryTurn({
           href="/timeline"
           className="mt-2 inline-flex min-h-11 items-center rounded-control px-1 text-[13px] text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
         >
-          See how your read compares to your results over time →
+          See how sure you felt next to your results over time →
         </Link>
         <Link
           href="/courses"
