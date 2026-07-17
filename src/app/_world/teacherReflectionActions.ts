@@ -316,6 +316,17 @@ export async function listScoreRows(reflectionId: string): Promise<StudentScoreR
       scorePercent: perf === null ? null : Math.round(perf.score * 100),
     });
   }
+  // FERPA record-of-access: reading students' scores is an access event, so log it.
+  if (rows.length > 0) {
+    recordAudit({
+      tenantId: teacher.tenantId,
+      actorId: teacher.id,
+      actorRole: "teacher",
+      action: "view_scores",
+      reflectionId,
+      at: world.clock.now(),
+    });
+  }
   return rows;
 }
 

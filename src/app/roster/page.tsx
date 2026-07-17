@@ -31,8 +31,8 @@ export default async function RosterPage(): Promise<ReactElement> {
       <h1 className="text-2xl font-semibold tracking-tight text-ink-black">Class roster</h1>
       <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-secondary">
         Add the students in your class. Beyond being your class list, these names are
-        redacted from anything the reflection assistant processes — so a student&rsquo;s
-        name never leaves this system in a model request.
+        stripped out of anything the reflection assistant processes — so a student&rsquo;s
+        name is redacted before a payload is sent to a model.
       </p>
 
       <div className="mt-6 max-w-2xl rounded-card border border-ink-wash bg-white p-5">

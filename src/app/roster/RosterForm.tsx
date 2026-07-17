@@ -55,7 +55,11 @@ export default function RosterForm({ initial }: { initial: string[] }): ReactEle
             Saved {saved.length} {saved.length === 1 ? "name" : "names"}.
           </span>
         )}
-        {error !== null && <span className="text-[13px] text-ink-black">{error}</span>}
+        {error !== null && (
+          <span className="rounded-control border border-warm/50 bg-warm/5 px-2.5 py-1 text-[13px] text-ink-black">
+            {error}
+          </span>
+        )}
       </div>
     </div>
   );

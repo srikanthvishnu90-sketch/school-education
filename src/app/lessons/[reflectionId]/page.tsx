@@ -24,7 +24,7 @@ const LESSON_TYPE_LABELS: Record<LessonType, string> = {
   project: "Project",
   review: "Review",
   assessment_prep: "Assessment prep",
-  other: "Lesson",
+  other: "Other",
 };
 
 /**

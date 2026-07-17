@@ -8,6 +8,8 @@ import type { LessonType } from "@/domain/intelligence/lesson";
 
 /** Keep in sync with lessonMedia.MAX_PHOTOS (server enforces the real cap). */
 const MAX_PHOTOS = 6;
+/** Client-side size cap, just under the server's ~2.2MB so nothing is dropped silently. */
+const MAX_PHOTO_BYTES = 2_000_000;
 
 /**
  * The teacher's lesson entry. A few lines about what happened in class is enough;
@@ -43,14 +45,43 @@ export default function NewLessonForm(): ReactElement {
   const [lessonType, setLessonType] = useState<LessonType>("direct_instruction");
   const [content, setContent] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   async function addPhotos(files: FileList | null): Promise<void> {
     if (files === null) return;
-    const images = [...files].filter((f) => f.type.startsWith("image/"));
-    const urls = await Promise.all(images.map(readAsDataUrl));
-    setPhotos((prev) => [...prev, ...urls].slice(0, MAX_PHOTOS));
+    setPhotoNotice(null);
+    const chosen = [...files];
+    const notImages = chosen.filter((f) => !f.type.startsWith("image/"));
+    const tooBig = chosen.filter(
+      (f) => f.type.startsWith("image/") && f.size > MAX_PHOTO_BYTES,
+    );
+    const ok = chosen.filter(
+      (f) => f.type.startsWith("image/") && f.size <= MAX_PHOTO_BYTES,
+    );
+    const urls = await Promise.all(ok.map(readAsDataUrl));
+
+    let dropped = notImages.length + tooBig.length;
+    setPhotos((prev) => {
+      const room = MAX_PHOTOS - prev.length;
+      dropped += Math.max(0, urls.length - room);
+      return [...prev, ...urls].slice(0, MAX_PHOTOS);
+    });
+
+    const notes: string[] = [];
+    if (tooBig.length > 0) {
+      notes.push(
+        `${tooBig.length} photo${tooBig.length === 1 ? "" : "s"} over 2MB — resize and try again`,
+      );
+    }
+    if (notImages.length > 0) {
+      notes.push(`${notImages.length} skipped (not an image)`);
+    }
+    if (dropped > tooBig.length + notImages.length) {
+      notes.push(`only ${MAX_PHOTOS} photos allowed`);
+    }
+    if (notes.length > 0) setPhotoNotice(notes.join(" · "));
   }
 
   function removePhoto(index: number): void {
@@ -156,9 +187,14 @@ export default function NewLessonForm(): ReactElement {
           </label>
         )}
       </div>
+      {photoNotice !== null && (
+        <p className="mt-2 text-[13px] text-secondary">{photoNotice}</p>
+      )}
 
       {error !== null ? (
-        <p className="mt-3 text-[13px] text-ink-black">{error}</p>
+        <p className="mt-3 rounded-control border border-warm/50 bg-warm/5 px-3 py-2 text-[13px] text-ink-black">
+          {error}
+        </p>
       ) : null}
 
       <button
