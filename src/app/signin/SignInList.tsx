@@ -1,8 +1,9 @@
 "use client";
 
+import { ArrowRight, AtSign, GraduationCap, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type ReactElement } from "react";
+import { useState, useTransition, type ReactElement, type ComponentType } from "react";
 import { requestMagicLink } from "@/app/_world/authActions";
 import { signIn, signOutAction } from "@/app/_world/session";
 import { CRISIS_DISCLOSURE } from "@/compliance/disclosure";
@@ -11,7 +12,8 @@ import { CRISIS_DISCLOSURE } from "@/compliance/disclosure";
  * Sign-in — the front door. It splits cleanly by who you are: teachers on one
  * side, students on the other, so the two very different surfaces are chosen up
  * front. Real sign-in is a magic link to a provisioned school email; the quick
- * demo accounts sit under each role. Both set the same http-only cookie.
+ * demo accounts sit under each role. Both set the same http-only cookie. Rendered
+ * on the app's dark shell (near-black surface, sage accent) in the site font.
  */
 export interface SignInEntry {
   id: string;
@@ -24,6 +26,12 @@ export interface CurrentUser {
   name: string;
   role: string;
   href: string;
+}
+
+/** Initial for the avatar chip — last word of the name ("Ms. Rivera" → R). */
+function initialOf(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return (parts[parts.length - 1]?.[0] ?? name[0] ?? "?").toUpperCase();
 }
 
 export default function SignInList({
@@ -71,37 +79,56 @@ export default function SignInList({
   );
 
   return (
-    <main className="min-h-screen bg-paper">
-      <div className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center px-6 py-16">
-        <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
-          plumb · classroom reflection
-        </p>
-        <h1 className="mt-2 text-3xl font-medium tracking-tight text-ink-black">
-          See how the class really went.
-        </h1>
-        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-secondary">
-          Students talk through a lesson one question at a time and leave with one
-          next step they choose; teachers read the whole class back as a single,
-          honest brief. No ranking, no diagnosis, no surveillance.
-        </p>
+    <main className="min-h-screen bg-shell-background text-shell-text">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8 sm:py-10">
+        {/* Top bar */}
+        <header className="flex items-center justify-between">
+          <span className="text-[12px] font-medium uppercase tracking-[0.2em] text-shell-muted">
+            plumb · classroom reflection
+          </span>
+          <Link
+            href="/"
+            className="text-[13px] text-shell-muted transition-colors hover:text-shell-text"
+          >
+            Home
+          </Link>
+        </header>
+
+        {/* Headline */}
+        <div className="mt-12 sm:mt-16">
+          <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight text-shell-text sm:text-5xl">
+            See how the class really went.
+          </h1>
+          <p className="mt-5 max-w-2xl text-[16px] leading-relaxed text-shell-muted">
+            Students talk through a lesson one question at a time and leave with one
+            next step they choose; teachers read the whole class back as a single,
+            honest brief.{" "}
+            <span className="font-semibold text-shell-text">
+              No ranking, no diagnosis, no surveillance.
+            </span>
+          </p>
+          <div className="mt-6 h-[3px] w-24 rounded-full bg-shell-sage" />
+        </div>
+
+        {/* Already signed in — continue or switch, without hiding roles */}
         {current !== null && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-card border border-ink-wash bg-white px-4 py-3">
-            <p className="text-[14px] text-secondary">
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-shell-border bg-shell-card px-5 py-4">
+            <p className="text-[14px] text-shell-muted">
               You&rsquo;re signed in as{" "}
-              <span className="font-medium text-ink-black">{current.name}</span>{" "}
-              <span className="text-secondary">({current.role})</span>.
+              <span className="font-medium text-shell-text">{current.name}</span>{" "}
+              <span className="text-shell-muted">({current.role})</span>.
             </p>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <Link
                 href={current.href}
-                className="inline-flex min-h-9 items-center rounded-control bg-ink px-4 text-[13px] font-medium text-white transition-colors hover:bg-ink-tint"
+                className="inline-flex min-h-9 items-center rounded-full bg-shell-sage px-4 text-[13px] font-medium text-shell-background transition-opacity hover:opacity-90"
               >
                 Continue to your workspace →
               </Link>
               <form action={signOutAction}>
                 <button
                   type="submit"
-                  className="text-[13px] text-ink-tint hover:underline"
+                  className="text-[13px] text-shell-muted hover:text-shell-text"
                 >
                   Sign out
                 </button>
@@ -110,15 +137,13 @@ export default function SignInList({
           </div>
         )}
 
-        <p className="mt-6 text-[13px] font-medium text-ink-black">
-          {current !== null ? "Or switch to another role:" : "How are you here today?"}
-        </p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        {/* Role cards */}
+        <div className="mt-8 grid gap-5 lg:grid-cols-2">
           <RolePanel
             title="I'm a teacher"
             blurb="Add today's lesson, photos, and scores — and read the class back."
-            accent
+            Icon={GraduationCap}
+            topAccent="border-t-shell-text/70"
             people={teachers}
             pending={pending}
             onPick={pick}
@@ -126,39 +151,51 @@ export default function SignInList({
           <RolePanel
             title="I'm a student"
             blurb="Talk through how the lesson really went, one question at a time."
+            Icon={UserRound}
+            topAccent="border-t-shell-sage"
             people={students}
             pending={pending}
             onPick={pick}
           />
         </div>
 
-        {/* Real sign-in: magic link — secondary, revealed on demand. */}
-        <div className="mt-6 rounded-card border border-ink-wash bg-white p-5">
+        {/* School email — magic link */}
+        <div className="mt-5 overflow-hidden rounded-2xl border border-shell-border bg-shell-card">
           {!showEmail && !sent ? (
             <button
               type="button"
               onClick={() => setShowEmail(true)}
-              className="text-[14px] text-ink-tint hover:underline"
+              className="flex w-full items-center justify-center gap-2.5 px-5 py-4 text-[14px] text-shell-text transition-colors hover:bg-white/5"
             >
-              Sign in with your school email instead →
+              <AtSign size={16} aria-hidden className="text-shell-muted" />
+              Sign in with your school email instead
+              <ArrowRight size={15} aria-hidden className="text-shell-muted" />
             </button>
           ) : sent ? (
-            <p className="text-[14px] leading-relaxed text-secondary">
+            <p className="px-5 py-5 text-[14px] leading-relaxed text-shell-muted">
               If that email has an account, a sign-in link is on its way. Check your
               inbox.
               {devLink !== null && (
                 <>
                   {" "}
-                  <a href={devLink} className="text-ink-tint underline-offset-4 hover:underline">
+                  <a
+                    href={devLink}
+                    className="text-shell-sage underline-offset-4 hover:underline"
+                  >
                     Open your link
                   </a>
-                  <span className="block text-[12px] opacity-70">(shown in dev only)</span>
+                  <span className="block text-[12px] opacity-70">
+                    (shown in dev only)
+                  </span>
                 </>
               )}
             </p>
           ) : (
-            <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm font-medium text-ink-black">
+            <div className="flex flex-col gap-2.5 px-5 py-5">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-shell-text"
+              >
                 Sign in with your school email
               </label>
               <div className="flex gap-2">
@@ -168,13 +205,13 @@ export default function SignInList({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@school.org"
-                  className="flex-1 rounded-control border border-ink-wash bg-white px-3 py-2 text-[15px] text-ink-black outline-none focus:border-ink-tint"
+                  className="flex-1 rounded-lg border border-shell-border bg-shell-panel px-3 py-2 text-[15px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-sage"
                 />
                 <button
                   type="button"
                   onClick={sendLink}
                   disabled={pending || email.trim().length === 0}
-                  className="rounded-control bg-ink px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-ink-tint disabled:opacity-40"
+                  className="rounded-lg bg-shell-sage px-4 py-2 text-sm font-medium text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
                 >
                   Send link
                 </button>
@@ -189,10 +226,10 @@ export default function SignInList({
                 }}
                 placeholder="Pilot access code (if you were given one)"
                 aria-invalid={codeRejected}
-                className="rounded-control border border-ink-wash bg-white px-3 py-2 text-[14px] text-ink-black outline-none focus:border-ink-tint"
+                className="rounded-lg border border-shell-border bg-shell-panel px-3 py-2 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-sage"
               />
               {codeRejected && (
-                <p className="text-[13px] text-secondary">
+                <p className="text-[13px] text-shell-muted">
                   That access code isn’t valid for this pilot. Check the code from
                   your invite and try again.
                 </p>
@@ -201,8 +238,9 @@ export default function SignInList({
           )}
         </div>
 
+        {/* Staff */}
         {others.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-secondary">
+          <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-shell-muted">
             <span>Staff:</span>
             {others.map((o) => (
               <button
@@ -210,7 +248,7 @@ export default function SignInList({
                 type="button"
                 onClick={() => pick(o)}
                 disabled={pending}
-                className="text-ink-tint hover:underline disabled:opacity-50"
+                className="text-shell-sage hover:underline disabled:opacity-50"
               >
                 {o.name} ({o.role})
               </button>
@@ -218,9 +256,50 @@ export default function SignInList({
           </div>
         )}
 
-        <p className="mt-6 text-[13px] leading-relaxed text-secondary">
+        {/* Hero band */}
+        <div className="relative mt-9 flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-shell-border bg-gradient-to-br from-shell-card via-shell-sidebar to-shell-background sm:h-52">
+          <div
+            aria-hidden
+            className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-shell-sage/10 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="absolute bottom-4 left-6 h-16 w-40 rounded-lg border border-shell-border/70 bg-white/[0.02] sm:h-20 sm:w-56"
+          />
+          <div
+            aria-hidden
+            className="absolute right-8 top-6 h-14 w-28 rounded-lg border border-shell-border/70 bg-white/[0.02] sm:h-16 sm:w-40"
+          />
+          <p className="relative z-10 px-4 text-center text-[12px] font-medium uppercase italic tracking-[0.28em] text-shell-muted">
+            A space for honest academic growth
+          </p>
+        </div>
+
+        {/* Safety disclosure */}
+        <p className="mt-7 max-w-3xl text-[13px] leading-relaxed text-shell-muted">
           {CRISIS_DISCLOSURE}
         </p>
+
+        {/* Footer */}
+        <footer className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-shell-border pt-6 text-[12px] text-shell-muted">
+          <span className="text-[14px] font-semibold uppercase tracking-[0.2em] text-shell-text">
+            plumb
+          </span>
+          <nav className="flex flex-wrap gap-x-6 gap-y-2">
+            {["Privacy Policy", "Terms of Service", "Help Center", "Contact Us"].map(
+              (label) => (
+                <a
+                  key={label}
+                  href="#"
+                  className="transition-colors hover:text-shell-text"
+                >
+                  {label}
+                </a>
+              ),
+            )}
+          </nav>
+          <span>© 2026 Plumb Reflection. All rights reserved.</span>
+        </footer>
       </div>
     </main>
   );
@@ -229,37 +308,43 @@ export default function SignInList({
 function RolePanel({
   title,
   blurb,
+  Icon,
+  topAccent,
   people,
   pending,
   onPick,
-  accent = false,
 }: {
   title: string;
   blurb: string;
+  Icon: ComponentType<{ size?: number; className?: string; "aria-hidden"?: boolean }>;
+  topAccent: string;
   people: SignInEntry[];
   pending: boolean;
   onPick: (e: SignInEntry) => void;
-  accent?: boolean;
 }): ReactElement {
   return (
     <section
-      className={`flex flex-col rounded-card border p-5 ${
-        accent ? "border-ink-tint/40 bg-ink-wash/40" : "border-ink-wash bg-white"
-      }`}
+      className={`flex flex-col rounded-2xl border border-t-2 border-shell-border bg-shell-card p-6 ${topAccent}`}
     >
-      <h2 className="text-lg font-medium text-ink-black">{title}</h2>
-      <p className="mt-1 text-[14px] leading-relaxed text-secondary">{blurb}</p>
-      <div className="mt-4 flex flex-col gap-2">
+      <Icon size={22} aria-hidden className="text-shell-text" />
+      <h2 className="mt-4 text-[19px] font-semibold text-shell-text">{title}</h2>
+      <p className="mt-1.5 text-[14px] leading-relaxed text-shell-muted">{blurb}</p>
+      <div className="mt-5 flex flex-col gap-2.5">
         {people.map((p) => (
           <button
             key={p.id}
             type="button"
             onClick={() => onPick(p)}
             disabled={pending}
-            className="flex items-center justify-between rounded-control border border-ink-wash bg-white px-4 py-3 text-left text-[15px] text-ink-black transition-colors hover:border-ink-tint disabled:opacity-50"
+            className="flex items-center gap-3 rounded-xl border border-shell-border bg-shell-panel/40 px-3.5 py-3 text-left transition-colors hover:border-shell-sage disabled:opacity-50"
           >
-            <span>{p.name}</span>
-            <span aria-hidden className="text-ink-tint">→</span>
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-shell-active text-[13px] font-medium text-shell-text">
+              {initialOf(p.name)}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[15px] text-shell-text">
+              {p.name}
+            </span>
+            <ArrowRight size={16} aria-hidden className="shrink-0 text-shell-muted" />
           </button>
         ))}
       </div>
