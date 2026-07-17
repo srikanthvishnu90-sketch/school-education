@@ -37,10 +37,13 @@ function initialOf(name: string): string {
 export default function SignInList({
   entries,
   current = null,
+  demo = false,
 }: {
   entries: SignInEntry[];
   /** The signed-in user, if any — shows a "continue" shortcut without hiding roles. */
   current?: CurrentUser | null;
+  /** True on a sample-data demo deployment — shows the one-click personas + a banner. */
+  demo?: boolean;
 }): ReactElement {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -49,7 +52,8 @@ export default function SignInList({
   const [sent, setSent] = useState(false);
   const [codeRejected, setCodeRejected] = useState(false);
   const [devLink, setDevLink] = useState<string | null>(null);
-  const [showEmail, setShowEmail] = useState(false);
+  // With no demo personas, the school-email form is the only way in — open it directly.
+  const [showEmail, setShowEmail] = useState(!demo);
 
   function pick(entry: SignInEntry): void {
     startTransition(async () => {
@@ -110,6 +114,14 @@ export default function SignInList({
           <div className="mt-6 h-[3px] w-24 rounded-full bg-shell-sage" />
         </div>
 
+        {demo && (
+          <div className="mt-8 rounded-2xl border border-shell-sage/40 bg-shell-sage/10 px-5 py-3 text-[13px] leading-relaxed text-shell-text">
+            <span className="font-semibold">Demo environment — sample data only.</span>{" "}
+            The one-click accounts below are fictional and hold no real student data.
+            A real school signs in with a school email.
+          </div>
+        )}
+
         {/* Already signed in — continue or switch, without hiding roles */}
         {current !== null && (
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-shell-border bg-shell-card px-5 py-4">
@@ -137,27 +149,29 @@ export default function SignInList({
           </div>
         )}
 
-        {/* Role cards */}
-        <div className="mt-8 grid gap-5 lg:grid-cols-2">
-          <RolePanel
-            title="I'm a teacher"
-            blurb="Add today's lesson, photos, and scores — and read the class back."
-            Icon={GraduationCap}
-            topAccent="border-t-shell-text/70"
-            people={teachers}
-            pending={pending}
-            onPick={pick}
-          />
-          <RolePanel
-            title="I'm a student"
-            blurb="Talk through how the lesson really went, one question at a time."
-            Icon={UserRound}
-            topAccent="border-t-shell-sage"
-            people={students}
-            pending={pending}
-            onPick={pick}
-          />
-        </div>
+        {/* Role cards — demo personas only (gated behind SHOW_DEMO_PERSONAS) */}
+        {demo && (
+          <div className="mt-8 grid gap-5 lg:grid-cols-2">
+            <RolePanel
+              title="I'm a teacher"
+              blurb="Add today's lesson, photos, and scores — and read the class back."
+              Icon={GraduationCap}
+              topAccent="border-t-shell-text/70"
+              people={teachers}
+              pending={pending}
+              onPick={pick}
+            />
+            <RolePanel
+              title="I'm a student"
+              blurb="Talk through how the lesson really went, one question at a time."
+              Icon={UserRound}
+              topAccent="border-t-shell-sage"
+              people={students}
+              pending={pending}
+              onPick={pick}
+            />
+          </div>
+        )}
 
         {/* School email — magic link */}
         <div className="mt-5 overflow-hidden rounded-2xl border border-shell-border bg-shell-card">
@@ -282,23 +296,26 @@ export default function SignInList({
 
         {/* Footer */}
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-shell-border pt-6 text-[12px] text-shell-muted">
-          <span className="text-[14px] font-semibold uppercase tracking-[0.2em] text-shell-text">
+          <span className="text-[14px] font-semibold tracking-[0.02em] text-shell-text">
             plumb
           </span>
           <nav className="flex flex-wrap gap-x-6 gap-y-2">
-            {["Privacy Policy", "Terms of Service", "Help Center", "Contact Us"].map(
-              (label) => (
-                <a
-                  key={label}
-                  href="#"
-                  className="transition-colors hover:text-shell-text"
-                >
-                  {label}
-                </a>
-              ),
-            )}
+            {[
+              { label: "Privacy Policy", href: "/privacy" },
+              { label: "Terms of Service", href: "/terms" },
+              { label: "Help Center", href: "/help" },
+              { label: "Contact", href: "/contact" },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="transition-colors hover:text-shell-text"
+              >
+                {l.label}
+              </Link>
+            ))}
           </nav>
-          <span>© 2026 Plumb Reflection. All rights reserved.</span>
+          <span>© 2026 plumb · All rights reserved.</span>
         </footer>
       </div>
     </main>

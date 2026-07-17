@@ -39,22 +39,29 @@ export default async function SignInScreen(): Promise<ReactElement> {
         }
       : null;
 
-  const entries = [
-    ...SEED_STUDENTS.map((s) => ({
-      id: s.id,
-      name: studentDisplayName(s.id),
-      role: "Student",
-      href: "/courses",
-    })),
-    { id: TEACHER_ID, name: TEACHER_NAME, role: "Teacher", href: "/lessons" },
-    {
-      id: COUNSELOR_ID,
-      name: COUNSELOR_NAME,
-      role: "Counselor",
-      href: "/escalations",
-    },
-    { id: ADMIN_ID, name: "District admin", role: "Admin", href: "/admin" },
-  ];
+  // One-click demo personas (incl. admin) are gated behind an explicit env flag so
+  // they can NEVER be exposed on a real production URL by accident. Set
+  // SHOW_DEMO_PERSONAS=1 only on a sample-data demo deployment. Off by default →
+  // the entry shows only real school-email sign-in.
+  const demo = process.env.SHOW_DEMO_PERSONAS === "1";
+  const entries = demo
+    ? [
+        ...SEED_STUDENTS.map((s) => ({
+          id: s.id,
+          name: studentDisplayName(s.id),
+          role: "Student",
+          href: "/courses",
+        })),
+        { id: TEACHER_ID, name: TEACHER_NAME, role: "Teacher", href: "/lessons" },
+        {
+          id: COUNSELOR_ID,
+          name: COUNSELOR_NAME,
+          role: "Counselor",
+          href: "/escalations",
+        },
+        { id: ADMIN_ID, name: "District admin", role: "Admin", href: "/admin" },
+      ]
+    : [];
 
-  return <SignInList entries={entries} current={current} />;
+  return <SignInList entries={entries} current={current} demo={demo} />;
 }

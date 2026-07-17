@@ -12,9 +12,31 @@ const inter = Inter({
 // The variable is wired in globals.css and falls back to a serif stack until a
 // reflection/emotional surface task adopts it.
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://awareness-sepia.vercel.app";
+const DESCRIPTION =
+  "plumb helps K-12 students build accurate academic self-knowledge — private by default, task-focused, never a ranking.";
+
 export const metadata: Metadata = {
-  title: "plumb",
-  description: "A personal instrument for accurate academic self-knowledge.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "plumb — honest classroom reflection",
+    template: "%s · plumb",
+  },
+  description: DESCRIPTION,
+  applicationName: "plumb",
+  openGraph: {
+    title: "plumb — honest classroom reflection",
+    description: DESCRIPTION,
+    siteName: "plumb",
+    type: "website",
+    url: SITE_URL,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "plumb — honest classroom reflection",
+    description: DESCRIPTION,
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

@@ -2,6 +2,7 @@
 
 import { Menu } from "lucide-react";
 import { useState, type ReactElement } from "react";
+import SiteFooter from "@/app/_legal/SiteFooter";
 import HeroInput from "./HeroInput";
 import LoginButton from "./LoginButton";
 import QuickActions from "./QuickActions";
@@ -16,14 +17,19 @@ import Sidebar from "./Sidebar";
  * `greeting` is a prop so it can be personalized once there's a session.
  */
 export default function LandingShell({
-  greeting = "Hey there. Ready to dive in?",
   initialRole = "teacher",
 }: {
-  greeting?: string;
   initialRole?: Role;
 }): ReactElement {
   const [role, setRole] = useState<Role>(initialRole);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const headline =
+    role === "teacher" ? "Read the class back." : "See how the lesson really went.";
+  const subline =
+    role === "teacher"
+      ? "Turn a lesson into an honest, task-focused brief. No ranking, no diagnosis, no surveillance."
+      : "Talk through a lesson one question at a time, and leave with one next step you choose.";
 
   return (
     <div className="flex h-[100svh] overflow-hidden bg-shell-background text-shell-text">
@@ -50,15 +56,20 @@ export default function LandingShell({
 
         <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
           <div className="w-full max-w-xl">
-            <h1 className="text-center text-[22px] font-normal tracking-tight text-shell-text sm:text-[28px]">
-              {greeting}
+            <h1 className="text-center text-[24px] font-normal tracking-tight text-shell-text sm:text-[30px]">
+              {headline}
             </h1>
+            <p className="mt-3 text-center text-[14px] leading-relaxed text-shell-muted">
+              {subline}
+            </p>
             <div className="mt-6">
               <HeroInput />
             </div>
             <QuickActions role={role} />
           </div>
         </main>
+
+        <SiteFooter tone="dark" />
       </div>
     </div>
   );
