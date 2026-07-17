@@ -630,9 +630,11 @@ export function createLlmReflectionIntelligence(deps: {
                 : `${clean}\n\nThe attached photos are of the day's work; read them together with the text above.`,
             maxTokens: 640,
             images,
-            // Vision is slower; give a photo-bearing analysis room beyond the
-            // tight interactive default (lesson creation shows a loading state).
-            timeoutMs: images === undefined ? undefined : 20_000,
+            // Vision is slower, so give a photo-bearing analysis room beyond the
+            // tight interactive default — but bounded: analyze(15s) + the follow-on
+            // generate(4s) must stay under the route's maxDuration (30s) so the
+            // platform never kills the function mid-call. See lessons/page maxDuration.
+            timeoutMs: images === undefined ? undefined : 15_000,
           });
           const raw = rawAnalysisSchema.parse(firstJson(res.text));
           // The model authored these fields and they render to the teacher — hold

@@ -8,6 +8,15 @@ import NewLessonForm from "./NewLessonForm";
 import TeacherShell from "./TeacherShell";
 
 /**
+ * Creating a lesson runs on this route (the NewLessonForm server action). With
+ * photos it makes a vision analyze call (up to 15s) then a generate call (up to
+ * 4s), so the function needs headroom above the ~10s default. 30s is within the
+ * Hobby limit (max 60s) and safely covers the worst case, so a slow model falls
+ * back to the deterministic engine instead of the platform killing the request.
+ */
+export const maxDuration = 30;
+
+/**
  * The teacher's home, in the Stripe-style dashboard shell: a metric strip across
  * the top, the lesson-entry card, and the lesson list. Same information as before
  * — only the layout changed.
