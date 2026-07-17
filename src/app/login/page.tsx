@@ -18,7 +18,7 @@ export default async function LoginPage({
   const isStudent = resolved === "student";
 
   return (
-    <main className="flex min-h-[100svh] flex-col items-center justify-center bg-shell-background px-4 text-shell-text">
+    <main id="main-content" tabIndex={-1} className="flex min-h-[100svh] flex-col items-center justify-center bg-shell-background px-4 text-shell-text">
       <div className="w-full max-w-sm">
         <Link
           href="/"

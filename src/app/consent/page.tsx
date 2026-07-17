@@ -26,7 +26,7 @@ export default async function ConsentPage({
   if (await hasReflectionConsent()) redirect(destination);
 
   return (
-    <main className="flex min-h-[100svh] flex-col items-center justify-center bg-shell-background px-4">
+    <main id="main-content" tabIndex={-1} className="flex min-h-[100svh] flex-col items-center justify-center bg-shell-background px-4">
       <ConsentForm next={destination} />
     </main>
   );

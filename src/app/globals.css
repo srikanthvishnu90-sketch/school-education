@@ -75,13 +75,65 @@ body {
   height: 100dvh;
 }
 
+/* Accessibility (WCAG 2.2 AA) --------------------------------------------- */
+
+/* Respect a reduced-motion preference across the WHOLE app, not just the
+   reflection surface — animations and smooth scrolling are neutralized. */
 @media (prefers-reduced-motion: reduce) {
-  [data-theme="reflection-dark"] *,
-  [data-theme="reflection-dark"] *::before,
-  [data-theme="reflection-dark"] *::after {
+  *,
+  *::before,
+  *::after {
     scroll-behavior: auto !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* A visible keyboard-focus indicator on every control (WCAG 2.4.7), as a
+   baseline under any component-specific ring. Sage on the dark shell, ink
+   elsewhere; only for keyboard focus, so it never shows on mouse click. */
+:focus-visible {
+  outline: 2px solid var(--color-ink-tint);
+  outline-offset: 2px;
+}
+.bg-shell-background :focus-visible,
+[data-theme="reflection-dark"] :focus-visible {
+  outline-color: var(--color-shell-sage);
+}
+
+/* Screen-reader-only text, and a skip link that appears when focused
+   (WCAG 2.4.1 Bypass Blocks). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  transform: translateY(-160%);
+  transition: transform 0.15s ease;
+  background: var(--color-ink);
+  color: #fff;
+  padding: 0.5rem 0.875rem;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.skip-link:focus {
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
   }
 }

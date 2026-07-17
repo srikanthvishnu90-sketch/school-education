@@ -10,7 +10,7 @@ export default function ReflectionError({
   reset: () => void;
 }): ReactElement {
   return (
-    <main
+    <main id="main-content" tabIndex={-1}
       data-theme="reflection-dark"
       className="flex min-h-[100svh] items-center justify-center bg-chat-background px-6 text-chat-text"
     >

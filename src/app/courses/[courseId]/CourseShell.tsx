@@ -77,7 +77,7 @@ export default function CourseShell({
           </Link>
         </header>
 
-        <main className="flex min-h-0 flex-1 flex-col px-4 pb-2">
+        <main id="main-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col px-4 pb-2">
           <div className="mx-auto w-full max-w-2xl shrink-0 pt-1">
             <h1 className="text-[22px] font-normal tracking-tight sm:text-[26px]">
               {course.name}

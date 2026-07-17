@@ -39,7 +39,7 @@ export default async function AdminPage(): Promise<ReactElement> {
   };
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-6 py-14">
+    <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl px-6 py-14">
       <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
         District admin · {tenantId}
       </p>

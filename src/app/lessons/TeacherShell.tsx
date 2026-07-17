@@ -159,7 +159,7 @@ export default function TeacherShell({
           </label>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
+        <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto px-5 py-6 sm:px-8 sm:py-8">
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
       </div>

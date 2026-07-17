@@ -112,6 +112,7 @@ export default function CourseChat({
             }}
             rows={1}
             disabled={crisis}
+            aria-label={`Message the study assistant about ${courseName}`}
             placeholder={crisis ? "Someone will check in with you soon." : `Ask about ${courseName}, or think out loud…`}
             className="max-h-40 min-h-6 flex-1 resize-none bg-transparent py-1.5 text-[15px] text-shell-text outline-none placeholder:text-shell-muted disabled:cursor-not-allowed"
           />

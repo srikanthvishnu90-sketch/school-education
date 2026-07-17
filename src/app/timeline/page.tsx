@@ -38,7 +38,7 @@ export default async function TimelinePage(): Promise<ReactElement> {
   const { entries, trend } = await getStudentTimeline();
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-14">
+    <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-2xl px-6 py-14">
       <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
         Your reflections over time
       </p>

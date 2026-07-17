@@ -202,7 +202,7 @@ export default function ChatFlow({
   const done = current.kind !== "question";
 
   return (
-    <main
+    <main id="main-content" tabIndex={-1}
       data-theme="reflection-dark"
       aria-labelledby="reflection-title"
       className="flex h-[100svh] min-h-[100svh] flex-col overflow-hidden bg-chat-background text-chat-text"

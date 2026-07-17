@@ -36,7 +36,7 @@ export default function LegalPage({
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-12">
+      <main id="main-content" tabIndex={-1} className="flex-1 px-6 py-12">
         <article className="mx-auto max-w-3xl">
           <h1 className="text-3xl font-medium tracking-tight text-ink-black">
             {title}

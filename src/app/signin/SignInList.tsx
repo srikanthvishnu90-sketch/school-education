@@ -83,7 +83,7 @@ export default function SignInList({
   );
 
   return (
-    <main className="min-h-screen bg-shell-background text-shell-text">
+    <main id="main-content" tabIndex={-1} className="min-h-screen bg-shell-background text-shell-text">
       <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-8 sm:py-10">
         {/* Top bar */}
         <header className="flex items-center justify-between">

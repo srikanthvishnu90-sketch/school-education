@@ -54,7 +54,7 @@ export default function LandingShell({
           <LoginButton role={role} />
         </header>
 
-        <main className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
+        <main id="main-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
           <div className="w-full max-w-xl">
             <h1 className="text-center text-[24px] font-normal tracking-tight text-shell-text sm:text-[30px]">
               {headline}

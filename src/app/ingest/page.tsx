@@ -15,7 +15,7 @@ export default async function IngestPage(): Promise<ReactElement> {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-6 py-16">
+    <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl px-6 py-16">
       <p className="text-[12px] font-medium uppercase tracking-[0.22em] text-ink-tint">
         Operator
       </p>

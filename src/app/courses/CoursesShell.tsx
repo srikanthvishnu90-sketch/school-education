@@ -62,7 +62,7 @@ export default function CoursesShell({
           <span className="text-[13px] text-shell-muted">My courses</span>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-12">
+        <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto px-5 pb-12">
           <div className="mx-auto max-w-4xl">
             <h1 className="mt-4 text-[22px] font-normal tracking-tight sm:text-[28px]">
               {greeting}

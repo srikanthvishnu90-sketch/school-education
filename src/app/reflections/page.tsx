@@ -49,7 +49,7 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
   const reflections = await listStudentReflections();
 
   return (
-    <main className="mx-auto min-h-[100svh] w-full max-w-2xl px-6 py-12 sm:py-16">
+    <main id="main-content" tabIndex={-1} className="mx-auto min-h-[100svh] w-full max-w-2xl px-6 py-12 sm:py-16">
       <header className="max-w-xl">
         <Link
           href="/"
