@@ -211,7 +211,7 @@ describe("ChatFlow", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(
-      "counselor alert was added",
+      "A counselor at your school has been notified",
     );
     expect(screen.getByRole("link", { name: "Call 988" })).toHaveAttribute(
       "href",

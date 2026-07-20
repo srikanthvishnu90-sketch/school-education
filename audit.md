@@ -46,15 +46,17 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
   requires **free-text-first**, with an *optional* per-grade-band vocabulary assist —
   never a closed picker as the primary. (Better than the banned 5-emoji picker, but
   still non-compliant.) **P0. Status: open.**
-- **A6** — *Safety surface is voiced as a counselor / therapy tool.* "Thank you for
-  sharing that. What you wrote sounds important." in `ChatFlow.tsx:472` (SafetyTurn)
-  and duplicated in `CourseChat.tsx:150` (SafetyPanel). Violates Part 1 #5 (NEVER
-  styled/voiced as a mental-health tool) and the warm-precise voice rule. **P0. Status: open.**
-- **A7** — *Audience + safety disclosure at point of writing.* Present and correct in
-  the reflection `ChatFlow` banner ("Teachers see a summary, not this chat. Safety
-  concerns create a counselor alert."). **MISSING** in the parallel `CourseChat`
-  surface (`src/app/courses/[courseId]/CourseChat.tsx`) — a student writing there gets
-  no audience disclosure. Violates Part 2 (2.6.1). **P0. Status: open.**
+- **A6** — *Safety surface was voiced as a counselor / therapy tool.* "Thank you for
+  sharing that. What you wrote sounds important." (ChatFlow SafetyTurn + CourseChat
+  SafetyPanel). **Status: fixed.** Both now read "What you wrote looks serious, and it
+  shouldn't wait for an app. A counselor at your school has been notified and can reach
+  out to you. You're not in trouble for writing it." — factual, routes to a real human,
+  no counseling performance. Test updated.
+- **A7** — *Audience + safety disclosure at point of writing.* Present/correct in the
+  reflection `ChatFlow` banner. `CourseChat` (a study-assistant surface, not the graded
+  reflection) already carried a privacy+score+safety disclosure; tightened "a caring
+  adult is told" → "a counselor at your school is notified" for precision and
+  consistency. **Status: fixed** (adequate for that surface's audience).
 - **A8** — *AI disclosure to the student.* No surface tells the student that the
   questions were AI-drafted / that a person approved them (2.6, Part 1 #2 spirit).
   **Status: open.**

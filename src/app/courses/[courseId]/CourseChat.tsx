@@ -128,7 +128,7 @@ export default function CourseChat({
         </div>
         <p className="mt-2 text-center text-[12px] text-shell-muted">
           This chat is private and never changes your score. If you mention being in danger,
-          a caring adult is told so you can get help.
+          a counselor at your school is notified so you can get help.
         </p>
       </div>
     </div>
@@ -147,9 +147,9 @@ function SafetyPanel(): ReactElement {
       className="rounded-xl border border-shell-border bg-shell-card p-4 text-[15px] leading-relaxed text-shell-text"
     >
       <p>
-        Thank you for sharing that. What you wrote sounds important. A counselor
-        alert was added to your school&rsquo;s support queue so a caring adult can
-        check in with you.
+        What you wrote looks serious, and it shouldn&rsquo;t wait for an app. A
+        counselor at your school has been notified and can reach out to you.
+        You&rsquo;re not in trouble for writing it.
       </p>
       <p className="mt-3 text-[13px] text-shell-muted">
         If you might be in immediate danger, tell a nearby trusted adult or call

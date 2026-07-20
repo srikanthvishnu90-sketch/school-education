@@ -469,9 +469,9 @@ function SafetyTurn(): ReactElement {
         className="min-w-0 flex-1 rounded-card border border-chat-divider bg-chat-surface p-4 text-[15px] leading-relaxed text-chat-text"
       >
         <p>
-          Thank you for sharing that. What you wrote sounds important. A
-          counselor alert was added to your school&rsquo;s support queue so a
-          caring adult can check in with you.
+          What you wrote looks serious, and it shouldn&rsquo;t wait for an app. A
+          counselor at your school has been notified and can reach out to you.
+          You&rsquo;re not in trouble for writing it.
         </p>
         <p className="mt-3 text-[13px] text-chat-muted">
           If you might be in immediate danger, tell a nearby trusted adult or
