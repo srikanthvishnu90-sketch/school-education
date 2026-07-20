@@ -87,7 +87,13 @@ export interface LessonListItem {
 
 export interface ClassBriefView {
   brief: ClassInsightSummary;
-  students: StudentInsightSummary[];
+  /**
+   * How many students reflected — a COUNT only. Per-student summaries (which carry
+   * individual emotional text) are deliberately NOT returned to the teacher surface:
+   * a teacher sees the class as an aggregate, never one student's feelings
+   * (Part 1 #1). Enforced here at the query level, not just the component.
+   */
+  studentCount: number;
 }
 
 export interface StudentScoreRow {
@@ -287,7 +293,7 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
       at: world.clock.now(),
     });
   }
-  return { brief, students: summaries };
+  return { brief, studentCount: summaries.length };
 }
 
 /**

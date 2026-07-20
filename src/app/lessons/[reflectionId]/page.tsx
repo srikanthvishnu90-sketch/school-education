@@ -143,11 +143,11 @@ function ClassBriefBody({
   view: NonNullable<Awaited<ReturnType<typeof buildClassBrief>>>;
   byGroup: Map<AttentionGroup, string[]>;
 }): ReactElement {
-  const { brief, students } = view;
+  const { brief, studentCount } = view;
   return (
     <>
       <p className="mt-10 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
-        Class brief · {students.length} reflection{students.length === 1 ? "" : "s"}
+        Class brief · {studentCount} reflection{studentCount === 1 ? "" : "s"}
       </p>
       <h2 className="mt-2 text-2xl font-medium tracking-tight text-ink-black">
         Where the class landed
@@ -177,33 +177,11 @@ function ClassBriefBody({
         </ol>
       </section>
 
-      <section className="mt-10">
-        <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
-          Each student&rsquo;s reflection
-        </h2>
-        <p className="mt-2 text-[14px] text-secondary">
-          The task-focused summary of what each student reflected on — never their raw
-          chat, and never a ranking.
-        </p>
-        <div className="mt-4 flex flex-col gap-3">
-          {students.map((s) => (
-            <div
-              key={s.id}
-              className="rounded-card border border-ink-wash bg-white p-4"
-            >
-              <p className="text-[14px] font-medium text-ink-black">
-                {studentDisplayName(s.studentId)}
-              </p>
-              <dl className="mt-2 flex flex-col gap-1.5 text-[14px] leading-relaxed">
-                <Line label="Understanding">{s.technicalSummary}</Line>
-                <Line label="How it felt">{s.emotionalSummary}</Line>
-                <Line label="What they did">{s.behavioralSummary}</Line>
-              </dl>
-            </div>
-          ))}
-        </div>
-      </section>
-
+      {/* Per-student emotional drill-down deliberately REMOVED. Under plumb's
+          principles a teacher sees the class as an aggregate brief only, never
+          an individual student's emotional writing (Part 1 #1 / IA Part 3). The
+          only student-level view is the observed "who to check on" grouping
+          below, which names support needs without exposing anyone's words. */}
       {byGroup.size > 0 ? (
         <section className="mt-10">
           <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
@@ -238,21 +216,6 @@ function ClassBriefBody({
         </section>
       ) : null}
     </>
-  );
-}
-
-function Line({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}): ReactElement {
-  return (
-    <div className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
-      <dt className="shrink-0 text-secondary sm:w-32">{label}</dt>
-      <dd className="text-ink-black">{children}</dd>
-    </div>
   );
 }
 
