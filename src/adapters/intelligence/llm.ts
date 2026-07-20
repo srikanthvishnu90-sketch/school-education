@@ -751,6 +751,8 @@ export function createLlmReflectionIntelligence(deps: {
           return {
             accepted: true,
             value: createReflectionQuestionSet({
+              // AI drafts are NEVER self-approving — a teacher approves before students see them.
+              approvedAt: null,
               lessonId: analysis.lessonId,
               questions,
               adaptiveFollowupsEnabled: adaptiveFollowups,

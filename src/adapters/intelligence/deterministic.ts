@@ -531,6 +531,8 @@ export function createDeterministicReflectionIntelligence(deps: {
       }));
 
     return createReflectionQuestionSet({
+      // AI drafts are NEVER self-approving — a teacher must approve before students see them.
+      approvedAt: null,
       lessonId: analysis.lessonId,
       questions,
       adaptiveFollowupsEnabled: adaptiveFollowups,

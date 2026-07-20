@@ -48,6 +48,8 @@ const QUESTION_SET: ReflectionQuestionSet = {
   adaptiveFollowupsEnabled: true,
   maxFollowups: 4,
   createdAt: NOW,
+  // Approved: the student flow under test only runs once a teacher has opened it.
+  approvedAt: NOW,
 };
 
 const QUESTION: ConversationStep = {
@@ -183,6 +185,20 @@ describe("reflection server actions", () => {
       "Student authentication required.",
     );
     expect(mocks.getWorld).not.toHaveBeenCalled();
+  });
+
+  it("refuses to start a reflection whose questions a teacher has not approved", async () => {
+    const { world } = makeWorld();
+    // The AI has drafted a set, but no teacher has approved it yet.
+    world.intel.questionSets.findByLesson = vi.fn(async () => ({
+      ...QUESTION_SET,
+      approvedAt: null,
+    }));
+    mocks.getWorld.mockResolvedValue(world);
+
+    await expect(startReflection(REFLECTION_ID)).rejects.toThrow(
+      "This reflection is not available.",
+    );
   });
 
   it("resumes an active transcript without duplicating its open question", async () => {

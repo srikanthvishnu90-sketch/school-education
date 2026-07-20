@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { DomainError } from "@/domain/common";
 import {
+  approveQuestionSet,
   createGeneratedQuestion,
   createReflectionQuestionSet,
   isBalancedQuestionSet,
+  isQuestionSetApproved,
   type GeneratedQuestion,
   type ReflectionQuestionSet,
 } from "@/domain/intelligence/question";
@@ -32,6 +34,7 @@ const base = (questions: GeneratedQuestion[]): ReflectionQuestionSet => ({
   adaptiveFollowupsEnabled: true,
   maxFollowups: 4,
   createdAt: new Date("2026-01-01"),
+  approvedAt: null,
 });
 
 const fourBalanced = (): GeneratedQuestion[] => [
@@ -76,5 +79,34 @@ describe("reflection question set", () => {
         q({ format: "multiple_choice", options: ["yes", "no"] }),
       ).options,
     ).toEqual(["yes", "no"]);
+  });
+});
+
+describe("teacher approval gate", () => {
+  it("a freshly drafted set is not approved", () => {
+    const set = createReflectionQuestionSet(base(fourBalanced()));
+    expect(set.approvedAt).toBeNull();
+    expect(isQuestionSetApproved(set)).toBe(false);
+  });
+
+  it("approveQuestionSet stamps the moment a teacher approved", () => {
+    const at = new Date("2026-07-11T09:00:00.000Z");
+    const approved = approveQuestionSet(
+      createReflectionQuestionSet(base(fourBalanced())),
+      at,
+    );
+    expect(approved.approvedAt).toEqual(at);
+    expect(isQuestionSetApproved(approved)).toBe(true);
+  });
+
+  it("re-approving keeps the first approval time (idempotent)", () => {
+    const first = new Date("2026-07-11T09:00:00.000Z");
+    const later = new Date("2026-07-12T09:00:00.000Z");
+    const once = approveQuestionSet(
+      createReflectionQuestionSet(base(fourBalanced())),
+      first,
+    );
+    const twice = approveQuestionSet(once, later);
+    expect(twice.approvedAt).toEqual(first);
   });
 });

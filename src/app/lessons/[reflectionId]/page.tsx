@@ -4,6 +4,7 @@ import { getSessionUser } from "@/app/_world/session";
 import {
   buildClassBrief,
   getLessonDetail,
+  getReflectionDraft,
   listScoreRows,
   listTeacherLessons,
 } from "@/app/_world/teacherReflectionActions";
@@ -11,6 +12,7 @@ import { studentDisplayName, TEACHER_NAME } from "@/app/_world/teacher";
 import type { AttentionGroup } from "@/domain/intelligence/insight";
 import type { LessonType } from "@/domain/intelligence/lesson";
 import TeacherShell from "../TeacherShell";
+import ApproveQuestions from "./ApproveQuestions";
 import DeleteLessonButton from "./DeleteLessonButton";
 import ScoreEntry from "./ScoreEntry";
 
@@ -63,11 +65,13 @@ export default async function ClassBriefPage({
   const lesson = await getLessonDetail(reflectionId);
   if (lesson === null) notFound();
 
-  const [view, scoreRows, allLessons] = await Promise.all([
+  const [view, scoreRows, allLessons, draft] = await Promise.all([
     buildClassBrief(reflectionId),
     listScoreRows(reflectionId),
     listTeacherLessons(),
+    getReflectionDraft(reflectionId),
   ]);
+  const awaitingApproval = draft !== null && !draft.approved;
   const byGroup = new Map<AttentionGroup, string[]>();
   if (view !== null) {
     for (const s of view.brief.attentionStudents) {
@@ -107,7 +111,9 @@ export default async function ClassBriefPage({
         </div>
       )}
 
-      {view === null ? (
+      {awaitingApproval && draft !== null ? (
+        <ApproveQuestions reflectionId={reflectionId} questions={draft.questions} />
+      ) : view === null ? (
         <p className="mt-10 rounded-card border border-ink-wash bg-white p-5 text-[15px] leading-relaxed text-secondary">
           The class brief appears once at least one student has finished reflecting on
           this lesson. You can still enter graded results below.

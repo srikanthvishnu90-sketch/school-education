@@ -83,7 +83,9 @@ export default async function LessonsPage(): Promise<ReactElement> {
                       {l.title}
                     </span>
                     <span className="shrink-0 text-[12px] text-secondary">
-                      {l.completedCount} of {l.reflectionCount} finished
+                      {l.approved
+                        ? `${l.completedCount} of ${l.reflectionCount} finished`
+                        : "Awaiting your review"}
                     </span>
                   </Link>
                 </li>

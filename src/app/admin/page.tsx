@@ -12,6 +12,7 @@ import type { AuditAction } from "@/app/_world/auditLog";
 const ACTION_LABEL: Record<AuditAction, string> = {
   view_lesson: "Viewed a lesson",
   delete_lesson: "Deleted a lesson",
+  approve_reflection: "Approved a reflection for students",
   view_class_brief: "Viewed a class brief",
   view_scores: "Viewed scores",
   record_score: "Recorded a score",

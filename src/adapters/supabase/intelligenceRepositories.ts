@@ -167,7 +167,11 @@ function reviveLesson(d: Lesson): Lesson {
 }
 
 function reviveQuestionSet(d: ReflectionQuestionSet): ReflectionQuestionSet {
-  return createReflectionQuestionSet({ ...d, createdAt: new Date(d.createdAt) });
+  return createReflectionQuestionSet({
+    ...d,
+    createdAt: new Date(d.createdAt),
+    approvedAt: d.approvedAt === null ? null : new Date(d.approvedAt),
+  });
 }
 
 function reviveSession(d: ReflectionSession): ReflectionSession {

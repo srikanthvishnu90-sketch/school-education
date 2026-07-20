@@ -95,6 +95,12 @@ export const reflectionQuestionSetSchema = z.object({
   adaptiveFollowupsEnabled: z.boolean(),
   maxFollowups: z.number().int().min(0).max(4),
   createdAt: z.date(),
+  /**
+   * When a teacher approved these AI-drafted questions for students. `null` = a
+   * draft awaiting review. AI output NEVER reaches a student until a person sets
+   * this — the human gate is a domain invariant, not a UI convenience.
+   */
+  approvedAt: z.date().nullable(),
 });
 
 // --- Extracted signals (closed taxonomies) -----------------------------------

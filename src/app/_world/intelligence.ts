@@ -1,4 +1,5 @@
 import { createLesson } from "@/domain/intelligence/lesson";
+import { approveQuestionSet } from "@/domain/intelligence/question";
 import { SEED_STUDENTS } from "@/application";
 import { recordGuardrailTrip } from "./guardrailIncidents";
 import { TEACHER_NAME, studentDisplayName } from "./teacher";
@@ -210,7 +211,9 @@ async function seedOne(
     depth: "standard",
     adaptiveFollowups: true,
   });
-  await intel.questionSets.save(set);
+  // Seeded demo lessons are teacher-authored, so they ship pre-approved — the
+  // demo chat runs out of the box without a manual review step.
+  await intel.questionSets.save(approveQuestionSet(set, now()));
 }
 
 /** Seed each district's demo lesson + questions so the chat runs out of the box. */

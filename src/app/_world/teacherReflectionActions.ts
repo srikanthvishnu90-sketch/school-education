@@ -6,6 +6,11 @@ import type {
   StudentInsightSummary,
 } from "@/domain/intelligence/insight";
 import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
+import {
+  approveQuestionSet,
+  isQuestionSetApproved,
+  type GeneratedQuestion,
+} from "@/domain/intelligence/question";
 import type { ClassStudentInput } from "@/domain/ports/intelligence";
 import { getSessionUser } from "./session";
 import { getWorld, type World } from "./world";
@@ -83,6 +88,24 @@ export interface LessonListItem {
   reflectionCount: number;
   completedCount: number;
   hasBrief: boolean;
+  /** False while the AI-drafted questions are still awaiting the teacher's approval. */
+  approved: boolean;
+}
+
+/** One drafted question, shaped for the teacher's review surface (no internal ids). */
+export interface DraftQuestionView {
+  text: string;
+  category: GeneratedQuestion["category"];
+  format: GeneratedQuestion["format"];
+  options?: string[];
+}
+
+/** The AI's drafted reflection, shown to the teacher to approve before students see it. */
+export interface ReflectionDraftView {
+  reflectionId: string;
+  title: string;
+  approved: boolean;
+  questions: DraftQuestionView[];
 }
 
 export interface ClassBriefView {
@@ -122,12 +145,14 @@ export async function listTeacherLessons(): Promise<LessonListItem[]> {
     lessons.map(async (lesson): Promise<LessonListItem> => {
       const sessions = await world.intel.sessions.listByReflection(lesson.id);
       const brief = await world.intel.classSummaries.findByReflection(lesson.id);
+      const set = await world.intel.questionSets.findByLesson(lesson.id);
       return {
         reflectionId: lesson.id,
         title: lesson.title,
         lessonType: lesson.lessonType,
         reflectionCount: sessions.length,
         completedCount: sessions.filter((s) => s.status === "completed").length,
+        approved: set !== null && isQuestionSetApproved(set),
         hasBrief: brief !== null,
       };
     }),
@@ -200,6 +225,65 @@ export async function getLessonDetail(reflectionId: string): Promise<LessonDetai
     content: lesson.content,
     photos: await getLessonPhotos(reflectionId),
   };
+}
+
+/**
+ * The AI's drafted reflection for a lesson, for the teacher to review before any
+ * student sees it. Teacher-owned; a non-owned or question-less lesson returns null.
+ * This is the read side of the human approval gate (Part 1 #2).
+ */
+export async function getReflectionDraft(
+  reflectionId: string,
+): Promise<ReflectionDraftView | null> {
+  const teacher = await requireTeacher();
+  const world = await getWorld();
+  const lesson = await ownedLesson(world, reflectionId, teacher);
+  if (lesson === null) return null;
+  const set = await world.intel.questionSets.findByLesson(reflectionId);
+  if (set === null) return null;
+  return {
+    reflectionId,
+    title: lesson.title,
+    approved: isQuestionSetApproved(set),
+    questions: set.questions
+      .slice()
+      .sort((a, b) => a.order - b.order)
+      .map((q) => ({
+        text: q.text,
+        category: q.category,
+        format: q.format,
+        options: q.options,
+      })),
+  };
+}
+
+/**
+ * The teacher approves the AI-drafted questions, opening the reflection to students.
+ * Until this runs, the student gate in reflectionActions treats the set as
+ * unavailable. Ownership-checked; idempotent (re-approving is a no-op). This is the
+ * write side of the human gate — a person, not the model, decides students may see it.
+ */
+export async function approveReflectionQuestions(
+  reflectionId: string,
+): Promise<{ ok: boolean }> {
+  const teacher = await requireTeacher();
+  const world = await getWorld();
+  const lesson = await ownedLesson(world, reflectionId, teacher);
+  if (lesson === null) return { ok: false };
+  const set = await world.intel.questionSets.findByLesson(reflectionId);
+  if (set === null) return { ok: false };
+  if (!isQuestionSetApproved(set)) {
+    await world.intel.questionSets.save(approveQuestionSet(set, world.clock.now()));
+    recordAudit({
+      tenantId: teacher.tenantId,
+      actorId: teacher.id,
+      actorRole: "teacher",
+      action: "approve_reflection",
+      reflectionId,
+      at: world.clock.now(),
+    });
+  }
+  return { ok: true };
 }
 
 /**

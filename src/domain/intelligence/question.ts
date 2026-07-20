@@ -48,6 +48,12 @@ export interface ReflectionQuestionSet {
   /** Cap on adaptive follow-ups (spec → default max 4). */
   maxFollowups: number;
   createdAt: Date;
+  /**
+   * When a teacher approved these AI-drafted questions for students. `null` = a
+   * draft awaiting review. AI output NEVER reaches a student until a person sets
+   * this. A person owns the decision — the model only labors (drafts).
+   */
+  approvedAt: Date | null;
 }
 
 export const MIN_PRIMARY_QUESTIONS = 4;
@@ -99,4 +105,22 @@ export function createReflectionQuestionSet(
     );
   }
   return Object.freeze(parsed);
+}
+
+/** True once a teacher has approved the draft for students. The student gate. */
+export function isQuestionSetApproved(set: ReflectionQuestionSet): boolean {
+  return set.approvedAt !== null;
+}
+
+/**
+ * A teacher approves the AI-drafted set, stamping the moment a person owned the
+ * decision. Returns a new frozen set; does not mutate. Idempotent — re-approving
+ * keeps the original approval time (the first human gate is the one that counts).
+ */
+export function approveQuestionSet(
+  set: ReflectionQuestionSet,
+  at: Date,
+): ReflectionQuestionSet {
+  if (set.approvedAt !== null) return set;
+  return createReflectionQuestionSet({ ...set, approvedAt: at });
 }

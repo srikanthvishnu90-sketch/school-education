@@ -3,6 +3,7 @@
 import {
   createReflectionMessage,
   createReflectionSession,
+  isQuestionSetApproved,
   type ReflectionQuestionSet,
   type ReflectionSession,
 } from "@/domain/intelligence";
@@ -175,7 +176,11 @@ export async function startReflection(
   const studentId = await requireStudent();
   const world = await getWorld();
   const set = await world.intel.questionSets.findByLesson(reflectionId);
-  if (set === null) throw new Error("This reflection is not available.");
+  // Fail closed: an unapproved (AI-drafted, teacher-not-yet-reviewed) set is not
+  // available to students — the same as no set at all. A person gates the AI.
+  if (set === null || !isQuestionSetApproved(set)) {
+    throw new Error("This reflection is not available.");
+  }
 
   const existing = await world.intel.sessions.findByReflectionAndStudent(
     reflectionId,
@@ -252,7 +257,11 @@ export async function sendReflectionMessage(
       throw new Error("This reflection is not accepting messages.");
     }
     const set = await world.intel.questionSets.findByLesson(found.reflectionId);
-    if (set === null) throw new Error("This reflection is not available.");
+    // Fail closed: an unapproved (AI-drafted, teacher-not-yet-reviewed) set is not
+  // available to students — the same as no set at all. A person gates the AI.
+  if (set === null || !isQuestionSetApproved(set)) {
+    throw new Error("This reflection is not available.");
+  }
 
     // This boundary creates and routes the counselor escalation. The intelligence
     // adapter's detector is only a stop signal and is not a substitute for routing.

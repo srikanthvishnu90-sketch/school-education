@@ -115,5 +115,8 @@ export function buildFactoringSurvey(
     adaptiveFollowupsEnabled: true,
     maxFollowups: 4,
     createdAt: now(),
+    // Seeded demo content is teacher-authored, so it ships pre-approved — the
+    // demo student flow runs out of the box without a manual approval step.
+    approvedAt: now(),
   });
 }
