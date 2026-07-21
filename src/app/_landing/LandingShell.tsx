@@ -54,16 +54,16 @@ export default function LandingShell({
           <LoginButton role={role} />
         </header>
 
-        <main id="main-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
+        <main id="main-content" tabIndex={-1} className="graph-paper-dark flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
           <div className="w-full max-w-xl">
-            <h1 className="text-center text-[24px] font-normal tracking-tight text-shell-text sm:text-[30px]">
+            <h1 className="text-center font-voice text-[28px] font-normal leading-tight tracking-tight text-shell-text sm:text-[36px]">
               {headline}
             </h1>
             <p className="mt-3 text-center text-[14px] leading-relaxed text-shell-muted">
               {subline}
             </p>
-            <div className="mt-6">
-              <HeroInput />
+            <div className="mt-8">
+              <HeroInput role={role} />
             </div>
             <QuickActions role={role} />
           </div>

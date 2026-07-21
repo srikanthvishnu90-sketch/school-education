@@ -37,7 +37,7 @@ export default function StudentShell({
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center gap-2 px-4 py-3">
+        <header className="graph-paper-dark flex shrink-0 items-center gap-2 px-4 py-3">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}

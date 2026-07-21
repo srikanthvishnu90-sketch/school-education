@@ -87,31 +87,34 @@ export default async function ClassBriefPage({
       lessons={allLessons.map((l) => ({ reflectionId: l.reflectionId, title: l.title }))}
       activeId={reflectionId}
     >
-      {/* Today's lesson — the summary the teacher wrote, and any photos. */}
-      <p className="mt-6 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
-        {LESSON_TYPE_LABELS[lesson.lessonType]}
-      </p>
-      <h1 className="mt-2 text-3xl font-medium tracking-tight text-ink-black">
-        {lesson.title}
-      </h1>
-      <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-black">
-        {lesson.content}
-      </p>
-      {lesson.photos.length > 0 && (
-        <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {lesson.photos.map((src, i) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={i}
-              src={src}
-              alt={`Lesson photo ${i + 1}`}
-              width={400}
-              height={400}
-              className="aspect-square w-full rounded-control border border-ink-wash object-cover"
-            />
-          ))}
-        </div>
-      )}
+      {/* Today's lesson — the summary the teacher wrote, and any photos. A faint
+          graph-paper ground marks the hero as the notebook page it's drawn from. */}
+      <div className="graph-paper">
+        <p className="mt-6 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
+          {LESSON_TYPE_LABELS[lesson.lessonType]}
+        </p>
+        <h1 className="mt-2 font-voice text-3xl font-medium tracking-tight text-ink-black">
+          {lesson.title}
+        </h1>
+        <p className="mt-3 whitespace-pre-line text-[15px] leading-relaxed text-ink-black">
+          {lesson.content}
+        </p>
+        {lesson.photos.length > 0 && (
+          <div className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-4">
+            {lesson.photos.map((src, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={src}
+                alt={`Lesson photo ${i + 1}`}
+                width={400}
+                height={400}
+                className="aspect-square w-full rounded-control border border-ink-wash object-cover"
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {awaitingApproval && draft !== null ? (
         <ApproveQuestions reflectionId={reflectionId} questions={draft.questions} />
@@ -157,7 +160,7 @@ function ClassBriefBody({
       <p className="mt-10 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
         Class brief · {studentCount} reflection{studentCount === 1 ? "" : "s"}
       </p>
-      <h2 className="mt-2 text-2xl font-medium tracking-tight text-ink-black">
+      <h2 className="mt-2 font-voice text-2xl font-medium tracking-tight text-ink-black">
         Where the class landed
       </h2>
 

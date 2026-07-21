@@ -19,7 +19,7 @@ export default function LegalPage({
 }): ReactElement {
   return (
     <div className="flex min-h-screen flex-col bg-paper text-ink-black">
-      <header className="border-b border-ink-wash bg-white px-6 py-4">
+      <header className="graph-paper border-b border-ink-wash bg-white px-6 py-4">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
           <Link
             href="/"
@@ -38,7 +38,7 @@ export default function LegalPage({
 
       <main id="main-content" tabIndex={-1} className="flex-1 px-6 py-12">
         <article className="mx-auto max-w-3xl">
-          <h1 className="text-3xl font-medium tracking-tight text-ink-black">
+          <h1 className="font-voice text-3xl font-medium tracking-tight text-ink-black">
             {title}
           </h1>
           {updated !== undefined && (

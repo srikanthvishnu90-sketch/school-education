@@ -78,7 +78,7 @@ export default function CourseChat({
         aria-live="polite"
         aria-relevant="additions text"
         aria-busy={pending}
-        className="min-h-0 flex-1 overflow-y-auto"
+        className="graph-paper-dark min-h-0 flex-1 overflow-y-auto"
       >
         <div className="mx-auto flex max-w-2xl flex-col gap-4 px-1 py-4">
           {messages.map((m, i) => (

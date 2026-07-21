@@ -8,6 +8,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type ReactElement,
 } from "react";
+import PlumbLine from "@/app/_ui/PlumbLine";
 import { grantReflectionConsent } from "@/app/_world/consentActions";
 
 const AGE_OPTIONS: ReadonlyArray<{ label: string; under13: boolean }> = [
@@ -91,12 +92,17 @@ export default function ConsentForm({ next }: { next: string }): ReactElement {
 
   return (
     <div className="w-full max-w-md">
-      <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-shell-muted">
-        Before you start
-      </p>
-      <h1 className="mt-2 text-[24px] font-normal tracking-tight text-shell-text">
-        A quick okay to reflect
-      </h1>
+      <div className="flex items-start gap-3">
+        <PlumbLine height={52} className="hidden text-shell-accent sm:flex" />
+        <div>
+          <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-shell-muted">
+            Before you start
+          </p>
+          <h1 className="mt-2 font-voice text-[24px] font-normal tracking-tight text-shell-text">
+            A quick okay to reflect
+          </h1>
+        </div>
+      </div>
       <p className="mt-3 text-[14px] leading-relaxed text-shell-muted">
         A reflection asks how a lesson went and how it felt. Your answers are
         private — your teacher sees a short summary, never this chat, and your

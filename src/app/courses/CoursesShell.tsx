@@ -4,6 +4,7 @@ import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useState, type ReactElement } from "react";
 import Sidebar from "@/app/_landing/Sidebar";
+import PlumbLine from "@/app/_ui/PlumbLine";
 import type { CourseCard } from "@/app/_world/courseActions";
 import type { Subject } from "@/app/_world/courses";
 
@@ -50,7 +51,7 @@ export default function CoursesShell({
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center gap-2 px-4 py-3">
+        <header className="graph-paper-dark flex shrink-0 items-center gap-2 px-4 py-3">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -64,9 +65,12 @@ export default function CoursesShell({
 
         <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto px-5 pb-12">
           <div className="mx-auto max-w-4xl">
-            <h1 className="mt-4 text-[22px] font-normal tracking-tight sm:text-[28px]">
-              {greeting}
-            </h1>
+            <div className="mt-4 flex items-start gap-3">
+              <PlumbLine height={40} className="hidden text-shell-accent sm:flex" />
+              <h1 className="font-voice text-[22px] font-normal tracking-tight sm:text-[28px]">
+                {greeting}
+              </h1>
+            </div>
             <p className="mt-2 text-[14px] text-shell-muted">
               Pick a class to reflect on what happened today.
             </p>

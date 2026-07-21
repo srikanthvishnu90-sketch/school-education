@@ -104,7 +104,7 @@ export default function CourseShell({
       />
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center gap-2 px-4 py-3">
+        <header className="graph-paper-dark flex shrink-0 items-center gap-2 px-4 py-3">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -124,7 +124,7 @@ export default function CourseShell({
 
         <main id="main-content" tabIndex={-1} className="flex min-h-0 flex-1 flex-col px-4 pb-2">
           <div className="mx-auto w-full max-w-2xl shrink-0 pt-1">
-            <h1 className="text-[22px] font-normal tracking-tight sm:text-[26px]">
+            <h1 className="font-voice text-[22px] font-normal tracking-tight sm:text-[26px]">
               {course.name}
             </h1>
             <p className="mt-1 text-[13px] text-shell-muted">
