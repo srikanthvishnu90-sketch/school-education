@@ -42,6 +42,31 @@ the fix order **A → B → C → D → E → F → G**. Never delete a finding;
 4. **A6/A7** — remove counselor/therapy voice from the safety surface; add the
    audience+safety disclosure banner to `CourseChat`. **P0.**
 
+## Design + functionality overhaul (identity → 9/10)
+
+- **Identity unified (foundation):** the dark shell is now DEEP INK NAVY (same ink DNA
+  as the light surfaces), not ChatGPT gray; the accent is PLUMB BRASS (#BD9052), not
+  green. One coherent identity, two modes. `shell-sage` fully renamed to `shell-accent`.
+  WCAG AA contrast verified across the whole navy palette (all text ≥4.5:1).
+- **Real typography:** Fraunces display serif loaded + applied to display headings and
+  a distinctive `plumb` **wordmark** (brass plumb-bob hanging from the "b"). Inter stays
+  for data/body.
+- **Identity motif:** the product's namesake made visible — a `PlumbLine` component
+  (cord + brass bob "settling to true") + `graph-paper` / `graph-paper-dark` grids
+  across surfaces; ONE signature motion moment (the plumb line settles to true vertical),
+  reduced-motion safe, on the landing hero and the reflection summary.
+- **Honest landing:** the fake ChatGPT composer (a disabled input dressed as interactive)
+  is gone — replaced with an honest brass "Sign in to start" door + editorial hero.
+- **Reflection chat + student home** refined to premium craft, all a11y preserved.
+- **Functionality — exemplar + feedback:** the retrieval-practice mastery probe now
+  closes against a teacher's WORKED EXAMPLE (attempt from memory → compare to the
+  correct answer) — real feedback that teaches (Kluger & DeNisi), not text-collection.
+- **Functionality — grade bands:** a lesson can be tagged K-2 / 3-5 / 6-8 / 9-12; the
+  engine phrases the same questions age-appropriately (plainer for younger). No longer
+  one-size-fits-all.
+- All shipped via specialized agents on disjoint files, integrated + verified centrally
+  (`pnpm check` 435 tests + `pnpm build` green).
+
 ## Blocked / held (external)
 
 - **B7** rls-audit CI + durable Postgres — held on `DATABASE_URL` (needs Neon or a
