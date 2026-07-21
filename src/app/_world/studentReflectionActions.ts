@@ -32,6 +32,10 @@ export async function listStudentReflections(): Promise<
   }
 
   const world = await getWorld();
+  // A self-signup who is on no class roster must NOT see a real school's lesson feed
+  // (privacy). Enrolled demo students (SEED_STUDENTS) pass; a random signup gets an
+  // empty inbox by design. (Consistency with /courses for self-signups is a separate
+  // follow-up — the correct direction is to gate /courses too, never to open this.)
   const enrolled = world.students.some((student) => student.id === user.id);
   if (!enrolled) return [];
   const [allLessons, sessions] = await Promise.all([

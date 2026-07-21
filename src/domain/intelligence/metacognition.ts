@@ -135,6 +135,57 @@ export function deriveReflectionOutcome(
   };
 }
 
+/**
+ * The class-level calibration read, in COUNTS only — never per-student. This is the
+ * aggregate a teacher may see (Part 1 #1): how many graded students' in-chat
+ * self-confidence ran ahead of, behind, or in line with their actual result. No
+ * names, no emotional text, no ordering — a headcount per bucket. Buckets are named
+ * neutrally and about the work, never "overconfident students" (feedback is
+ * task-focused, and this only OPENS the teacher's read).
+ */
+export interface ClassCalibrationSummary {
+  /** Graded students considered (each contributes one outcome). */
+  gradedCount: number;
+  /** Of those, how many also had a self-confidence to compare (alignment !== null). */
+  comparableCount: number;
+  /** Self-confidence matched the result within the tolerance band. */
+  alignedCount: number;
+  /** Self-confidence ran ahead of the result. */
+  confidenceAheadCount: number;
+  /** The result ran ahead of the self-confidence. */
+  resultAheadCount: number;
+}
+
+/**
+ * Fold a set of graded reflection outcomes into class-level calibration counts.
+ * Aggregate only — the input is per-student but nothing per-student leaves this
+ * function; the output is five headcounts. Outcomes without a self-confidence are
+ * still counted as graded but never placed in a comparison bucket.
+ */
+export function summarizeClassCalibration(
+  outcomes: readonly ReflectionOutcome[],
+): ClassCalibrationSummary {
+  let comparableCount = 0;
+  let alignedCount = 0;
+  let confidenceAheadCount = 0;
+  let resultAheadCount = 0;
+  for (const outcome of outcomes) {
+    if (outcome.alignment === null) continue;
+    comparableCount += 1;
+    if (outcome.alignment === "aligned") alignedCount += 1;
+    else if (outcome.alignment === "confidence_ahead_of_result") {
+      confidenceAheadCount += 1;
+    } else resultAheadCount += 1;
+  }
+  return {
+    gradedCount: outcomes.length,
+    comparableCount,
+    alignedCount,
+    confidenceAheadCount,
+    resultAheadCount,
+  };
+}
+
 export type TrendDirection =
   | "converging"
   | "diverging"

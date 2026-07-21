@@ -36,8 +36,11 @@ const KNOWN_ROLES: readonly AuthUser[] = [
   { email: "avery@demo.school", id: "student-avery", role: "student" },
   { email: "blake@demo.school", id: "student-blake", role: "student" },
   { email: "casey@demo.school", id: "student-casey", role: "student" },
-  { email: "teacher@demo.school", id: TEACHER_ID, role: "teacher" },
-  { email: "counselor@demo.school", id: COUNSELOR_ID, role: "counselor" },
+  // Elevated demo roles use the SAME emails as the password store (credentials.ts)
+  // and the on-screen demo hints, so the documented account logs into the right role
+  // through the live magic-link door — never silently self-serves as a student.
+  { email: "rivera@demo.school", id: TEACHER_ID, role: "teacher" },
+  { email: "okafor@demo.school", id: COUNSELOR_ID, role: "counselor" },
 ];
 
 function normalize(email: string): string {

@@ -28,11 +28,14 @@ export default async function RosterPage(): Promise<ReactElement> {
       teacherName={TEACHER_NAME}
       lessons={lessons.map((l) => ({ reflectionId: l.reflectionId, title: l.title }))}
     >
-      <h1 className="text-2xl font-semibold tracking-tight text-ink-black">Class roster</h1>
+      <h1 className="text-2xl font-semibold tracking-tight text-ink-black">
+        Student name list
+      </h1>
       <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-secondary">
-        Add the students in your class. Beyond being your class list, these names are
-        stripped out of anything the reflection assistant processes — so a student&rsquo;s
-        name is redacted before a payload is sent to a model.
+        Add your students&rsquo; names so plumb can strip them out of anything the
+        reflection assistant processes — a name is redacted before any payload reaches
+        a model. This is a privacy list only: it does not create student accounts or
+        decide who can reflect (students sign in themselves).
       </p>
 
       <div className="mt-6 max-w-2xl rounded-card border border-ink-wash bg-white p-5">

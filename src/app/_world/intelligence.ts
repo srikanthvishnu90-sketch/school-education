@@ -168,6 +168,17 @@ const SEED_LESSONS: readonly SeedLessonSpec[] = [
       "I modeled three examples of factoring quadratic equations, then students solved six problems independently.",
   },
   {
+    // A SECOND demo lesson in the same class, so a student can reflect twice — which
+    // is what makes loop closure ("last time you chose X — what happened?") and a
+    // multi-day "My journey" visible out of the box.
+    id: "lesson-demo-slope",
+    tenantId: "district-demo",
+    teacherId: "teacher-1",
+    title: "Slope of a line",
+    content:
+      "I showed how to find the slope between two points, then students found the slope for eight point-pairs on their own.",
+  },
+  {
     id: NORTH_REFLECTION_ID,
     tenantId: "district-north",
     teacherId: "teacher-north",

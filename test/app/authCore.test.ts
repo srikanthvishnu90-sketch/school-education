@@ -37,8 +37,8 @@ describe("magic-link tokens", () => {
 describe("directory", () => {
   it("maps provisioned emails (case-insensitive) to roles", () => {
     expect(lookupByEmail("AVERY@demo.school")?.role).toBe("student");
-    expect(lookupByEmail("teacher@demo.school")?.role).toBe("teacher");
-    expect(lookupByEmail("counselor@demo.school")?.role).toBe("counselor");
+    expect(lookupByEmail("rivera@demo.school")?.role).toBe("teacher");
+    expect(lookupByEmail("okafor@demo.school")?.role).toBe("counselor");
   });
 
   it("self-signs-up any plausible email as a student (stable, storage-free id)", () => {
@@ -82,7 +82,7 @@ describe("closed-pilot access gate", () => {
     try {
       expect(isSeededEmail("avery@demo.school")).toBe(true);
       expect(pilotGateAccepts("avery@demo.school", undefined)).toBe(true);
-      expect(pilotGateAccepts("teacher@demo.school", undefined)).toBe(true);
+      expect(pilotGateAccepts("rivera@demo.school", undefined)).toBe(true);
     } finally {
       delete process.env[CODE];
     }

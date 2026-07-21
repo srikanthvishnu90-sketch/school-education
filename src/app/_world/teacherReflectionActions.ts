@@ -10,7 +10,14 @@ import type {
   ClassInsightSummary,
   StudentInsightSummary,
 } from "@/domain/intelligence/insight";
-import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
+import {
+  createReflectionPerformance,
+  deriveReflectionOutcome,
+  readSelfConfidence,
+  summarizeClassCalibration,
+  type ClassCalibrationSummary,
+  type ReflectionOutcome,
+} from "@/domain/intelligence/metacognition";
 import {
   approveQuestionSet,
   isQuestionSetApproved,
@@ -127,6 +134,17 @@ export interface ClassBriefView {
    * (Part 1 #1). Enforced here at the query level, not just the component.
    */
   studentCount: number;
+  /** Distinct students who FINISHED reflecting on this lesson (a count). */
+  completedCount: number;
+  /** Distinct students who STARTED a reflection on this lesson, any status (a count). */
+  startedCount: number;
+  /**
+   * Class calibration for this reflection, in aggregate COUNTS only — how many
+   * graded students' self-confidence ran ahead of, behind, or in line with their
+   * result. No names, no ordering, no emotional text (Part 1 #1). `gradedCount` is
+   * 0 until at least one student's work has been scored.
+   */
+  calibration: ClassCalibrationSummary;
 }
 
 export interface StudentScoreRow {
@@ -358,9 +376,8 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
   const teacher = await requireTeacher();
   const world = await getWorld();
   if ((await ownedLesson(world, reflectionId, teacher)) === null) return null;
-  const sessions = (await world.intel.sessions.listByReflection(reflectionId)).filter(
-    (s) => s.status === "completed",
-  );
+  const allSessions = await world.intel.sessions.listByReflection(reflectionId);
+  const sessions = allSessions.filter((s) => s.status === "completed");
   const students: ClassStudentInput[] = [];
   const summaries: StudentInsightSummary[] = [];
   for (const session of sessions) {
@@ -374,6 +391,31 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
     summaries.push(summary);
   }
   if (students.length === 0) return null;
+
+  // Completion figures — distinct students, so a second session never double-counts.
+  const startedCount = new Set(allSessions.map((s) => s.studentId)).size;
+  // One completed session per student is enough to read confidence for calibration.
+  const completedByStudent = new Map<string, (typeof sessions)[number]>();
+  for (const session of sessions) {
+    if (!completedByStudent.has(session.studentId)) {
+      completedByStudent.set(session.studentId, session);
+    }
+  }
+  const completedCount = completedByStudent.size;
+
+  // Aggregate class calibration: for each graded student in this reflection, set the
+  // teacher-entered score beside the confidence they expressed in chat, then fold the
+  // per-student alignments down to COUNTS. No name or emotional text leaves this loop.
+  const outcomes: ReflectionOutcome[] = [];
+  for (const [studentId, session] of completedByStudent) {
+    const perf = await world.intel.performances.findByReflectionAndStudent(
+      reflectionId,
+      studentId,
+    );
+    if (perf === null) continue;
+    outcomes.push(deriveReflectionOutcome(perf, readSelfConfidence(session)));
+  }
+  const calibration = summarizeClassCalibration(outcomes);
   const brief = await world.intelligence.summarizeClassReflection({
     classId: TEACHER_CLASS_ID,
     reflectionId,
@@ -393,7 +435,13 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
       at: world.clock.now(),
     });
   }
-  return { brief, studentCount: summaries.length };
+  return {
+    brief,
+    studentCount: summaries.length,
+    completedCount,
+    startedCount,
+    calibration,
+  };
 }
 
 /**

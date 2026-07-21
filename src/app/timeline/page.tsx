@@ -55,8 +55,9 @@ export default async function TimelinePage(): Promise<ReactElement> {
 
       {entries.length === 0 ? (
         <p className="mt-6 text-[15px] leading-relaxed text-secondary">
-          Once a reflection has a graded result, it shows up here beside how sure you
-          felt — so you can see, over time, how well you know your own work.
+          Each reflection you finish shows up here, with the next step you chose. Once
+          it has a graded result, you also see how sure you felt beside how it went —
+          so you can watch, over time, how well you know your own work.
         </p>
       ) : (
         <>
@@ -88,38 +89,55 @@ export default async function TimelinePage(): Promise<ReactElement> {
 
 function TimelineRow({ entry }: { entry: TimelineEntry }): ReactElement {
   const matched = entry.alignment === "aligned";
+  const graded = entry.scorePercent !== null;
   return (
     <li className="rounded-card border border-ink-wash bg-white p-5">
       <p className="text-[15px] font-medium text-ink-black">{entry.title}</p>
-      <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-[14px]">
-        <span className="text-secondary">
-          Result{" "}
-          <span className="font-medium text-ink-black">{entry.scorePercent}%</span>
-        </span>
-        <span className="text-secondary">
-          How sure you felt{" "}
-          <span className="font-medium text-ink-black">
-            {entry.selfConfidencePercent === null
-              ? "—"
-              : `${entry.selfConfidencePercent}%`}
-          </span>
-        </span>
-      </div>
-      {entry.alignment !== null ? (
-        <div className="mt-3 flex items-center gap-2">
-          <span
-            className={
-              matched
-                ? "inline-block h-2 w-2 rounded-full bg-ink-tint"
-                : "inline-block h-2 w-2 rounded-full bg-warm"
-            }
-            aria-hidden
-          />
-          <span className="text-[14px] text-ink-black">
-            {ALIGNMENT_COPY[entry.alignment]}
-          </span>
-        </div>
+      {entry.selectedAction !== undefined && entry.selectedAction !== "" ? (
+        <p className="mt-2 text-[14px] leading-relaxed text-secondary">
+          You chose to try:{" "}
+          <span className="text-ink-black">{entry.selectedAction}</span>
+        </p>
       ) : null}
+      {graded ? (
+        <>
+          <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-[14px]">
+            <span className="text-secondary">
+              Result{" "}
+              <span className="font-medium text-ink-black">
+                {entry.scorePercent}%
+              </span>
+            </span>
+            <span className="text-secondary">
+              How sure you felt{" "}
+              <span className="font-medium text-ink-black">
+                {entry.selfConfidencePercent === null
+                  ? "—"
+                  : `${entry.selfConfidencePercent}%`}
+              </span>
+            </span>
+          </div>
+          {entry.alignment !== null ? (
+            <div className="mt-3 flex items-center gap-2">
+              <span
+                className={
+                  matched
+                    ? "inline-block h-2 w-2 rounded-full bg-ink-tint"
+                    : "inline-block h-2 w-2 rounded-full bg-warm"
+                }
+                aria-hidden
+              />
+              <span className="text-[14px] text-ink-black">
+                {ALIGNMENT_COPY[entry.alignment]}
+              </span>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <p className="mt-3 text-[14px] leading-relaxed text-secondary">
+          Waiting on your teacher&rsquo;s score.
+        </p>
+      )}
     </li>
   );
 }

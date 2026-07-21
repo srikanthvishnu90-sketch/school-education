@@ -7,6 +7,7 @@ import {
   metacognitiveTrend,
   performanceBand,
   readSelfConfidence,
+  summarizeClassCalibration,
   type ReflectionOutcome,
 } from "@/domain/intelligence/metacognition";
 import { createReflectionSession } from "@/domain/intelligence/session";
@@ -185,5 +186,55 @@ describe("metacognitiveTrend", () => {
       outcome("l1", 0.9, 0.3, 1),
     ]);
     expect(trend.points.map((p) => p.reflectionId)).toEqual(["l1", "l2"]);
+  });
+});
+
+describe("summarizeClassCalibration", () => {
+  const graded = (
+    id: string,
+    score: number,
+    selfConfidence: number | null,
+  ): ReflectionOutcome =>
+    deriveReflectionOutcome(
+      { reflectionId: id, studentId: `s-${id}`, score, recordedAt: AT },
+      selfConfidence,
+    );
+
+  it("folds per-student outcomes into aggregate counts by bucket", () => {
+    const summary = summarizeClassCalibration([
+      graded("l1", 0.5, 0.55), // aligned (gap 0.05)
+      graded("l2", 0.3, 0.9), // confidence ahead of result
+      graded("l3", 0.9, 0.4), // result ahead of confidence
+      graded("l4", 0.8, 0.82), // aligned
+    ]);
+    expect(summary).toEqual({
+      gradedCount: 4,
+      comparableCount: 4,
+      alignedCount: 2,
+      confidenceAheadCount: 1,
+      resultAheadCount: 1,
+    });
+  });
+
+  it("counts a graded student with no self-confidence but never buckets them", () => {
+    const summary = summarizeClassCalibration([
+      graded("l1", 0.5, 0.55), // aligned
+      graded("l2", 0.4, null), // graded, no confidence to compare
+    ]);
+    expect(summary.gradedCount).toBe(2);
+    expect(summary.comparableCount).toBe(1);
+    expect(summary.alignedCount).toBe(1);
+    expect(summary.confidenceAheadCount).toBe(0);
+    expect(summary.resultAheadCount).toBe(0);
+  });
+
+  it("is all zeros when no students are graded", () => {
+    expect(summarizeClassCalibration([])).toEqual({
+      gradedCount: 0,
+      comparableCount: 0,
+      alignedCount: 0,
+      confidenceAheadCount: 0,
+      resultAheadCount: 0,
+    });
   });
 });

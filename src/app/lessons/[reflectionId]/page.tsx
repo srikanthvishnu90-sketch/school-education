@@ -11,6 +11,7 @@ import {
 import { studentDisplayName, TEACHER_NAME } from "@/app/_world/teacher";
 import type { AttentionGroup } from "@/domain/intelligence/insight";
 import type { LessonType } from "@/domain/intelligence/lesson";
+import type { ClassCalibrationSummary } from "@/domain/intelligence/metacognition";
 import TeacherShell from "../TeacherShell";
 import ApproveQuestions from "./ApproveQuestions";
 import DeleteLessonButton from "./DeleteLessonButton";
@@ -154,7 +155,7 @@ function ClassBriefBody({
   view: NonNullable<Awaited<ReturnType<typeof buildClassBrief>>>;
   byGroup: Map<AttentionGroup, string[]>;
 }): ReactElement {
-  const { brief, studentCount } = view;
+  const { brief, studentCount, completedCount, startedCount, calibration } = view;
   return (
     <>
       <p className="mt-10 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
@@ -163,6 +164,12 @@ function ClassBriefBody({
       <h2 className="mt-2 font-voice text-2xl font-medium tracking-tight text-ink-black">
         Where the class landed
       </h2>
+      <p className="mt-2 text-[14px] text-secondary">
+        {completedCount} of {startedCount} student{startedCount === 1 ? "" : "s"} have
+        reflected.
+      </p>
+
+      <ClassCalibrationPanel calibration={calibration} />
 
       <div className="mt-8 flex flex-col gap-4">
         <Panel label="Understanding">{brief.technicalSummary}</Panel>
@@ -227,6 +234,104 @@ function ClassBriefBody({
         </section>
       ) : null}
     </>
+  );
+}
+
+/**
+ * The class calibration read: how the class's own sense of the work lined up with
+ * the graded results, in aggregate COUNTS only (no names, no student writing). An
+ * aligned bucket reads in ink-tint; a gap between confidence and result carries the
+ * warm accent — never green-good / red-bad. Until any work is graded it shows a calm
+ * hint rather than an empty grid.
+ */
+function ClassCalibrationPanel({
+  calibration,
+}: {
+  calibration: ClassCalibrationSummary;
+}): ReactElement {
+  const { gradedCount, comparableCount, alignedCount, confidenceAheadCount, resultAheadCount } =
+    calibration;
+  return (
+    <section className="mt-10">
+      <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+        Calibration
+      </h2>
+      <p className="mt-2 text-[14px] text-secondary">
+        How the class&rsquo;s sense of the work lined up with the graded results —
+        read after the fact, never a bet up front.
+      </p>
+      {gradedCount === 0 ? (
+        <p className="mt-4 rounded-card border border-ink-wash bg-white p-4 text-[14px] text-secondary">
+          Grade the work below to see how the class&rsquo;s confidence lined up with
+          the results.
+        </p>
+      ) : (
+        <>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <CalibrationStat
+              tone="aligned"
+              count={alignedCount}
+              label="Confidence matched the result"
+            />
+            <CalibrationStat
+              tone="gap"
+              count={confidenceAheadCount}
+              label="Confidence ran ahead of the result"
+            />
+            <CalibrationStat
+              tone="gap"
+              count={resultAheadCount}
+              label="Result ran ahead of confidence"
+            />
+          </div>
+          {comparableCount < gradedCount ? (
+            <p className="mt-3 text-[13px] text-secondary">
+              Based on {comparableCount} of {gradedCount} graded student
+              {gradedCount === 1 ? "" : "s"} who shared how sure they felt.
+            </p>
+          ) : null}
+        </>
+      )}
+    </section>
+  );
+}
+
+/** One calibration count. Aligned reads in ink-tint; a gap carries the warm accent. */
+function CalibrationStat({
+  tone,
+  count,
+  label,
+}: {
+  tone: "aligned" | "gap";
+  count: number;
+  label: string;
+}): ReactElement {
+  const aligned = tone === "aligned";
+  return (
+    <div className="rounded-card border border-ink-wash bg-white p-4">
+      <div className="flex items-center gap-2">
+        <span
+          className={
+            aligned
+              ? "inline-block h-2 w-2 rounded-full bg-ink-tint"
+              : "inline-block h-2 w-2 rounded-full bg-warm"
+          }
+          aria-hidden
+        />
+        {/* Warm is an accent only (the dot), never a text color — so a gap count
+            reads in ink; the warm dot alone carries the "gap" signal. */}
+        <span
+          className={
+            aligned
+              ? "text-2xl font-medium text-ink-tint"
+              : "text-2xl font-medium text-ink-black"
+          }
+        >
+          {count}
+        </span>
+      </div>
+      <p className="mt-2 text-[13px] leading-relaxed text-secondary">{label}</p>
+    </div>
   );
 }
 
