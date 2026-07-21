@@ -186,7 +186,11 @@ export default function SignInList({
               <ArrowRight size={15} aria-hidden className="text-shell-muted" />
             </button>
           ) : sent ? (
-            <p className="px-5 py-5 text-[14px] leading-relaxed text-shell-muted">
+            <p
+              role="status"
+              aria-live="polite"
+              className="px-5 py-5 text-[14px] leading-relaxed text-shell-muted"
+            >
               If that email has an account, a sign-in link is on its way. Check your
               inbox.
               {devLink !== null && (
@@ -227,7 +231,7 @@ export default function SignInList({
                   disabled={pending || email.trim().length === 0}
                   className="rounded-lg bg-shell-sage px-4 py-2 text-sm font-medium text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
                 >
-                  Send link
+                  {pending ? "Sending…" : "Send link"}
                 </button>
               </div>
               <input
@@ -239,11 +243,12 @@ export default function SignInList({
                   setCodeRejected(false);
                 }}
                 placeholder="Pilot access code (if you were given one)"
+                aria-label="Pilot access code"
                 aria-invalid={codeRejected}
                 className="rounded-lg border border-shell-border bg-shell-panel px-3 py-2 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-sage"
               />
               {codeRejected && (
-                <p className="text-[13px] text-shell-muted">
+                <p role="alert" className="text-[13px] text-shell-muted">
                   That access code isn’t valid for this pilot. Check the code from
                   your invite and try again.
                 </p>

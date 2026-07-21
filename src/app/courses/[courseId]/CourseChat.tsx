@@ -68,7 +68,14 @@ export default function CourseChat({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        role="log"
+        aria-label={`Study chat about ${courseName}`}
+        aria-live="polite"
+        aria-relevant="additions text"
+        aria-busy={pending}
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
         <div className="mx-auto flex max-w-2xl flex-col gap-4 px-1 py-4">
           {messages.map((m, i) => (
             <div
@@ -98,7 +105,12 @@ export default function CourseChat({
 
       <div className="mx-auto w-full max-w-2xl px-1 pb-4">
         {error !== null && (
-          <p className="mb-2 text-[13px] text-shell-text">{error}</p>
+          <p
+            role="alert"
+            className="mb-2 rounded-control border border-shell-border bg-shell-card px-3 py-2 text-[13px] leading-relaxed text-shell-text"
+          >
+            {error}
+          </p>
         )}
         <div className="flex items-end gap-2 rounded-2xl border border-shell-border bg-shell-panel px-3 py-2">
           <textarea
@@ -121,7 +133,7 @@ export default function CourseChat({
             onClick={send}
             disabled={pending || crisis || input.trim().length === 0}
             aria-label="Send"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-shell-sage text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-shell-sage text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             <ArrowUp size={17} />
           </button>

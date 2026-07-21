@@ -165,9 +165,11 @@ export default function NewLessonForm(): ReactElement {
               type="button"
               onClick={() => removePhoto(i)}
               aria-label={`Remove photo ${i + 1}`}
-              className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-ink-wash bg-white text-[12px] leading-none text-ink-black shadow-sm hover:border-ink-tint"
+              className="group absolute -right-[18px] -top-[18px] flex h-11 w-11 items-center justify-center"
             >
-              ×
+              <span className="flex h-5 w-5 items-center justify-center rounded-full border border-ink-wash bg-white text-[12px] leading-none text-ink-black shadow-sm transition-colors group-hover:border-ink-tint">
+                ×
+              </span>
             </button>
           </div>
         ))}

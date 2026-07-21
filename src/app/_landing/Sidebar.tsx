@@ -70,7 +70,7 @@ export default function Sidebar({
             type="button"
             onClick={onClose}
             aria-label="Close menu"
-            className="rounded-lg p-1 text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
           >
             <X size={16} />
           </button>
@@ -128,7 +128,7 @@ export default function Sidebar({
               <button
                 type="submit"
                 aria-label="Sign out"
-                className="rounded-lg p-1.5 text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-shell-muted transition-colors hover:bg-white/5 hover:text-shell-text"
               >
                 <LogOut size={16} aria-hidden />
               </button>

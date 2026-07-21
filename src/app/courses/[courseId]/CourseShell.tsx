@@ -2,7 +2,13 @@
 
 import { ArrowLeft, Menu, MessageSquareText } from "lucide-react";
 import Link from "next/link";
-import { useState, type ReactElement, type ReactNode } from "react";
+import {
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import Sidebar from "@/app/_landing/Sidebar";
 import type { AssistantMessage } from "@/app/_world/assistant";
 import type { CourseReflection } from "@/app/_world/courseActions";
@@ -19,6 +25,10 @@ import CourseChat from "./CourseChat";
  */
 
 type Tab = "reflection" | "chat";
+
+const TAB_ORDER: readonly Tab[] = ["reflection", "chat"];
+const tabId = (t: Tab): string => `course-tab-${t}`;
+const panelId = (t: Tab): string => `course-panel-${t}`;
 
 const STATUS_LABEL: Record<string, string> = {
   not_started: "Start reflection",
@@ -41,6 +51,41 @@ export default function CourseShell({
 }): ReactElement {
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("reflection");
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({
+    reflection: null,
+    chat: null,
+  });
+
+  const selectTab = (next: Tab): void => {
+    setTab(next);
+    tabRefs.current[next]?.focus();
+  };
+
+  // Roving-tabindex keyboard navigation for the tablist: arrows move focus AND
+  // selection, wrapping around; Home/End jump to the ends.
+  const onTabKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
+    const current = TAB_ORDER.indexOf(tab);
+    let nextIndex = current;
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = (current + 1) % TAB_ORDER.length;
+        break;
+      case "ArrowLeft":
+        nextIndex = (current - 1 + TAB_ORDER.length) % TAB_ORDER.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = TAB_ORDER.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    selectTab(TAB_ORDER[nextIndex]);
+  };
+
   const initials = studentName
     .split(" ")
     .map((w) => w[0])
@@ -64,7 +109,7 @@ export default function CourseShell({
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
-            className="rounded-lg p-2 text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
           >
             <Menu size={18} />
           </button>
@@ -90,16 +135,28 @@ export default function CourseShell({
             <div
               role="tablist"
               aria-label="Reflection or chat"
+              onKeyDown={onTabKeyDown}
               className="mt-4 flex gap-1 border-b border-shell-border"
             >
               <TabButton
+                tab="reflection"
                 active={tab === "reflection"}
-                onClick={() => setTab("reflection")}
+                onClick={() => selectTab("reflection")}
+                buttonRef={(el) => {
+                  tabRefs.current.reflection = el;
+                }}
                 badge={openCount > 0 ? openCount : undefined}
               >
                 Today&rsquo;s reflection
               </TabButton>
-              <TabButton active={tab === "chat"} onClick={() => setTab("chat")}>
+              <TabButton
+                tab="chat"
+                active={tab === "chat"}
+                onClick={() => selectTab("chat")}
+                buttonRef={(el) => {
+                  tabRefs.current.chat = el;
+                }}
+              >
                 Ask for help
               </TabButton>
             </div>
@@ -107,12 +164,14 @@ export default function CourseShell({
 
           {/* Reflection panel */}
           <section
+            id={panelId("reflection")}
             role="tabpanel"
-            aria-label="Today's reflection"
+            aria-labelledby={tabId("reflection")}
+            tabIndex={0}
             hidden={tab !== "reflection"}
             className={
               tab === "reflection"
-                ? "mx-auto w-full max-w-2xl overflow-y-auto pt-5"
+                ? "mx-auto w-full max-w-2xl overflow-y-auto pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage"
                 : "hidden"
             }
           >
@@ -155,10 +214,16 @@ export default function CourseShell({
 
           {/* Chat panel — stays mounted (hidden, not unmounted) so state survives */}
           <div
+            id={panelId("chat")}
             role="tabpanel"
-            aria-label="Ask for help"
+            aria-labelledby={tabId("chat")}
+            tabIndex={0}
             hidden={tab !== "chat"}
-            className={tab === "chat" ? "flex min-h-0 flex-1 flex-col" : "hidden"}
+            className={
+              tab === "chat"
+                ? "flex min-h-0 flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage"
+                : "hidden"
+            }
           >
             <CourseChat
               courseId={course.id}
@@ -174,13 +239,17 @@ export default function CourseShell({
 }
 
 function TabButton({
+  tab,
   active,
   onClick,
+  buttonRef,
   badge,
   children,
 }: {
+  tab: Tab;
   active: boolean;
   onClick: () => void;
+  buttonRef: (el: HTMLButtonElement | null) => void;
   badge?: number;
   children: ReactNode;
 }): ReactElement {
@@ -188,9 +257,13 @@ function TabButton({
     <button
       type="button"
       role="tab"
+      id={tabId(tab)}
+      ref={buttonRef}
       aria-selected={active}
+      aria-controls={panelId(tab)}
+      tabIndex={active ? 0 : -1}
       onClick={onClick}
-      className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-[14px] transition-colors ${
+      className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage ${
         active
           ? "border-shell-sage text-shell-text"
           : "border-transparent text-shell-muted hover:text-shell-text"

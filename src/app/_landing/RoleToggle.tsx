@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactElement } from "react";
+import { useRef, type KeyboardEvent, type ReactElement } from "react";
 
 /**
  * The Teacher / Student segmented control. Sized just a touch above the
@@ -26,10 +26,28 @@ export default function RoleToggle({
   onChange: (role: Role) => void;
 }): ReactElement {
   const index = ROLES.indexOf(role);
+  const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>): void => {
+    let next: number | null = null;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      next = (index + 1) % ROLES.length;
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      next = (index - 1 + ROLES.length) % ROLES.length;
+    } else if (event.key === "Home") {
+      next = 0;
+    } else if (event.key === "End") {
+      next = ROLES.length - 1;
+    }
+    if (next === null) return;
+    event.preventDefault();
+    onChange(ROLES[next]);
+    buttonRefs.current[next]?.focus();
+  };
 
   return (
     <div
-      role="tablist"
+      role="radiogroup"
       aria-label="Choose your role"
       className="relative flex h-9 w-[220px] shrink-0 items-center rounded-full bg-shell-track p-1 sm:h-10 sm:w-[240px]"
     >
@@ -39,15 +57,20 @@ export default function RoleToggle({
         className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-shell-sage transition-transform duration-200 ease-out motion-reduce:transition-none"
         style={{ transform: `translateX(${index * 100}%)` }}
       />
-      {ROLES.map((r) => {
+      {ROLES.map((r, i) => {
         const active = r === role;
         return (
           <button
             key={r}
+            ref={(el) => {
+              buttonRefs.current[i] = el;
+            }}
             type="button"
-            role="tab"
-            aria-selected={active}
+            role="radio"
+            aria-checked={active}
+            tabIndex={active ? 0 : -1}
             onClick={() => onChange(r)}
+            onKeyDown={handleKeyDown}
             className={`relative z-10 flex-1 rounded-full text-[15px] font-medium transition-colors sm:text-[16px] ${
               active
                 ? "text-shell-background"

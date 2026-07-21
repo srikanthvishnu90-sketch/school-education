@@ -168,28 +168,34 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
 
 ## E — ACCESSIBILITY (WCAG AA)
 
-- **E1** — Touch targets under 44px on primary actions: `CourseChat` send `h-8 w-8`
-  (32px, L119-127); `NewLessonForm` photo-remove `h-5 w-5` (20px, L164-171); landing
-  hamburger ~36px; `Sidebar` close ~24px / sign-out ~28px; `TeacherShell` close/menu/
-  sign-out all ~24-30px; `CoursesShell`/`CourseShell` hamburger ~34px. **Status: open.**
-- **E2** — `RoleToggle.tsx:31-60` uses `role="tablist"`/`tab`/`aria-selected` with **no**
-  tabpanels, no `aria-controls`, no arrow-key roving — invalid ARIA tab pattern; it's a
-  toggle. **Status: open.**
-- **E3** — `CourseShell.tsx` tabs (90-206) have no `aria-controls`, tabpanels lack
-  `id`/`aria-labelledby`, no roving `tabIndex`, panels not focusable. **Status: open.**
-- **E4** — `ConsentForm.tsx:100-127` age choices sit in a `<fieldset>/<legend>` implying
-  a radio group but are plain `<button>`s with no `role="radio"`/`aria-checked`;
-  selection is color + a filled dot only. **Status: open.**
-- **E5** — `CourseChat` thread (71-97) has no `role="log"`/`aria-live`; assistant replies
-  and the "thinking…" state are never announced (ChatFlow does this right). **Status: open.**
-- **E6** — `SignInList.tsx:233-244` "Pilot access code" input has no `<label>`/`aria-label`
-  — placeholder only, `aria-invalid` toggled with no accessible name. **Status: open.**
-- **E7** — `SignInList.tsx:245-250` `codeRejected` error and 188-206 "check your inbox"
-  confirmation have no `role="alert"`/`aria-live`. **Status: open.**
+- **E1** — Touch targets under 44px on nav/close/sign-out/send/photo-remove controls.
+  **Status: fixed.** Every one bumped to ≥44px via `min-h-11 min-w-11` (icon-only chrome
+  in Sidebar, TeacherShell, CoursesShell, CourseShell, LandingShell) or `h-11 w-11`
+  (CourseChat send; NewLessonForm photo-remove restructured to a 44px transparent hit
+  area around the small × glyph). Icon sizes and visual weight unchanged.
+- **E2** — `RoleToggle` used an invalid ARIA tab pattern (tabs with no tabpanels).
+  **Status: fixed.** It's a two-option mode selector, so it's now a `role="radiogroup"`
+  with `role="radio"` + `aria-checked`, roving tabindex, and Arrow/Home/End key
+  navigation. Visual pill unchanged.
+- **E3** — `CourseShell` tabs. **Status: fixed.** Full APG tabs pattern: `aria-controls`
+  tab→panel, panels get `id`/`role="tabpanel"`/`aria-labelledby`/`tabIndex={0}`, roving
+  tabindex, and Arrow/Home/End navigation with selection-follows-focus. Hamburger → 44px.
+- **E4** — `ConsentForm` age choices. **Status: fixed.** Now a `role="radiogroup"`
+  (labelled by the legend) with `role="radio"` + `aria-checked` per option, roving
+  tabindex, Arrow-key navigation, Space/Enter select. Selection is no longer color-only;
+  submit/consent logic untouched.
+- **E5** — `CourseChat` thread. **Status: fixed.** Now `role="log"` + `aria-live="polite"`
+  + `aria-relevant` + `aria-busy` (mirrors ChatFlow), so replies and "thinking…" are
+  announced.
+- **E6** — `SignInList` pilot-code input. **Status: fixed.** Added
+  `aria-label="Pilot access code"` (was placeholder-only).
+- **E7** — `SignInList` status announcements. **Status: fixed.** The rejection error is
+  `role="alert"`; the "check your inbox" confirmation is `role="status"` + `aria-live`;
+  the Send button now shows "Sending…" while pending.
 - **E8** — `ScoreEntry.tsx:67-78` invalid-score feedback is border color only
   (`border-warm`), no text, no `aria-invalid` — meaning is purely color. **Status: open.**
-- **E9** — `CourseChat.tsx:99-102` error is plain text, same color as body, no
-  `role="alert"`. **Status: open.**
+- **E9** — `CourseChat` error is now `role="alert"` on a bordered surface (not color-only).
+  **Status: fixed.**
 - **E10** — `DeleteLessonButton`/`RosterForm` inline errors have no `role="alert"`; roster
   relies on warm border for "error" meaning. **Status: open.**
 - **E11** — `LoginForm`/`ConsentForm` errors use `text-subject-math` (a subject-tag color)

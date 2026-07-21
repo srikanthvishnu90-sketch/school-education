@@ -74,7 +74,7 @@ export default function TeacherShell({
             type="button"
             onClick={() => setMenuOpen(false)}
             aria-label="Close menu"
-            className="rounded-control p-1 text-secondary hover:bg-paper md:hidden"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-control text-secondary hover:bg-paper md:hidden"
           >
             <X size={16} />
           </button>
@@ -126,7 +126,7 @@ export default function TeacherShell({
             <button
               type="submit"
               aria-label="Sign out"
-              className="rounded-control p-1.5 text-secondary transition-colors hover:bg-paper hover:text-ink-black"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-control text-secondary transition-colors hover:bg-paper hover:text-ink-black"
             >
               <LogOut size={16} aria-hidden />
             </button>
@@ -142,7 +142,7 @@ export default function TeacherShell({
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
-            className="rounded-control p-1.5 text-secondary hover:bg-paper md:hidden"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-control text-secondary hover:bg-paper md:hidden"
           >
             <Menu size={18} />
           </button>
