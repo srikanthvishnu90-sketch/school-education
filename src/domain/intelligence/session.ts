@@ -40,6 +40,14 @@ export interface ReflectionSession {
   selectedAction?: string;
   /** Whether the student confirmed (vs corrected) the AI's summary. */
   studentConfirmedSummary?: boolean;
+  /**
+   * The next step the student chose in their PREVIOUS reflection, carried into
+   * this one so the session opens by revisiting it ("Last time you chose X — what
+   * happened?"). This is Zimmerman loop closure — the cycle only closes when a
+   * later session checks what came of the earlier commitment. Undefined for a
+   * student's first-ever reflection (nothing to revisit).
+   */
+  carriedAction?: string;
   startedAt: Date;
   completedAt?: Date;
 }

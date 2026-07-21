@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   getSessionStudent: vi.fn(),
   getWorld: vi.fn(),
   screenReflectionText: vi.fn(),
+  hasReflectionConsent: vi.fn(),
 }));
 
 vi.mock("@/app/_world/session", () => ({
@@ -29,6 +30,10 @@ vi.mock("@/app/_world/world", () => ({
 
 vi.mock("@/app/_world/safetyActions", () => ({
   screenReflectionText: mocks.screenReflectionText,
+}));
+
+vi.mock("@/app/_world/consentActions", () => ({
+  hasReflectionConsent: mocks.hasReflectionConsent,
 }));
 
 import {
@@ -112,6 +117,7 @@ function makeWorld(initial?: {
   session?: ReflectionSession;
   summary?: StudentInsightSummary | null;
   nextTurn?: ConversationStep;
+  priorSessions?: ReflectionSession[];
 }): {
   world: World;
   savedSessions: Map<string, ReflectionSession>;
@@ -158,6 +164,7 @@ function makeWorld(initial?: {
                 session.studentId === studentId,
             ) ?? null,
         ),
+        listByStudent: vi.fn(async () => initial?.priorSessions ?? []),
       },
       studentSummaries: {
         save: vi.fn(async (summary: StudentInsightSummary) => {
@@ -175,6 +182,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.getSessionStudent.mockResolvedValue(STUDENT_ID);
   mocks.screenReflectionText.mockResolvedValue({ crisis: false });
+  mocks.hasReflectionConsent.mockResolvedValue(true);
 });
 
 describe("reflection server actions", () => {
@@ -199,6 +207,35 @@ describe("reflection server actions", () => {
     await expect(startReflection(REFLECTION_ID)).rejects.toThrow(
       "This reflection is not available.",
     );
+  });
+
+  it("carries the prior reflection's chosen step into a fresh session (loop closure)", async () => {
+    const priorCompleted = createReflectionSession({
+      id: "lesson-0:student-1",
+      reflectionId: "lesson-0",
+      studentId: STUDENT_ID,
+      status: "completed",
+      messages: [],
+      selectedAction: "Try one example with a checklist",
+      startedAt: new Date(NOW.getTime() - 86_400_000),
+      completedAt: new Date(NOW.getTime() - 86_000_000),
+    });
+    const { world, savedSessions } = makeWorld({ priorSessions: [priorCompleted] });
+    mocks.getWorld.mockResolvedValue(world);
+
+    await startReflection(REFLECTION_ID);
+
+    const created = savedSessions.get(SESSION_ID);
+    expect(created?.carriedAction).toBe("Try one example with a checklist");
+  });
+
+  it("leaves carriedAction unset when the student has no prior chosen step", async () => {
+    const { world, savedSessions } = makeWorld({ priorSessions: [] });
+    mocks.getWorld.mockResolvedValue(world);
+
+    await startReflection(REFLECTION_ID);
+
+    expect(savedSessions.get(SESSION_ID)?.carriedAction).toBeUndefined();
   });
 
   it("resumes an active transcript without duplicating its open question", async () => {

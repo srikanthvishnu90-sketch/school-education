@@ -222,6 +222,9 @@ export async function startReflection(
     throw new Error("Consent is required before starting a reflection.");
   }
 
+  // Loop closure: carry in the step the student chose in their PREVIOUS reflection
+  // so this session can open by revisiting it. Undefined for a first-ever reflection.
+  const carriedAction = await priorChosenAction(world, studentId, reflectionId);
   const session = createReflectionSession({
     id: `${reflectionId}:${studentId}`,
     reflectionId,
@@ -229,9 +232,33 @@ export async function startReflection(
     status: "active",
     startedAt: world.clock.now(),
     messages: [],
+    carriedAction,
   });
   const step = await world.intelligence.nextTurn({ session, questionSet: set });
   return advance(world, session, step);
+}
+
+/**
+ * The next step the student chose in their most recent OTHER completed reflection,
+ * or undefined if they have none yet. This is the commitment a new session revisits
+ * to close the self-regulated-learning loop.
+ */
+async function priorChosenAction(
+  world: World,
+  studentId: string,
+  currentReflectionId: string,
+): Promise<string | undefined> {
+  const sessions = await world.intel.sessions.listByStudent(studentId);
+  const prior = sessions
+    .filter(
+      (s) =>
+        s.reflectionId !== currentReflectionId &&
+        s.status === "completed" &&
+        s.selectedAction !== undefined &&
+        s.completedAt !== undefined,
+    )
+    .sort((a, b) => (b.completedAt as Date).getTime() - (a.completedAt as Date).getTime());
+  return prior[0]?.selectedAction;
 }
 
 export async function sendReflectionMessage(

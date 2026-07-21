@@ -58,6 +58,21 @@ const DEPTH_COUNT: Record<GenerateQuestionsInput["depth"], number> = {
 };
 
 const UNCERTAIN_OPTION = "I'm not sure";
+/**
+ * An OPTIONAL vocabulary assist for the free-text emotion beat — suggestions to
+ * widen a student's feeling words (Barrett granularity), never a closed picker and
+ * never required. The chat shows these as tap-to-start chips above a text box; the
+ * student can pick one, edit it, or ignore them entirely and write their own.
+ */
+const EMOTION_VOCABULARY = [
+  "Calm",
+  "Curious",
+  "Confused",
+  "Frustrated",
+  "Rushed",
+  "Discouraged",
+  "Proud",
+];
 const PREDICTION_OPTIONS = [
   "Not at all",
   "A little",
@@ -444,68 +459,58 @@ export function createDeterministicReflectionIntelligence(deps: {
     const taskAnchor = taskAnchorFor(analysis);
     const predictionAnchor = predictionAnchorFor(analysis);
     const episode = `this part of today's lesson on ${topic}: "${taskAnchor}"`;
-    // Ordered pool. Index 0 is technical, index 1 emotional, so any 4–6 prefix
-    // keeps the balance invariant (technical + emotional both present). Index 4
-    // is a task prediction, so STANDARD and DEEPER reflections produce a
-    // metacognitive scale answer that can later be compared with performance.
+    // Ordered pool = the Zimmerman arc, and every prompt is FREE-RESPONSE so the
+    // student writes in their own words (no closed pickers). It dissects two
+    // dimensions at once — the MENTAL/psychological (forethought goal, feeling) and
+    // the TECHNICAL (a retrieval-practice mastery demonstration, then where it broke).
+    //   0 forethought (mental) · 1 mastery-retrieval (technical, evidence of learning)
+    //   2 feeling (mental) · 3 what-you-did (behavioral) · 4 confidence prediction
+    //   (the ONE structured item — calibration's Brier/bias need a number) · 5 next step
+    // The technical (index 1) and emotional (index 2) beats sit within every 4–6
+    // slice, so the balance invariant holds for SHORTER(4)/STANDARD(5)/DEEPER(6).
     const pool: Omit<GeneratedQuestion, "id" | "order">[] = [
       {
-        category: "technical",
-        text: `Think back to ${episode}. Which moment is closest to what happened?`,
-        format: "multiple_choice",
-        options: [
-          "I started a first step without checking an example",
-          "I checked an example before choosing a first step",
-          "I started one way and then changed my approach",
-          "I was not sure which first step to choose",
-          "I did not reach this part of the lesson",
-          UNCERTAIN_OPTION,
-        ],
+        // Forethought recall (Zimmerman beat 1) — the MENTAL frame: recall the goal
+        // before reviewing what happened. Free-text, the student's own words.
+        category: "metacognitive",
+        text: `Before ${episode}, what were you trying to figure out or get right?`,
+        format: "short_response",
         required: true,
         aiGenerated: true,
       },
       {
+        // Mastery via retrieval practice (testing effect) — the TECHNICAL evidence:
+        // the student re-derives and EXPLAINS the actual skill, showing essential
+        // mastery of the topic rather than picking a canned option. Long free-text.
+        category: "technical",
+        text: `In your own words, how would you work through one example from ${episode}, step by step, so someone else could follow it?`,
+        format: "long_response",
+        required: true,
+        aiGenerated: true,
+      },
+      {
+        // Self-reflection feeling (beat 3) — the MENTAL/psychological dimension,
+        // FREE-TEXT FIRST (Barrett granularity). The words below are an OPTIONAL
+        // vocabulary assist shown as suggestions, never a closed picker.
         category: "emotional",
-        text: `At the moment you chose in ${episode}, which feeling was closest to what you noticed?`,
-        format: "emotion_select",
-        options: [
-          "Calm",
-          "Curious",
-          "Confused",
-          "Frustrated",
-          "Rushed",
-          "Discouraged",
-          "Proud",
-          "Something else",
-          UNCERTAIN_OPTION,
-        ],
+        text: `Thinking about ${episode}, how did that part feel? Say it in your own words.`,
+        format: "short_response",
+        options: EMOTION_VOCABULARY,
         required: true,
         aiGenerated: true,
       },
       {
-        category: "technical",
-        text: `Pick one example from ${episode}. What was the last step you could explain in your own words?`,
+        // What they did (behavioral) — free-text, so the strategy is in their words.
+        category: "behavioral",
+        text: `Right after a tricky step in ${episode}, what did you do next?`,
         format: "short_response",
         required: false,
         aiGenerated: true,
       },
       {
-        category: "behavioral",
-        text: `Right after that step in ${episode}, what did you do next?`,
-        format: "multiple_choice",
-        options: [
-          "Kept trying on my own",
-          "Asked for help",
-          "Used notes or an example",
-          "Tried a different approach",
-          "Finished and checked my work",
-          "Waited or stopped",
-          UNCERTAIN_OPTION,
-        ],
-        required: false,
-        aiGenerated: true,
-      },
-      {
+        // The ONE structured item: a confidence prediction. Calibration (Brier/bias
+        // = confidence vs. correctness) is plumb's core, and it needs a number to
+        // compare against the real score, so this stays a scale by design.
         category: "metacognitive",
         text: `Before seeing your score or an answer key for "${predictionAnchor}", how much of that work do you predict you completed correctly?`,
         format: "rating",
@@ -514,6 +519,7 @@ export function createDeterministicReflectionIntelligence(deps: {
         aiGenerated: true,
       },
       {
+        // Feed-forward (Hattie) — one concrete next step, in the student's words.
         category: "metacognitive",
         text: `For the next task based on "${predictionAnchor}", what is one small step you would try first?`,
         format: "short_response",
@@ -548,13 +554,31 @@ export function createDeterministicReflectionIntelligence(deps: {
     // Safety is checked FIRST, every turn, and by deterministic detection only.
     if (latest && safetyCheck(latest.text)) return { kind: "safety" };
 
-    const primaries = questionSet.questions;
+    // Loop closure (Zimmerman): when the student carried a next step in from their
+    // previous reflection, the FIRST beat revisits it before any new question. This
+    // is what closes the cycle — a later session checks what came of the earlier
+    // commitment. It shifts every downstream question by one (the offset).
+    const carried = session.carriedAction;
+    const offset = carried !== undefined ? 1 : 0;
     const answered = answers.length;
-    if (answered < primaries.length) {
-      const q = primaries[answered];
+    if (offset === 1 && answered === 0) {
       return {
         kind: "question",
-        stage: stageForQuestion(q, answered),
+        stage: "overall",
+        category: "metacognitive",
+        text: `Last time, you chose to try this: "${carried}". What happened when you tried it?`,
+        format: "short_response",
+        required: false,
+      };
+    }
+
+    const primaries = questionSet.questions;
+    const primaryIndex = answered - offset;
+    if (primaryIndex < primaries.length) {
+      const q = primaries[primaryIndex];
+      return {
+        kind: "question",
+        stage: stageForQuestion(q, primaryIndex),
         category: q.category,
         text: q.text,
         format: q.format,
@@ -564,7 +588,7 @@ export function createDeterministicReflectionIntelligence(deps: {
     }
     // All primaries answered: one clarifying follow-up if the last reply was
     // vague and follow-ups remain; otherwise there is enough to summarize.
-    const followupsUsed = answered - primaries.length;
+    const followupsUsed = primaryIndex - primaries.length;
     if (
       followupsUsed < questionSet.maxFollowups &&
       latest !== undefined &&

@@ -33,19 +33,25 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
   student gate refusal. `pnpm check` + `pnpm build` green.
 - **A2** — *Teacher per-student emotional drill-down.* Class-brief page exposed each
   named student's emotional summary. Violates Part 1 #1 / Part 3. **Status: fixed** (`59e439f`).
-- **A3** — *Loop closure absent (mandatory).* `startReflection`
-  (`src/app/_world/reflectionActions.ts`) never revisits the prior session's
-  `selectedAction`. Zimmerman's cycle (2.1) requires session N+1 to open with
-  "Yesterday you chose X — what happened?". **P0. Status: open.**
-- **A4** — *Session opens on the wrong beat.* `deterministic.generate()`
-  (`src/adapters/intelligence/deterministic.ts` ~L441) opens with a **technical
-  performance-review** question, not a **forethought-recall** beat. Violates the
-  3-beat order in 2.1 (forethought → performance → self-reflection). **P0. Status: open.**
-- **A5** — *Emotion capture is a closed word-select, not free-text-first.* Q2 uses
-  `format: "emotion_select"` with fixed word options. Barrett granularity (2.4)
-  requires **free-text-first**, with an *optional* per-grade-band vocabulary assist —
-  never a closed picker as the primary. (Better than the banned 5-emoji picker, but
-  still non-compliant.) **P0. Status: open.**
+- **A3** — *Loop closure absent (mandatory).* `startReflection` never revisited the
+  prior session's `selectedAction`. **Status: fixed.** `ReflectionSession` carries a
+  `carriedAction` (the prior reflection's chosen step); `startReflection` computes it
+  from the student's most recent OTHER completed session; the deterministic engine
+  opens by revisiting it ("Last time, you chose to try X. What happened when you tried
+  it?") before any new question, shifting the rest by one offset. Engine + action-layer
+  tests added.
+- **A4** — *Session opened on the wrong beat.* The engine opened on a technical
+  performance question. **Status: fixed.** The pool now opens on a **forethought-recall**
+  beat ("Before this part of today's lesson…, what were you trying to get right?"),
+  then performance, then self-reflection — Zimmerman's 3-beat order.
+- **A5** — *Emotion capture was a closed word-select.* **Status: fixed** (and extended,
+  per the user's follow-up). The emotion beat is now **free-text-first** with an OPTIONAL
+  vocabulary assist (tap-to-start chips over a text box, never a picker). Going further:
+  per the user's "all free response + evidence-based mastery" directive, the WHOLE set is
+  now free-response except the single confidence rating (calibration's Brier/bias needs a
+  number). The technical beat is a **retrieval-practice mastery probe** — the student
+  re-derives and explains the actual skill (testing effect, 2.7) — and the set dissects
+  both the MENTAL (forethought, feeling) and TECHNICAL (mastery, behavior) dimensions.
 - **A6** — *Safety surface was voiced as a counselor / therapy tool.* "Thank you for
   sharing that. What you wrote sounds important." (ChatFlow SafetyTurn + CourseChat
   SafetyPanel). **Status: fixed.** Both now read "What you wrote looks serious, and it

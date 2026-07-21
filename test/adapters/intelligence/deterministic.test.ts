@@ -115,11 +115,12 @@ describe("deterministic reflection intelligence", () => {
       expect(q.text.match(/\?/g)).toHaveLength(1);
     }
 
-    const prediction = set.questions.find(
-      (q) => q.category === "metacognitive",
-    );
+    // The prediction is the rating question (order 0 is now the metacognitive
+    // forethought opener, so category alone no longer identifies it).
+    const prediction = set.questions.find((q) => q.format === "rating");
     expect(prediction).toMatchObject({
       order: 4,
+      category: "metacognitive",
       format: "rating",
       required: false,
     });
@@ -199,12 +200,12 @@ describe("deterministic reflection intelligence", () => {
     expect(deeper.questions).toHaveLength(6);
     expect(isBalancedQuestionSet(shorter)).toBe(true);
     expect(isBalancedQuestionSet(deeper)).toBe(true);
-    expect(shorter.questions.some((q) => q.category === "metacognitive")).toBe(
-      false,
-    );
-    expect(deeper.questions.some((q) => q.category === "metacognitive")).toBe(
-      true,
-    );
+    // The rating prediction (order 4) is dropped from a SHORTER set and present in
+    // a DEEPER one. (Both open on the metacognitive forethought question at order 0,
+    // so category no longer distinguishes the prediction — its rating format does.)
+    expect(shorter.questions.some((q) => q.format === "rating")).toBe(false);
+    expect(deeper.questions.some((q) => q.format === "rating")).toBe(true);
+    expect(shorter.questions[0]?.category).toBe("metacognitive");
     expect(deeper.questions[5]?.category).toBe("metacognitive");
   });
 });

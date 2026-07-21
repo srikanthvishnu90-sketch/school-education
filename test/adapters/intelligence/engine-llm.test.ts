@@ -147,11 +147,17 @@ describe("LLM adaptive engine (fake gateway)", () => {
       request.task === "render" ? "How did finding slope feel today?" : "",
     );
 
-    const step = await ai.nextTurn({ session: session([]), questionSet: set });
+    // The technical beat is order 1 now (order 0 is the forethought opener); one
+    // answer advances the turn to it, so the emotion rephrase is tested against a
+    // technical question and rejected.
+    const step = await ai.nextTurn({
+      session: session(["I was working out the slope"]),
+      questionSet: set,
+    });
 
     expect(step).toMatchObject({
       kind: "question",
-      text: set.questions[0]?.text,
+      text: set.questions[1]?.text,
     });
   });
 

@@ -19,9 +19,23 @@ the fix order **A → B → C → D → E → F → G**. Never delete a finding;
 - Prior production hardening (branch `feat/production-hardening`): B1–B6, A10, A11
   (partial), health endpoint, SAFETY_LIMITS.md, RUNBOOK.md.
 
+- **A3/A4/A5** — Reflection-engine rework. `ReflectionSession.carriedAction` + loop
+  closure (revisit the prior chosen step first); forethought-recall opener; the whole
+  set is now FREE-RESPONSE (only the confidence rating stays, for calibration) with a
+  retrieval-practice **mastery probe** (student re-derives + explains the skill) and a
+  free-text emotion beat with optional vocabulary chips. Dissects mental + technical.
+  Engine, action-layer, and UI (vocab chips) updated; +6 tests; `pnpm check` green
+  (432 tests). Note: kept the ONE numeric confidence bet — calibration is plumb's core;
+  told the user, they can ask to drop it. **P0s closed.**
+- **A6/A7** — De-therapized crisis voice; tightened CourseChat disclosure.
+
 ## Next (in fix order)
 
-1. **A3** — loop closure: `startReflection` opens session N+1 with the prior
+1. **LLM generate contract** — align `CATEGORY_SEQUENCE` + format gates + `VALID_QUESTIONS`
+   fixture to the new free-response/mastery design (llm generate is off by default and
+   falls back to the correct deterministic engine, so this is a consistency follow-on).
+2. **A8/A9** — AI disclosure to students; per-grade-band copy.
+3. Legacy: **A3** — loop closure: `startReflection` opens session N+1 with the prior
    `selectedAction` ("Yesterday you chose X — what happened?"). **P0.**
 3. **A4/A5** — forethought-recall opener + free-text-first emotion capture with an
    optional per-grade-band vocabulary assist (replace `emotion_select` primary). **P0.**

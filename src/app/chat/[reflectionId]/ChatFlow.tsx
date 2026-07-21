@@ -199,6 +199,16 @@ export default function ChatFlow({
       : null;
   const isMultiSelect =
     current.kind === "question" && current.format === "multi_select";
+  // A free-text question (options === null) may still carry suggested words — the
+  // optional vocabulary assist for the emotion beat. Tapping one seeds the text box;
+  // the student can edit it or write their own. Free-text stays primary.
+  const vocab =
+    current.kind === "question" &&
+    options === null &&
+    current.options !== undefined &&
+    current.options.length > 0
+      ? current.options
+      : null;
   const done = current.kind !== "question";
 
   return (
@@ -342,6 +352,34 @@ export default function ChatFlow({
               >
                 Skip this optional question
               </button>
+            )}
+
+            {vocab && (
+              <div className="mb-3">
+                <p className="mb-2 text-[12px] text-chat-muted">
+                  Optional — tap a word to start, or write your own.
+                </p>
+                <div
+                  className="flex flex-wrap gap-2"
+                  role="group"
+                  aria-label="Suggested words"
+                >
+                  {vocab.map((word) => (
+                    <button
+                      key={word}
+                      type="button"
+                      disabled={pending}
+                      onClick={() => {
+                        setDraft(word);
+                        composer.current?.focus();
+                      }}
+                      className="min-h-11 rounded-full border border-chat-control bg-chat-surface px-4 py-2 text-[14px] text-chat-text transition-colors hover:border-chat-accent hover:bg-chat-raised focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent focus-visible:ring-offset-2 focus-visible:ring-offset-chat-background disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {word}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             {options === null && (

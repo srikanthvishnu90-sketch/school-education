@@ -154,6 +154,77 @@ describe("deterministic adaptive engine — nextTurn", () => {
   });
 });
 
+describe("loop closure (Zimmerman) — revisits the prior chosen step first", () => {
+  const carrying = (carriedAction: string, texts: string[]): ReflectionSession =>
+    createReflectionSession({
+      id: "S",
+      reflectionId: "R",
+      studentId: "STU",
+      status: "active",
+      startedAt: NOW,
+      carriedAction,
+      messages: texts.map((text, i): ReflectionMessage =>
+        createReflectionMessage({
+          id: `m${i}`,
+          sessionId: "S",
+          sender: "student",
+          text,
+          createdAt: NOW,
+        }),
+      ),
+    });
+
+  it("opens by revisiting the step the student carried in, before any new question", async () => {
+    const { ai, set } = await build();
+    const step = await ai.nextTurn({
+      session: carrying("Try one example with a checklist", []),
+      questionSet: set,
+    });
+    expect(step.kind).toBe("question");
+    if (step.kind === "question") {
+      expect(step.text).toContain("Try one example with a checklist");
+      expect(step.text.toLowerCase()).toContain("what happened");
+      expect(step.format).toBe("short_response");
+    }
+  });
+
+  it("moves on to the forethought opener once the carried step is answered", async () => {
+    const { ai, set } = await build();
+    const step = await ai.nextTurn({
+      session: carrying("Try one example with a checklist", ["It went okay"]),
+      questionSet: set,
+    });
+    expect(step.kind).toBe("question");
+    if (step.kind === "question") {
+      // The first primary (forethought) — the loop-closure answer shifted the index.
+      expect(step.stage).toBe("overall");
+      expect(step.text).toBe(set.questions[0]?.text);
+    }
+  });
+
+  it("still summarizes after the carried step plus every primary is answered", async () => {
+    const { ai, set } = await build();
+    const answers = [
+      "The checklist helped a little",
+      ...set.questions.map(() => "A concrete answer about today's task"),
+    ];
+    const step = await ai.nextTurn({
+      session: carrying("Try one example with a checklist", answers),
+      questionSet: set,
+    });
+    expect(step.kind).toBe("summary");
+  });
+
+  it("with no carried step, opens directly on the forethought question", async () => {
+    const { ai, set } = await build();
+    const step = await ai.nextTurn({ session: session([]), questionSet: set });
+    expect(step.kind).toBe("question");
+    if (step.kind === "question") {
+      expect(step.text).toBe(set.questions[0]?.text);
+    }
+  });
+});
+
 describe("deterministic signal extraction", () => {
   it("tags technical, emotional, behavioral, and context signals from the chat", async () => {
     const { ai } = await build();
