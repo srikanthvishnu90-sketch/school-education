@@ -65,29 +65,32 @@ export default function CoursesShell({
 
         <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-y-auto px-5 pb-12">
           <div className="mx-auto max-w-4xl">
-            <div className="mt-4 flex items-start gap-3">
-              <PlumbLine height={40} className="hidden text-shell-accent sm:flex" />
-              <h1 className="font-voice text-[22px] font-normal tracking-tight sm:text-[28px]">
-                {greeting}
-              </h1>
+            <div className="mt-8 flex items-start gap-3.5">
+              <PlumbLine height={46} className="hidden text-shell-accent sm:flex" />
+              <div className="min-w-0">
+                <h1 className="font-voice text-[24px] font-normal leading-tight tracking-tight text-shell-text sm:text-[30px]">
+                  {greeting}
+                </h1>
+                <p className="mt-2 text-[14px] leading-relaxed text-shell-muted">
+                  Pick a class to reflect on what happened today.
+                </p>
+              </div>
             </div>
-            <p className="mt-2 text-[14px] text-shell-muted">
-              Pick a class to reflect on what happened today.
-            </p>
 
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {courses.map((c) => {
                 const s = SUBJECT[c.subject];
                 return (
                   <li key={c.id}>
                     <Link
                       href={`/courses/${c.id}`}
-                      className={`group flex h-full flex-col overflow-hidden rounded-xl border border-shell-border border-l-2 ${s.border} bg-shell-card transition-colors hover:border-shell-accent/40`}
+                      className={`group flex h-full flex-col overflow-hidden rounded-xl border border-shell-border border-l-2 ${s.border} bg-shell-card transition-colors hover:border-shell-accent/40 hover:bg-shell-panel/30`}
                     >
-                      {/* Monogram banner stands in for D2L's course image. */}
+                      {/* Monogram banner stands in for D2L's course image — set on
+                         the plumb graph-paper grid so every card carries the motif. */}
                       <span
                         aria-hidden
-                        className="flex h-20 items-center justify-center bg-shell-panel text-[22px] font-semibold tracking-widest text-shell-muted transition-colors group-hover:text-shell-text"
+                        className="graph-paper-dark flex h-20 items-center justify-center border-b border-shell-border bg-shell-panel text-[22px] font-semibold tracking-widest text-shell-muted transition-colors group-hover:text-shell-text"
                       >
                         {c.monogram}
                       </span>
@@ -105,12 +108,14 @@ export default function CoursesShell({
                         <span className="text-[12px] text-shell-muted">
                           {c.teacher}
                         </span>
-                        <span className="mt-3 text-[12px] text-shell-muted">
-                          {c.total === 0
-                            ? "No reflections yet"
-                            : c.open > 0
-                              ? `${c.open} to do · ${c.total} total`
-                              : `All ${c.total} done`}
+                        <span className="mt-auto pt-3 text-[12px] text-shell-muted">
+                          <span className="block border-t border-shell-border/60 pt-3">
+                            {c.total === 0
+                              ? "No reflections yet"
+                              : c.open > 0
+                                ? `${c.open} to do · ${c.total} total`
+                                : `All ${c.total} done`}
+                          </span>
                         </span>
                       </span>
                     </Link>

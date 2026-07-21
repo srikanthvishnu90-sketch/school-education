@@ -42,7 +42,7 @@ export default function StudentShell({
             type="button"
             onClick={() => setMenuOpen(true)}
             aria-label="Open menu"
-            className="rounded-lg p-2 text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
           >
             <Menu size={18} />
           </button>

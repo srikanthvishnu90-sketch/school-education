@@ -18,6 +18,7 @@ import type {
   ChatResult,
 } from "@/app/_world/reflectionTypes";
 import type { StudentInsightSummary } from "@/domain/intelligence/insight";
+import PlumbLine from "@/app/_ui/PlumbLine";
 import Link from "next/link";
 
 /**
@@ -227,11 +228,11 @@ export default function ChatFlow({
           <div className="min-w-0">
             <h1
               id="reflection-title"
-              className="text-[14px] font-medium leading-none text-chat-text"
+              className="font-voice text-[18px] font-normal leading-none tracking-tight text-chat-text"
             >
               Reflection
             </h1>
-            <p className="mt-1 text-[12px] text-chat-muted">
+            <p className="mt-1.5 text-[12px] text-chat-muted">
               One question at a time
             </p>
           </div>
@@ -244,11 +245,13 @@ export default function ChatFlow({
         </Link>
       </header>
 
-      <p className="shrink-0 border-b border-chat-divider bg-chat-surface px-4 py-2 text-center text-[12px] leading-relaxed text-chat-muted">
-        Your answers don’t change your score. Teachers see a summary, not this
-        chat. Safety concerns create a counselor alert. These questions were
-        drafted with AI and approved by your teacher before you saw them.
-      </p>
+      <div className="shrink-0 border-b border-chat-divider bg-chat-surface px-4 py-2.5">
+        <p className="mx-auto max-w-2xl text-center text-[12px] leading-relaxed text-chat-muted [text-wrap:pretty]">
+          Your answers don’t change your score. Teachers see a summary, not this
+          chat. Safety concerns create a counselor alert. These questions were
+          drafted with AI and approved by your teacher before you saw them.
+        </p>
+      </div>
 
       <section
         ref={thread}
@@ -292,11 +295,15 @@ export default function ChatFlow({
         <footer className="shrink-0 border-t border-chat-divider bg-chat-background">
           <div className="mx-auto max-w-2xl px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 sm:px-6">
             {exemplar !== undefined && (
-              <figure className="mb-3 rounded-card border border-chat-divider bg-chat-surface p-4">
-                <figcaption className="text-[12px] font-medium uppercase tracking-[0.14em] text-chat-muted">
+              <figure className="mb-3 overflow-hidden rounded-card border border-chat-divider bg-chat-surface">
+                <figcaption className="flex items-center gap-2 border-b border-chat-divider bg-chat-raised px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.16em] text-chat-muted">
+                  <span
+                    aria-hidden
+                    className="h-1 w-1 shrink-0 rounded-full bg-chat-accent"
+                  />
                   A worked example
                 </figcaption>
-                <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-chat-text">
+                <p className="whitespace-pre-line px-4 py-3.5 text-[14px] leading-relaxed text-chat-text [overflow-wrap:anywhere]">
                   {exemplar}
                 </p>
               </figure>
@@ -485,7 +492,7 @@ function AiTurn({ text }: { text: string }): ReactElement {
 function StudentTurn({ text }: { text: string }): ReactElement {
   return (
     <div className="flex justify-end" role="article" aria-label="You">
-      <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl bg-chat-raised px-4 py-2.5 text-[15px] leading-relaxed text-chat-text [overflow-wrap:anywhere] sm:max-w-[75%]">
+      <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md border border-chat-divider bg-chat-raised px-4 py-2.5 text-[15px] leading-relaxed text-chat-text [overflow-wrap:anywhere] sm:max-w-[75%]">
         {text}
       </div>
     </div>
@@ -590,6 +597,14 @@ function SummaryTurn({
       <Avatar />
       <div className="min-w-0 flex-1">
         <div className="rounded-card border border-chat-divider bg-chat-surface p-5">
+          {/* A quiet signature: the plumb bob settling to true — the reflection
+             has found what is true. Not a reward; a dignified settle. The
+             .plumb-bob-drop utility only animates when motion is allowed. */}
+          <PlumbLine
+            height={30}
+            drop
+            className="mb-3.5 text-shell-accent"
+          />
           <p className="text-[13px] font-medium text-chat-accent">
             What this reflection suggests
           </p>
@@ -632,18 +647,20 @@ function SummaryTurn({
             </div>
           )}
         </div>
-        <Link
-          href="/timeline"
-          className="mt-2 inline-flex min-h-11 items-center rounded-control px-1 text-[13px] text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
-        >
-          See how sure you felt next to your results over time →
-        </Link>
-        <Link
-          href="/courses"
-          className="ml-4 mt-2 inline-flex min-h-11 items-center rounded-control px-1 text-[13px] text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
-        >
-          Back to my courses
-        </Link>
+        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1">
+          <Link
+            href="/timeline"
+            className="inline-flex min-h-11 items-center rounded-control px-1 text-[13px] text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
+          >
+            See how sure you felt next to your results over time →
+          </Link>
+          <Link
+            href="/courses"
+            className="inline-flex min-h-11 items-center rounded-control px-1 text-[13px] text-chat-accent underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
+          >
+            Back to my courses
+          </Link>
+        </div>
       </div>
     </div>
   );
