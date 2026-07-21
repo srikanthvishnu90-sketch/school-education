@@ -242,7 +242,8 @@ export default function ChatFlow({
 
       <p className="shrink-0 border-b border-chat-divider bg-chat-surface px-4 py-2 text-center text-[12px] leading-relaxed text-chat-muted">
         Your answers don’t change your score. Teachers see a summary, not this
-        chat. Safety concerns create a counselor alert.
+        chat. Safety concerns create a counselor alert. These questions were
+        drafted with AI and approved by your teacher before you saw them.
       </p>
 
       <section

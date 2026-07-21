@@ -12,20 +12,32 @@ export default function EraseButton(): ReactElement {
   const router = useRouter();
   const [armed, setArmed] = useState(false);
   const [done, setDone] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function erase(): void {
+    setError(null);
     startTransition(async () => {
-      const result = await eraseMyReflectionData();
-      if (result.ok) {
-        setDone(
-          result.deleted.sessions +
-            result.deleted.summaries +
-            result.deleted.performances +
-            result.deleted.chats,
+      try {
+        const result = await eraseMyReflectionData();
+        if (result.ok) {
+          setDone(
+            result.deleted.sessions +
+              result.deleted.summaries +
+              result.deleted.performances +
+              result.deleted.chats,
+          );
+          setArmed(false);
+          router.refresh();
+        } else {
+          setError(
+            "We couldn’t delete your reflection data just now. Nothing was removed—please try again in a moment.",
+          );
+        }
+      } catch {
+        setError(
+          "We couldn’t reach the server to delete your reflection data. Nothing was removed—check your connection and try again.",
         );
-        setArmed(false);
-        router.refresh();
       }
     });
   }
@@ -55,6 +67,14 @@ export default function EraseButton(): ReactElement {
             This permanently deletes every reflection, summary, and graded result
             tied to your account, and withdraws your consent. It can’t be undone.
           </p>
+          {error !== null && (
+            <p
+              role="alert"
+              className="mt-3 rounded-control border border-ink-wash bg-white px-3 py-2 text-[13px] leading-relaxed text-ink-black"
+            >
+              {error}
+            </p>
+          )}
           <div className="mt-3 flex gap-2">
             <button
               type="button"

@@ -63,9 +63,9 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
   reflection) already carried a privacy+score+safety disclosure; tightened "a caring
   adult is told" → "a counselor at your school is notified" for precision and
   consistency. **Status: fixed** (adequate for that surface's audience).
-- **A8** — *AI disclosure to the student.* No surface tells the student that the
-  questions were AI-drafted / that a person approved them (2.6, Part 1 #2 spirit).
-  **Status: open.**
+- **A8** — *AI disclosure to the student.* **Status: fixed.** The reflection chat's
+  disclosure banner now adds "These questions were drafted with AI and approved by your
+  teacher before you saw them." — honest, at the point of writing (2.6, Part 1 #2).
 - **A9** — *Per-grade-band copy does not exist.* One copy register for all grades;
   2.6 requires banded phrasing. **Status: open** (F-tier work, but the *mechanism*
   is a trust item — a 3rd grader and an 11th grader must not read the same prompt).
@@ -107,19 +107,27 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
   (returns count only). **Status: fixed** (`59e439f`).
 - **C2** — Zero-LLM path must produce a valid, schema-conformant session end to end
   (deterministic default). Confirmed by tests. **Status: fixed.**
-- **C3** — `EraseButton.erase()` (`src/app/timeline/EraseButton.tsx:17-31`) runs in
-  `startTransition` with no `try/catch` and only handles `ok===true`; a thrown action
-  or `ok:false` is a silent dead-end. **Status: open.**
-- **C4** — `EscalationList.ack()` (`src/app/escalations/EscalationList.tsx:22-29`) has
-  no error handling; a rejected `acknowledgeEscalation` leaves the row stale with no
-  feedback — on the *counselor* surface, where silent failure is worst. **Status: open.**
+- **C3** — `EraseButton.erase()` silent dead-end. **Status: fixed.** try/catch + `ok`
+  check; a thrown action or `ok:false` now shows a `role="alert"` message (neutral ink
+  tokens) that says nothing was removed and to try again.
+- **C4** — `EscalationList.ack()` silent failure on the counselor surface.
+  **Status: fixed.** try/catch + `ok` check; a failed acknowledgement now shows a
+  `role="alert"` (warm accent, no red) — "that acknowledgement didn't save, the notice
+  is still open" — and the row is only flipped on success.
 - **C5** — `--font-voice` serif is referenced by `_ui/atoms.tsx:36` but never loaded
   (`layout.tsx:11-13`), so every `voice` surface silently falls back to browser serif —
   a half-wired feature. **Status: open.**
-- **C6** — `reflections/page.tsx` route exists but is not linked from `Sidebar`
-  (`_landing/Sidebar.tsx:31-34`) — orphaned/unreachable via UI. **Status: open.**
-- **C7** — `timeline/page.tsx` renders with no shell and no back-link to `/courses`;
-  a student who lands there is stranded. **Status: open.**
+- **C6** — `reflections/page.tsx` is orphaned (no `href` anywhere) AND built on an
+  older light-page template with no app shell, while every real signed-in surface
+  renders `<Sidebar>` on the dark shell. It is functionally REDUNDANT with `/courses`
+  (same reflections, same `/chat/{id}` destinations, same status labels). **Status:
+  deferred (decision needed).** Deliberately NOT linked — dropping a student from the
+  dark shell onto a light orphan is the exact rough edge the build standard forbids.
+  It has a test (`test/app/ReflectionsPage.test.tsx`), so it is not pure dead code —
+  **your call**: remove page+test, or rebuild it inside the shell and then link it.
+- **C7** — `timeline/page.tsx` had no way back. **Status: fixed.** Added a "Back to
+  courses" link (reusing the app's back-link pattern: 44px target, focus ring, ink
+  tokens) at the top of the page.
 
 ---
 

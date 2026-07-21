@@ -17,14 +17,28 @@ export default function EscalationList({
   initial: EscalationView[];
 }): ReactElement {
   const [rows, setRows] = useState(initial);
+  const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   function ack(id: string): void {
+    setError(null);
     startTransition(async () => {
-      await acknowledgeEscalation(id);
-      setRows((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, acknowledged: true } : r)),
-      );
+      try {
+        const result = await acknowledgeEscalation(id);
+        if (!result.ok) {
+          setError(
+            "That acknowledgement didn’t save, so the notice is still open. Try acknowledging it again.",
+          );
+          return;
+        }
+        setRows((prev) =>
+          prev.map((r) => (r.id === id ? { ...r, acknowledged: true } : r)),
+        );
+      } catch {
+        setError(
+          "That acknowledgement didn’t save, so the notice is still open. Try acknowledging it again.",
+        );
+      }
     });
   }
 
@@ -39,6 +53,14 @@ export default function EscalationList({
 
   return (
     <ul className="space-y-3">
+      {error !== null && (
+        <li
+          role="alert"
+          className="rounded-card border border-warm bg-white p-4 text-[13px] leading-relaxed text-ink-black"
+        >
+          {error}
+        </li>
+      )}
       {rows.map((r) => (
         <li
           key={r.id}

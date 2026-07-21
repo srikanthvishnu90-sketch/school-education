@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { getSessionUser } from "@/app/_world/session";
@@ -39,7 +40,13 @@ export default async function TimelinePage(): Promise<ReactElement> {
 
   return (
     <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-2xl px-6 py-14">
-      <p className="text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
+      <Link
+        href="/courses"
+        className="inline-flex min-h-11 items-center text-sm font-medium text-ink-tint underline-offset-4 hover:underline focus-visible:rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-tint focus-visible:ring-offset-2 active:text-ink"
+      >
+        Back to courses
+      </Link>
+      <p className="mt-4 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
         Your reflections over time
       </p>
       <h1 className="mt-2 text-3xl font-medium tracking-tight text-ink-black">
