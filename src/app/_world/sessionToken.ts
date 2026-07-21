@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { isProduction } from "./productionConfig";
 
 /**
  * Session tokens — the cookie is NOT the raw user id. It is `id.HMAC(id)` signed
@@ -6,9 +7,10 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * cookie to a known id (e.g. "teacher-1"). Verification is constant-time; a
  * tampered or unsigned value fails and is treated as no session.
  *
- * In production SESSION_SECRET MUST be set — otherwise sessions are forgeable by
- * anyone who knows the dev fallback. The app refuses to trust the fallback when
- * NODE_ENV is production.
+ * In REAL production SESSION_SECRET MUST be set — otherwise sessions are forgeable
+ * by anyone who knows the dev fallback. A Vercel preview/dev deploy is a demo (see
+ * isProduction) and may use the dev fallback so the demo is walkable; setting a real
+ * SESSION_SECRET on the preview env is still preferred and takes precedence.
  */
 
 const DEV_SECRET = "plumb-dev-session-secret-not-for-production";
@@ -16,7 +18,7 @@ const DEV_SECRET = "plumb-dev-session-secret-not-for-production";
 function secret(): string {
   const fromEnv = process.env.SESSION_SECRET;
   if (fromEnv !== undefined && fromEnv.length >= 16) return fromEnv;
-  if (process.env.NODE_ENV === "production") {
+  if (isProduction()) {
     throw new Error(
       "SESSION_SECRET must be set (>=16 chars) in production — refusing to sign sessions with the dev fallback.",
     );
