@@ -51,8 +51,8 @@ export const color = {
   shellBorder: "#294050",
   shellText: "#EAF1F7",
   shellMuted: "#93A7B7",
-  /** Primary accent (plumb brass). Buttons, active states, highlights. Dark text sits on it. */
-  shellAccent: "#BD9052",
+  /** Primary accent (sage green). Buttons, active states, highlights. Dark text sits on it. */
+  shellAccent: "#8FBC9F",
 
   // Subject color coding — desaturated for a dark bg, used ONLY as small tags or
   // left-borders on cards, never as a full fill.

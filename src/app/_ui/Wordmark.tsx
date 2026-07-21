@@ -14,7 +14,7 @@ import type { CSSProperties, ReactElement } from "react";
  * correctly on either the dark ink-navy shell or the light paper surfaces.
  *
  * `size`   nav (default) / sm for dense chrome / hero for a display lockup.
- * `tone`   picks the bob's brass: `dark` = shell brass, `light` = warm brass.
+ * `tone`   picks the bob's green: `dark` = shell sage on navy, `light` = a deeper green on paper.
  * `href`   renders the wordmark as a link (e.g. back to home).
  * `drop`   plays the one-time bob-settle animation (respects reduced-motion).
  * `mark`   set false to render the word alone, with no bob.
@@ -46,8 +46,8 @@ export default function Wordmark({
 }): ReactElement {
   const bob =
     tone === "dark"
-      ? "var(--color-shell-accent, #BD9052)"
-      : "var(--color-warm, #E0A06A)";
+      ? "var(--color-shell-accent, #8FBC9F)"
+      : "#4C8A6B";
 
   const wordClass = `inline-flex items-baseline font-voice lowercase ${SIZE[size]} ${className}`;
   const wordStyle: CSSProperties = { letterSpacing: "-0.01em", fontWeight: 500 };

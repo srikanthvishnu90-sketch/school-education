@@ -30,7 +30,7 @@ export default function PlumbLine({
       <svg width="10" height="14" viewBox="0 0 10 14" fill="none" className="shrink-0">
         <path
           d="M5 0.5 L9 4 L5 13.5 L1 4 Z"
-          fill="var(--color-shell-accent, #BD9052)"
+          fill="var(--color-shell-accent, #8FBC9F)"
         />
       </svg>
     </span>

@@ -33,8 +33,8 @@
 
   /* App shell — the dark surface is DEEP INK NAVY (same ink DNA as the light
      surfaces), not a neutral gray, so dark and light are two modes of ONE
-     identity. The accent is PLUMB BRASS (#bd9052) — the brass of a plumb bob —
-     not a green. Mirrored in src/ui/tokens.ts. */
+     identity. The accent is SAGE GREEN (#8fbc9f) — plumb's established accent —
+     on the deep navy shell. Mirrored in src/ui/tokens.ts. */
   --color-shell-background: #0e1822;
   --color-shell-sidebar: #0a121a;
   --color-shell-card: #13202b;
@@ -44,8 +44,8 @@
   --color-shell-border: #294050;
   --color-shell-text: #eaf1f7;
   --color-shell-muted: #93a7b7;
-  /* shell-accent is the canonical name (plumb brass). */
-  --color-shell-accent: #bd9052;
+  /* shell-accent is the canonical name (sage green). */
+  --color-shell-accent: #8fbc9f;
 
   /* Subject color coding — small tags / left-borders only, never full fills. */
   --color-subject-math: #d97a7a;
