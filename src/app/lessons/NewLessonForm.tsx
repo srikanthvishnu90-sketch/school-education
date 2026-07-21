@@ -159,6 +159,8 @@ export default function NewLessonForm(): ReactElement {
             <img
               src={src}
               alt={`Lesson photo ${i + 1}`}
+              width={80}
+              height={80}
               className="h-20 w-20 rounded-control border border-ink-wash object-cover"
             />
             <button

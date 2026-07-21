@@ -88,7 +88,10 @@ export default function LoginForm({
         />
 
         {error !== null && (
-          <p role="alert" className="text-[13px] text-subject-math">
+          <p
+            role="alert"
+            className="rounded-control border border-warm/50 bg-warm/5 px-3 py-2 text-[13px] text-ink-black"
+          >
             {error}
           </p>
         )}

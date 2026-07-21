@@ -192,16 +192,21 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
 - **E7** — `SignInList` status announcements. **Status: fixed.** The rejection error is
   `role="alert"`; the "check your inbox" confirmation is `role="status"` + `aria-live`;
   the Send button now shows "Sending…" while pending.
-- **E8** — `ScoreEntry.tsx:67-78` invalid-score feedback is border color only
-  (`border-warm`), no text, no `aria-invalid` — meaning is purely color. **Status: open.**
+- **E8** — `ScoreEntry` invalid-score was color-only. **Status: fixed.** The input now
+  carries `aria-invalid` + `aria-describedby`, and an out-of-range score shows a
+  `role="alert"` message ("Enter a whole number from 0 to 100.") — meaning no longer
+  depends on the warm border alone. Clears on edit.
 - **E9** — `CourseChat` error is now `role="alert"` on a bordered surface (not color-only).
   **Status: fixed.**
-- **E10** — `DeleteLessonButton`/`RosterForm` inline errors have no `role="alert"`; roster
-  relies on warm border for "error" meaning. **Status: open.**
-- **E11** — `LoginForm`/`ConsentForm` errors use `text-subject-math` (a subject-tag color)
-  as the error color — semantic token misuse. **Status: open.**
-- **E12** — Data-URL `<img>` thumbnails have no width/height (`NewLessonForm`,
-  `lessons/[reflectionId]/page.tsx`), risking layout shift. **Status: open.**
+- **E10** — `DeleteLessonButton`/`RosterForm` inline errors now carry `role="alert"`.
+  **Status: fixed.**
+- **E11** — `LoginForm`/`ConsentForm` errors no longer misuse `text-subject-math`.
+  **Status: fixed.** Both now use the neutral bordered-alert treatment
+  (`border-warm/50 bg-warm/5 text-ink-black`) — the warm accent as an attention surface,
+  never a subject-tag color repurposed as red.
+- **E12** — Data-URL `<img>` thumbnails now declare `width`/`height` (`NewLessonForm`
+  80×80, `lessons/[reflectionId]/page.tsx` 400×400 square) for an explicit intrinsic
+  ratio; both already sat in space-reserving containers. **Status: fixed.**
 
 ---
 

@@ -140,7 +140,10 @@ export default function ConsentForm({ next }: { next: string }): ReactElement {
       )}
 
       {error !== null && (
-        <p role="alert" className="mt-3 text-[13px] text-subject-math">
+        <p
+          role="alert"
+          className="mt-3 rounded-control border border-warm/50 bg-warm/5 px-3 py-2 text-[13px] text-ink-black"
+        >
           {error}
         </p>
       )}

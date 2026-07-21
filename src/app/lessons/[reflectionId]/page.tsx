@@ -105,6 +105,8 @@ export default async function ClassBriefPage({
               key={i}
               src={src}
               alt={`Lesson photo ${i + 1}`}
+              width={400}
+              height={400}
               className="aspect-square w-full rounded-control border border-ink-wash object-cover"
             />
           ))}

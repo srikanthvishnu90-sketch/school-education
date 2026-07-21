@@ -53,7 +53,9 @@ export default function DeleteLessonButton({
         reflections on it.
       </p>
       {error !== null && (
-        <p className="mt-2 text-[13px] text-ink-black">{error}</p>
+        <p role="alert" className="mt-2 text-[13px] text-ink-black">
+          {error}
+        </p>
       )}
       <div className="mt-3 flex items-center gap-3">
         <button

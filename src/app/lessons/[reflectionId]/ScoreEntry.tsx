@@ -61,30 +61,41 @@ function ScoreRow({
     });
   }
 
+  const errorId = `score-error-${row.studentId}`;
   return (
-    <div className="flex items-center gap-3 rounded-card border border-ink-wash bg-white px-4 py-3">
-      <span className="flex-1 text-[15px] text-ink-black">{row.name}</span>
-      <input
-        inputMode="numeric"
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setSaved(false);
-        }}
-        aria-label={`Score for ${row.name}, percent`}
-        className={`w-16 rounded-control border bg-white px-2 py-1.5 text-right text-[14px] text-ink-black outline-none focus:border-ink-tint ${
-          error ? "border-warm" : "border-ink-wash"
-        }`}
-      />
-      <span className="text-[13px] text-secondary">%</span>
-      <button
-        type="button"
-        disabled={pending || value.trim().length === 0}
-        onClick={save}
-        className="rounded-control bg-ink px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-ink-tint disabled:opacity-40"
-      >
-        {saved ? "Saved" : "Save"}
-      </button>
+    <div className="rounded-card border border-ink-wash bg-white px-4 py-3">
+      <div className="flex items-center gap-3">
+        <span className="flex-1 text-[15px] text-ink-black">{row.name}</span>
+        <input
+          inputMode="numeric"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setSaved(false);
+            if (error) setError(false);
+          }}
+          aria-label={`Score for ${row.name}, percent`}
+          aria-invalid={error}
+          aria-describedby={error ? errorId : undefined}
+          className={`w-16 rounded-control border bg-white px-2 py-1.5 text-right text-[14px] text-ink-black outline-none focus:border-ink-tint ${
+            error ? "border-warm" : "border-ink-wash"
+          }`}
+        />
+        <span className="text-[13px] text-secondary">%</span>
+        <button
+          type="button"
+          disabled={pending || value.trim().length === 0}
+          onClick={save}
+          className="rounded-control bg-ink px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-ink-tint disabled:opacity-40"
+        >
+          {saved ? "Saved" : "Save"}
+        </button>
+      </div>
+      {error && (
+        <p id={errorId} role="alert" className="mt-2 text-[13px] text-ink-black">
+          Enter a whole number from 0 to 100.
+        </p>
+      )}
     </div>
   );
 }
