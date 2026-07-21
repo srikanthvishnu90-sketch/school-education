@@ -3,6 +3,7 @@
 import { FileText, Home, LogOut, Menu, Search, Users, X } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, type ReactElement, type ReactNode } from "react";
+import Wordmark from "@/app/_ui/Wordmark";
 import { signOutAction } from "@/app/_world/session";
 
 /**
@@ -60,15 +61,16 @@ export default function TeacherShell({
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        {/* Workspace header — the app + teacher, not a switcher (there's one workspace) */}
+        {/* Brand lockup — the product mark; the teacher's own identity lives in
+            the rail footer, so this stays purely the plumb wordmark. */}
         <div className="flex items-center justify-between px-3 py-3">
-          <div className="flex min-w-0 items-center gap-2 px-2 py-1.5">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-ink text-[11px] font-semibold text-white">
-              {initials}
-            </span>
-            <span className="truncate text-[14px] font-semibold text-ink-black">
-              {teacherName}
-            </span>
+          <div className="px-2 py-1.5">
+            <Wordmark
+              size="nav"
+              tone="light"
+              href="/lessons"
+              className="text-ink-black hover:text-ink-tint"
+            />
           </div>
           <button
             type="button"

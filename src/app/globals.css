@@ -178,3 +178,33 @@ body {
     opacity: 1;
   }
 }
+
+/* The signature identity moment: the plumb line swings and settles to TRUE
+   vertical — a calm pendulum damping to rest, pivoting from the fixed top of
+   the cord. Not a reward animation: it plays once, quietly, on the landing
+   hero. Gated behind no-preference so reduced-motion users see it resting. */
+@media (prefers-reduced-motion: no-preference) {
+  .plumb-line-settle {
+    transform-origin: top center;
+    animation: plumb-settle 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes plumb-settle {
+  0% {
+    transform: rotate(-4.5deg);
+    opacity: 0;
+  }
+  28% {
+    opacity: 1;
+  }
+  52% {
+    transform: rotate(2.6deg);
+  }
+  76% {
+    transform: rotate(-1.1deg);
+  }
+  100% {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}

@@ -4,6 +4,7 @@ import { ArrowRight, AtSign, GraduationCap, UserRound } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactElement, type ComponentType } from "react";
+import Wordmark from "@/app/_ui/Wordmark";
 import { requestMagicLink } from "@/app/_world/authActions";
 import { signIn, signOutAction } from "@/app/_world/session";
 import { CRISIS_DISCLOSURE } from "@/compliance/disclosure";
@@ -301,9 +302,7 @@ export default function SignInList({
 
         {/* Footer */}
         <footer className="mt-10 flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t border-shell-border pt-6 text-[12px] text-shell-muted">
-          <span className="text-[14px] font-semibold tracking-[0.02em] text-shell-text">
-            plumb
-          </span>
+          <Wordmark size="sm" tone="dark" href="/" className="text-shell-text" />
           <nav className="flex flex-wrap gap-x-6 gap-y-2">
             {[
               { label: "Privacy Policy", href: "/privacy" },

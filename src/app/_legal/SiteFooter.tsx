@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
+import Wordmark from "@/app/_ui/Wordmark";
 
 /**
  * The site footer — trust links on every public surface. A K-12 product is judged
@@ -30,9 +31,12 @@ export default function SiteFooter({
     <footer
       className={`flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-t ${border} px-6 py-6 text-[12px] ${muted}`}
     >
-      <span className={`text-[14px] font-semibold tracking-[0.02em] ${wordmark}`}>
-        plumb
-      </span>
+      <Wordmark
+        size="sm"
+        tone={tone}
+        href="/"
+        className={wordmark}
+      />
       <nav className="flex flex-wrap gap-x-6 gap-y-2">
         {LINKS.map((l) => (
           <Link key={l.href} href={l.href} className={`transition-colors ${hover}`}>

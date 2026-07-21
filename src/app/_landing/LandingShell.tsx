@@ -3,6 +3,8 @@
 import { Menu } from "lucide-react";
 import { useState, type ReactElement } from "react";
 import SiteFooter from "@/app/_legal/SiteFooter";
+import PlumbLine from "@/app/_ui/PlumbLine";
+import Wordmark from "@/app/_ui/Wordmark";
 import HeroInput from "./HeroInput";
 import LoginButton from "./LoginButton";
 import QuickActions from "./QuickActions";
@@ -37,14 +39,22 @@ export default function LandingShell({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="relative flex shrink-0 items-center justify-between gap-3 px-4 py-3">
-          <button
-            type="button"
-            onClick={() => setMenuOpen(true)}
-            aria-label="Open menu"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-shell-muted hover:bg-white/5 hover:text-shell-text md:invisible"
-          >
-            <Menu size={20} />
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setMenuOpen(true)}
+              aria-label="Open menu"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg text-shell-muted hover:bg-white/5 hover:text-shell-text md:hidden"
+            >
+              <Menu size={20} />
+            </button>
+            <Wordmark
+              size="nav"
+              tone="dark"
+              href="/"
+              className="hidden text-shell-text sm:inline-flex"
+            />
+          </div>
 
           {/* Centered on desktop; flows inline on narrow screens. */}
           <div className="md:absolute md:left-1/2 md:top-3 md:-translate-x-1/2">
@@ -55,14 +65,22 @@ export default function LandingShell({
         </header>
 
         <main id="main-content" tabIndex={-1} className="graph-paper-dark flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-4 pb-10">
-          <div className="w-full max-w-xl">
-            <h1 className="text-center font-voice text-[28px] font-normal leading-tight tracking-tight text-shell-text sm:text-[36px]">
+          <div className="flex w-full max-w-xl flex-col items-center">
+            {/* Signature motif: the plumb line swings and settles to true. */}
+            <PlumbLine
+              height={72}
+              className="text-shell-muted plumb-line-settle"
+            />
+            <p className="mt-6 text-[11px] font-medium uppercase tracking-[0.22em] text-shell-muted">
+              Classroom reflection
+            </p>
+            <h1 className="mt-3 text-balance text-center font-voice text-[30px] font-normal leading-[1.08] tracking-tight text-shell-text sm:text-[42px]">
               {headline}
             </h1>
-            <p className="mt-3 text-center text-[14px] leading-relaxed text-shell-muted">
+            <p className="mt-4 max-w-md text-center text-[15px] leading-relaxed text-shell-muted">
               {subline}
             </p>
-            <div className="mt-8">
+            <div className="mt-9 w-full">
               <HeroInput role={role} />
             </div>
             <QuickActions role={role} />

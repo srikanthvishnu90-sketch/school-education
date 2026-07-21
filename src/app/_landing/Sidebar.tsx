@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactElement } from "react";
+import Wordmark from "@/app/_ui/Wordmark";
 import { signOutAction } from "@/app/_world/session";
 
 /**
@@ -63,9 +64,7 @@ export default function Sidebar({
         }`}
       >
         <div className="flex items-center justify-between px-3 py-3">
-          <span className="text-[14px] font-semibold tracking-tight text-shell-text">
-            plumb
-          </span>
+          <Wordmark size="sm" tone="dark" href="/" className="text-shell-text" />
           <button
             type="button"
             onClick={onClose}

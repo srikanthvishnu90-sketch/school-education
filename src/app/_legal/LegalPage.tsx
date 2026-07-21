@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactElement, ReactNode } from "react";
+import Wordmark from "@/app/_ui/Wordmark";
 import SiteFooter from "./SiteFooter";
 
 /**
@@ -21,12 +22,12 @@ export default function LegalPage({
     <div className="flex min-h-screen flex-col bg-paper text-ink-black">
       <header className="graph-paper border-b border-ink-wash bg-white px-6 py-4">
         <div className="mx-auto flex max-w-3xl items-center justify-between">
-          <Link
+          <Wordmark
+            size="sm"
+            tone="light"
             href="/"
-            className="text-[14px] font-semibold tracking-[0.02em] text-ink-black hover:text-ink-tint"
-          >
-            plumb
-          </Link>
+            className="text-ink-black hover:text-ink-tint"
+          />
           <Link
             href="/signin"
             className="text-[13px] text-ink-tint underline-offset-4 hover:underline"
