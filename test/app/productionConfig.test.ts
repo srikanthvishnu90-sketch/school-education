@@ -46,6 +46,19 @@ describe("production config assertion", () => {
     expect(() => assertProductionConfig({})).not.toThrow();
   });
 
+  it("lets a Vercel PREVIEW deploy boot on demo config (not real production)", () => {
+    const preview = { VERCEL_ENV: "preview", NODE_ENV: "production" };
+    expect(isProduction(preview)).toBe(false);
+    // Missing every required var, yet a preview must still start so the UI is viewable.
+    expect(() => assertProductionConfig(preview)).not.toThrow();
+  });
+
+  it("still treats a self-hosted NODE_ENV=production (no Vercel) as real production", () => {
+    const selfHost = { NODE_ENV: "production" };
+    expect(isProduction(selfHost)).toBe(true);
+    expect(() => assertProductionConfig(selfHost)).toThrow(/refuses to start/i);
+  });
+
   it("never fails the production BUILD (only a running server)", () => {
     expect(() =>
       assertProductionConfig({

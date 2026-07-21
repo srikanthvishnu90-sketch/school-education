@@ -6,12 +6,20 @@
  * Dev and test are unaffected.
  */
 
-/** True when running as a real production deployment (Vercel or NODE_ENV). */
-export function isProduction(): boolean {
-  return (
-    process.env.VERCEL_ENV === "production" ||
-    process.env.NODE_ENV === "production"
-  );
+/**
+ * True only for a REAL production deployment — one that serves real students and
+ * must therefore be fully configured. On Vercel that means `VERCEL_ENV === "production"`;
+ * a Vercel PREVIEW/DEVELOPMENT deploy is a staging/demo URL and is NOT real production,
+ * so it may boot on in-memory demo config (letting the UI be viewed without a database).
+ * Off Vercel, `NODE_ENV === "production"` is treated as real production (self-host).
+ */
+export function isProduction(
+  env: Record<string, string | undefined> = process.env,
+): boolean {
+  const onVercel = env.VERCEL === "1" || env.VERCEL_ENV !== undefined;
+  return onVercel
+    ? env.VERCEL_ENV === "production"
+    : env.NODE_ENV === "production";
 }
 
 /**
@@ -51,7 +59,9 @@ export function assertProductionConfig(env: Record<string, string | undefined> =
   // `next build` runs with NODE_ENV=production but the runtime env isn't present
   // yet — never fail the build; only refuse to START a running server.
   if (env.NEXT_PHASE === "phase-production-build") return;
-  if (!(env.VERCEL_ENV === "production" || env.NODE_ENV === "production")) return;
+  // Only a REAL production server must be fully configured. A Vercel preview/dev
+  // deploy boots on in-memory demo config (see isProduction).
+  if (!isProduction(env)) return;
 
   const missing = missingProductionConfig(env);
   if (missing.length > 0) {
