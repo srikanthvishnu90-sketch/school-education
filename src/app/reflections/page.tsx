@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
 import { getSessionUser } from "@/app/_world/session";
+import { studentDisplayName } from "@/app/_world/teacher";
+import StudentShell from "@/app/_components/StudentShell";
 import {
   listStudentReflections,
   type StudentReflectionStatus,
@@ -41,27 +43,26 @@ function formatDate(value: string): string {
   }).format(new Date(value));
 }
 
-/** The student's lesson inbox: teacher-created prompts, newest first. */
+/**
+ * The student's lesson inbox — every teacher-created reflection across all their
+ * courses, newest first. A flat cross-course view that complements the per-course
+ * drill-down under /courses, rendered on the same dark app shell.
+ */
 export default async function ReflectionsPage(): Promise<ReactElement> {
   const user = await getSessionUser();
   if (user === null || user.role !== "student") redirect("/signin");
 
   const reflections = await listStudentReflections();
+  const name = studentDisplayName(user.id);
 
   return (
-    <main id="main-content" tabIndex={-1} className="mx-auto min-h-[100svh] w-full max-w-2xl px-6 py-12 sm:py-16">
+    <StudentShell studentName={name} headerLabel="Reflections">
       <header className="max-w-xl">
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center text-sm font-medium text-ink-tint underline-offset-4 hover:underline focus-visible:rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-tint focus-visible:ring-offset-2 active:text-ink"
-        >
-          plumb
-        </Link>
-        <h1 className="mt-3 text-3xl font-medium tracking-tight text-ink-black">
+        <h1 className="mt-4 text-[22px] font-normal tracking-tight sm:text-[28px]">
           Your reflections
         </h1>
-        <p className="mt-3 max-w-[65ch] text-[15px] leading-relaxed text-secondary">
-          Choose a recent lesson and talk through how it went. Your teacher’s
+        <p className="mt-2 max-w-[65ch] text-[14px] leading-relaxed text-shell-muted">
+          Choose a recent lesson and talk through how it went. Your teacher&rsquo;s
           notes shape the questions, and you answer one at a time.
         </p>
       </header>
@@ -69,47 +70,44 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
       {reflections.length === 0 ? (
         <section
           aria-labelledby="empty-reflections-title"
-          className="mt-10 rounded-card border border-ink-wash bg-white px-6 py-8"
+          className="mt-8 rounded-xl border border-shell-border bg-shell-card px-6 py-8"
         >
           <h2
             id="empty-reflections-title"
-            className="text-lg font-medium text-ink-black"
+            className="text-[15px] font-medium text-shell-text"
           >
             No reflections are ready yet
           </h2>
-          <p className="mt-2 max-w-[60ch] text-[15px] leading-relaxed text-secondary">
+          <p className="mt-2 max-w-[60ch] text-[14px] leading-relaxed text-shell-muted">
             When your teacher creates a reflection after class, it will appear
-            here. You can come back when they let you know it’s ready.
+            here. You can come back when they let you know it&rsquo;s ready.
           </p>
         </section>
       ) : (
-        <section
-          className="mt-10"
-          aria-labelledby="available-reflections-title"
-        >
+        <section className="mt-8" aria-labelledby="available-reflections-title">
           <div className="flex items-baseline justify-between gap-4">
             <h2
               id="available-reflections-title"
-              className="text-base font-medium text-ink-black"
+              className="text-[15px] font-medium text-shell-text"
             >
               Available lessons
             </h2>
-            <p className="text-sm text-secondary">
+            <p className="text-[13px] text-shell-muted">
               {reflections.length}{" "}
               {reflections.length === 1 ? "lesson" : "lessons"}
             </p>
           </div>
 
-          <ul className="mt-4 divide-y divide-ink-wash overflow-hidden rounded-card border border-ink-wash bg-white">
+          <ul className="mt-4 divide-y divide-shell-border overflow-hidden rounded-xl border border-shell-border bg-shell-card">
             {reflections.map((reflection) => {
               const status = STATUS_LABELS[reflection.status];
               const content = (
                 <>
                   <span className="min-w-0">
-                    <span className="block text-base font-medium text-ink-black">
+                    <span className="block text-[15px] font-medium text-shell-text">
                       {reflection.title}
                     </span>
-                    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-secondary">
+                    <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-shell-muted">
                       <span>{LESSON_TYPE_LABELS[reflection.lessonType]}</span>
                       <span aria-hidden="true">·</span>
                       <time dateTime={reflection.createdAt}>
@@ -119,10 +117,10 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
                   </span>
 
                   <span className="flex shrink-0 items-center justify-between gap-4 sm:justify-end">
-                    <span className="rounded-full bg-ink-wash px-2.5 py-1 text-xs font-medium text-ink-tint">
+                    <span className="rounded-full bg-shell-panel px-2.5 py-1 text-xs font-medium text-shell-muted">
                       {status.state}
                     </span>
-                    <span className="text-sm font-medium text-ink-tint group-hover:underline group-hover:underline-offset-4">
+                    <span className="text-[13px] font-medium text-shell-sage group-hover:underline group-hover:underline-offset-4">
                       {status.action}
                       {reflection.status !== "abandoned" && (
                         <span aria-hidden="true"> →</span>
@@ -143,7 +141,7 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
                   ) : (
                     <Link
                       href={`/chat/${reflection.reflectionId}`}
-                      className="group flex min-h-24 flex-col justify-between gap-4 px-5 py-4 transition-colors hover:bg-ink-wash/50 focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink-tint active:bg-ink-wash motion-reduce:transition-none sm:flex-row sm:items-center"
+                      className="group flex min-h-24 flex-col justify-between gap-4 px-5 py-4 transition-colors hover:bg-white/5 focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-shell-sage active:bg-white/10 motion-reduce:transition-none sm:flex-row sm:items-center"
                       aria-label={`${status.action}: ${reflection.title}. Status: ${status.state}`}
                     >
                       {content}
@@ -155,6 +153,6 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
           </ul>
         </section>
       )}
-    </main>
+    </StudentShell>
   );
 }

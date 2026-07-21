@@ -4,10 +4,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   getSessionUser: vi.fn(),
   listStudentReflections: vi.fn(),
+  signOutAction: vi.fn(),
 }));
 
 vi.mock("@/app/_world/session", () => ({
   getSessionUser: mocks.getSessionUser,
+  // The page now renders the student app shell (Sidebar), whose sign-out form
+  // references this server action; a no-op stand-in keeps the render pure.
+  signOutAction: mocks.signOutAction,
 }));
 
 vi.mock("@/app/_world/studentReflectionActions", () => ({

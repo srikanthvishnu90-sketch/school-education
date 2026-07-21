@@ -123,8 +123,12 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
   (same reflections, same `/chat/{id}` destinations, same status labels). **Status:
   deferred (decision needed).** Deliberately NOT linked — dropping a student from the
   dark shell onto a light orphan is the exact rough edge the build standard forbids.
-  It has a test (`test/app/ReflectionsPage.test.tsx`), so it is not pure dead code —
-  **your call**: remove page+test, or rebuild it inside the shell and then link it.
+  It has a test (`test/app/ReflectionsPage.test.tsx`), so it is not pure dead code.
+  **Resolved: rebuilt in the shell + linked** (per your decision). New reusable
+  `_components/StudentShell` (the dark Sidebar frame lifted out of CoursesShell); the
+  page now renders inside it with dark-shell tokens; `/reflections` ("Reflections") is
+  a Sidebar nav item. Test kept green (mocks `signOutAction` for the shell). Note:
+  `/timeline` is still a shell-less light page — a candidate for the same StudentShell.
 - **C7** — `timeline/page.tsx` had no way back. **Status: fixed.** Added a "Back to
   courses" link (reusing the app's back-link pattern: 44px target, focus ring, ink
   tokens) at the top of the page.
