@@ -111,11 +111,11 @@ export default function SignInList({
               No ranking, no diagnosis, no surveillance.
             </span>
           </p>
-          <div className="mt-6 h-[3px] w-24 rounded-full bg-shell-sage" />
+          <div className="mt-6 h-[3px] w-24 rounded-full bg-shell-accent" />
         </div>
 
         {demo && (
-          <div className="mt-8 rounded-2xl border border-shell-sage/40 bg-shell-sage/10 px-5 py-3 text-[13px] leading-relaxed text-shell-text">
+          <div className="mt-8 rounded-2xl border border-shell-accent/40 bg-shell-accent/10 px-5 py-3 text-[13px] leading-relaxed text-shell-text">
             <span className="font-semibold">Demo environment — sample data only.</span>{" "}
             The one-click accounts below are fictional and hold no real student data.
             A real school signs in with a school email.
@@ -133,7 +133,7 @@ export default function SignInList({
             <div className="flex items-center gap-4">
               <Link
                 href={current.href}
-                className="inline-flex min-h-9 items-center rounded-full bg-shell-sage px-4 text-[13px] font-medium text-shell-background transition-opacity hover:opacity-90"
+                className="inline-flex min-h-9 items-center rounded-full bg-shell-accent px-4 text-[13px] font-medium text-shell-background transition-opacity hover:opacity-90"
               >
                 Continue to your workspace →
               </Link>
@@ -165,7 +165,7 @@ export default function SignInList({
               title="I'm a student"
               blurb="Talk through how the lesson really went, one question at a time."
               Icon={UserRound}
-              topAccent="border-t-shell-sage"
+              topAccent="border-t-shell-accent"
               people={students}
               pending={pending}
               onPick={pick}
@@ -198,7 +198,7 @@ export default function SignInList({
                   {" "}
                   <a
                     href={devLink}
-                    className="text-shell-sage underline-offset-4 hover:underline"
+                    className="text-shell-accent underline-offset-4 hover:underline"
                   >
                     Open your link
                   </a>
@@ -223,13 +223,13 @@ export default function SignInList({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@school.org"
-                  className="flex-1 rounded-lg border border-shell-border bg-shell-panel px-3 py-2 text-[15px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-sage"
+                  className="flex-1 rounded-lg border border-shell-border bg-shell-panel px-3 py-2 text-[15px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-accent"
                 />
                 <button
                   type="button"
                   onClick={sendLink}
                   disabled={pending || email.trim().length === 0}
-                  className="rounded-lg bg-shell-sage px-4 py-2 text-sm font-medium text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
+                  className="rounded-lg bg-shell-accent px-4 py-2 text-sm font-medium text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
                 >
                   {pending ? "Sending…" : "Send link"}
                 </button>
@@ -245,7 +245,7 @@ export default function SignInList({
                 placeholder="Pilot access code (if you were given one)"
                 aria-label="Pilot access code"
                 aria-invalid={codeRejected}
-                className="rounded-lg border border-shell-border bg-shell-panel px-3 py-2 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-sage"
+                className="rounded-lg border border-shell-border bg-shell-panel px-3 py-2 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-accent"
               />
               {codeRejected && (
                 <p role="alert" className="text-[13px] text-shell-muted">
@@ -267,7 +267,7 @@ export default function SignInList({
                 type="button"
                 onClick={() => pick(o)}
                 disabled={pending}
-                className="text-shell-sage hover:underline disabled:opacity-50"
+                className="text-shell-accent hover:underline disabled:opacity-50"
               >
                 {o.name} ({o.role})
               </button>
@@ -279,7 +279,7 @@ export default function SignInList({
         <div className="relative mt-9 flex h-44 items-center justify-center overflow-hidden rounded-2xl border border-shell-border bg-gradient-to-br from-shell-card via-shell-sidebar to-shell-background sm:h-52">
           <div
             aria-hidden
-            className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-shell-sage/10 blur-3xl"
+            className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-shell-accent/10 blur-3xl"
           />
           <div
             aria-hidden
@@ -358,7 +358,7 @@ function RolePanel({
             type="button"
             onClick={() => onPick(p)}
             disabled={pending}
-            className="flex items-center gap-3 rounded-xl border border-shell-border bg-shell-panel/40 px-3.5 py-3 text-left transition-colors hover:border-shell-sage disabled:opacity-50"
+            className="flex items-center gap-3 rounded-xl border border-shell-border bg-shell-panel/40 px-3.5 py-3 text-left transition-colors hover:border-shell-accent disabled:opacity-50"
           >
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-shell-active text-[13px] font-medium text-shell-text">
               {initialOf(p.name)}

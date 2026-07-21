@@ -54,7 +54,7 @@ export default function RoleToggle({
       {/* The sliding pill. Sized to half the track, moved by translate. */}
       <span
         aria-hidden
-        className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-shell-sage transition-transform duration-200 ease-out motion-reduce:transition-none"
+        className="absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-shell-accent transition-transform duration-200 ease-out motion-reduce:transition-none"
         style={{ transform: `translateX(${index * 100}%)` }}
       />
       {ROLES.map((r, i) => {
@@ -75,7 +75,7 @@ export default function RoleToggle({
               active
                 ? "text-shell-background"
                 : "text-shell-muted hover:text-shell-text"
-            } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage/50`}
+            } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent/50`}
           >
             {LABELS[r]}
           </button>

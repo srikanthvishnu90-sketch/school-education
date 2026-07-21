@@ -44,10 +44,8 @@
   --color-shell-border: #294050;
   --color-shell-text: #eaf1f7;
   --color-shell-muted: #93a7b7;
-  /* shell-accent is the canonical name; shell-sage is a deprecated alias kept
-     equal until references are migrated (both resolve to plumb brass). */
+  /* shell-accent is the canonical name (plumb brass). */
   --color-shell-accent: #bd9052;
-  --color-shell-sage: #bd9052;
 
   /* Subject color coding — small tags / left-borders only, never full fills. */
   --color-subject-math: #d97a7a;
@@ -97,7 +95,7 @@ body {
 }
 
 /* A visible keyboard-focus indicator on every control (WCAG 2.4.7), as a
-   baseline under any component-specific ring. Sage on the dark shell, ink
+   baseline under any component-specific ring. Brass on the dark shell, ink
    elsewhere; only for keyboard focus, so it never shows on mouse click. */
 :focus-visible {
   outline: 2px solid var(--color-ink-tint);
@@ -105,7 +103,7 @@ body {
 }
 .bg-shell-background :focus-visible,
 [data-theme="reflection-dark"] :focus-visible {
-  outline-color: var(--color-shell-sage);
+  outline-color: var(--color-shell-accent);
 }
 
 /* Screen-reader-only text, and a skip link that appears when focused

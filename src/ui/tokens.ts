@@ -53,8 +53,6 @@ export const color = {
   shellMuted: "#93A7B7",
   /** Primary accent (plumb brass). Buttons, active states, highlights. Dark text sits on it. */
   shellAccent: "#BD9052",
-  /** @deprecated alias of shellAccent, kept equal until references migrate. */
-  shellSage: "#BD9052",
 
   // Subject color coding — desaturated for a dark bg, used ONLY as small tags or
   // left-borders on cards, never as a full fill.

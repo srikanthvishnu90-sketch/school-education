@@ -120,7 +120,7 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
                     <span className="rounded-full bg-shell-panel px-2.5 py-1 text-xs font-medium text-shell-muted">
                       {status.state}
                     </span>
-                    <span className="text-[13px] font-medium text-shell-sage group-hover:underline group-hover:underline-offset-4">
+                    <span className="text-[13px] font-medium text-shell-accent group-hover:underline group-hover:underline-offset-4">
                       {status.action}
                       {reflection.status !== "abandoned" && (
                         <span aria-hidden="true"> →</span>
@@ -141,7 +141,7 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
                   ) : (
                     <Link
                       href={`/chat/${reflection.reflectionId}`}
-                      className="group flex min-h-24 flex-col justify-between gap-4 px-5 py-4 transition-colors hover:bg-white/5 focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-shell-sage active:bg-white/10 motion-reduce:transition-none sm:flex-row sm:items-center"
+                      className="group flex min-h-24 flex-col justify-between gap-4 px-5 py-4 transition-colors hover:bg-white/5 focus-visible:relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-shell-accent active:bg-white/10 motion-reduce:transition-none sm:flex-row sm:items-center"
                       aria-label={`${status.action}: ${reflection.title}. Status: ${status.state}`}
                     >
                       {content}

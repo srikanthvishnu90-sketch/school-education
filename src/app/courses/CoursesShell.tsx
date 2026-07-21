@@ -82,7 +82,7 @@ export default function CoursesShell({
                   <li key={c.id}>
                     <Link
                       href={`/courses/${c.id}`}
-                      className={`group flex h-full flex-col overflow-hidden rounded-xl border border-shell-border border-l-2 ${s.border} bg-shell-card transition-colors hover:border-shell-sage/40`}
+                      className={`group flex h-full flex-col overflow-hidden rounded-xl border border-shell-border border-l-2 ${s.border} bg-shell-card transition-colors hover:border-shell-accent/40`}
                     >
                       {/* Monogram banner stands in for D2L's course image. */}
                       <span

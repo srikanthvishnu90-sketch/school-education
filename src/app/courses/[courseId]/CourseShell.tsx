@@ -171,7 +171,7 @@ export default function CourseShell({
             hidden={tab !== "reflection"}
             className={
               tab === "reflection"
-                ? "mx-auto w-full max-w-2xl overflow-y-auto pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage"
+                ? "mx-auto w-full max-w-2xl overflow-y-auto pt-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent"
                 : "hidden"
             }
           >
@@ -182,7 +182,7 @@ export default function CourseShell({
                 <button
                   type="button"
                   onClick={() => setTab("chat")}
-                  className="text-shell-sage hover:underline"
+                  className="text-shell-accent hover:underline"
                 >
                   Ask for help
                 </button>{" "}
@@ -194,7 +194,7 @@ export default function CourseShell({
                   <li key={r.reflectionId}>
                     <Link
                       href={`/chat/${r.reflectionId}`}
-                      className="flex items-center gap-3 rounded-xl border border-shell-border bg-shell-card px-4 py-3.5 text-left transition-colors hover:border-shell-sage"
+                      className="flex items-center gap-3 rounded-xl border border-shell-border bg-shell-card px-4 py-3.5 text-left transition-colors hover:border-shell-accent"
                     >
                       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-shell-muted">
                         <MessageSquareText size={16} aria-hidden />
@@ -202,7 +202,7 @@ export default function CourseShell({
                       <span className="min-w-0 flex-1 truncate text-[15px] text-shell-text">
                         {r.title}
                       </span>
-                      <span className="shrink-0 text-[13px] text-shell-sage">
+                      <span className="shrink-0 text-[13px] text-shell-accent">
                         {STATUS_LABEL[r.status] ?? "Open"}
                       </span>
                     </Link>
@@ -221,7 +221,7 @@ export default function CourseShell({
             hidden={tab !== "chat"}
             className={
               tab === "chat"
-                ? "flex min-h-0 flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage"
+                ? "flex min-h-0 flex-1 flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent"
                 : "hidden"
             }
           >
@@ -263,15 +263,15 @@ function TabButton({
       aria-controls={panelId(tab)}
       tabIndex={active ? 0 : -1}
       onClick={onClick}
-      className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-sage ${
+      className={`-mb-px flex items-center gap-2 border-b-2 px-3 py-2.5 text-[14px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent ${
         active
-          ? "border-shell-sage text-shell-text"
+          ? "border-shell-accent text-shell-text"
           : "border-transparent text-shell-muted hover:text-shell-text"
       }`}
     >
       {children}
       {badge !== undefined && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-shell-sage px-1.5 text-[11px] font-medium text-shell-background">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-shell-accent px-1.5 text-[11px] font-medium text-shell-background">
           {badge}
         </span>
       )}

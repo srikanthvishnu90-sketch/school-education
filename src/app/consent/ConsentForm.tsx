@@ -143,7 +143,7 @@ export default function ConsentForm({ next }: { next: string }): ReactElement {
             type="checkbox"
             checked={parentConsent}
             onChange={(e) => setParentConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-shell-sage"
+            className="mt-0.5 h-4 w-4 accent-shell-accent"
           />
           A parent or guardian is here and gives permission for me to reflect.
         </label>
@@ -162,7 +162,7 @@ export default function ConsentForm({ next }: { next: string }): ReactElement {
         type="button"
         disabled={pending}
         onClick={submit}
-        className="mt-6 h-11 w-full rounded-full bg-shell-sage text-[14px] font-medium text-shell-background transition-opacity hover:opacity-80 disabled:opacity-50"
+        className="mt-6 h-11 w-full rounded-full bg-shell-accent text-[14px] font-medium text-shell-background transition-opacity hover:opacity-80 disabled:opacity-50"
       >
         {pending ? "Saving…" : "I understand — let’s reflect"}
       </button>
@@ -196,13 +196,13 @@ function Choice({
       onKeyDown={onKeyDown}
       className={`flex items-center gap-2.5 rounded-xl border px-4 py-2.5 text-left text-[14px] transition-colors ${
         checked
-          ? "border-shell-sage/60 bg-shell-panel text-shell-text"
+          ? "border-shell-accent/60 bg-shell-panel text-shell-text"
           : "border-shell-border text-shell-muted hover:text-shell-text"
       }`}
     >
       <span
         className={`h-3.5 w-3.5 rounded-full border ${
-          checked ? "border-shell-sage bg-shell-sage" : "border-shell-muted"
+          checked ? "border-shell-accent bg-shell-accent" : "border-shell-muted"
         }`}
         aria-hidden
       />

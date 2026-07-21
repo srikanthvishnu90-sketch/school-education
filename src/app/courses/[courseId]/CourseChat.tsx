@@ -137,7 +137,7 @@ export default function CourseChat({
             onClick={send}
             disabled={pending || crisis || input.trim().length === 0}
             aria-label="Send"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-shell-sage text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-shell-accent text-shell-background transition-opacity hover:opacity-90 disabled:opacity-40"
           >
             <ArrowUp size={17} />
           </button>

@@ -74,7 +74,7 @@ export default function LoginForm({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@school.org"
-          className="h-11 rounded-xl border border-shell-border bg-shell-panel px-4 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-sage/60"
+          className="h-11 rounded-xl border border-shell-border bg-shell-panel px-4 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-accent/60"
         />
 
         <label className="mt-2 text-[13px] text-shell-muted" htmlFor="password">
@@ -87,7 +87,7 @@ export default function LoginForm({
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          className="h-11 rounded-xl border border-shell-border bg-shell-panel px-4 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-sage/60"
+          className="h-11 rounded-xl border border-shell-border bg-shell-panel px-4 text-[14px] text-shell-text outline-none placeholder:text-shell-muted focus:border-shell-accent/60"
         />
 
         {error !== null && (
@@ -102,7 +102,7 @@ export default function LoginForm({
         <button
           type="submit"
           disabled={pending}
-          className="mt-4 h-11 rounded-full bg-shell-sage text-[14px] font-medium text-shell-background transition-opacity hover:opacity-80 disabled:opacity-50"
+          className="mt-4 h-11 rounded-full bg-shell-accent text-[14px] font-medium text-shell-background transition-opacity hover:opacity-80 disabled:opacity-50"
         >
           {pending
             ? signingUp
@@ -121,7 +121,7 @@ export default function LoginForm({
             setMode(mode === "signin" ? "signup" : "signin");
             setError(null);
           }}
-          className="mt-4 w-full text-center text-[13px] text-shell-sage hover:underline"
+          className="mt-4 w-full text-center text-[13px] text-shell-accent hover:underline"
         >
           {mode === "signin"
             ? "New here? Create a student account"
