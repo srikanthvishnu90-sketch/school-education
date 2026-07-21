@@ -60,27 +60,24 @@ const VALID_ANALYSIS = JSON.stringify({
 
 const VALID_QUESTIONS = JSON.stringify([
   {
+    category: "metacognitive",
+    text: "Before this part of today's balancing task, what were you trying to figure out or get right?",
+    format: "short_response",
+  },
+  {
     category: "technical",
-    text: "Thinking about the equations you balanced today, which moment is closest to what happened?",
-    format: "multiple_choice",
-    options: ["I started", "I checked an example", "I'm not sure"],
+    text: "In your own words, how would you work through one equation from today's balancing task, step by step, so someone else could follow it?",
+    format: "long_response",
   },
   {
     category: "emotional",
-    text: "At that moment in today's balancing task, which feeling was closest to what you noticed?",
-    format: "emotion_select",
-    options: ["Calm", "Rushed", "I'm not sure"],
-  },
-  {
-    category: "technical",
-    text: "Pick one equation from today's balancing task. What was the last step you could explain in your own words?",
+    text: "Thinking about today's balancing task, how did that part feel? Say it in your own words.",
     format: "short_response",
   },
   {
     category: "behavioral",
-    text: "Right after that step in today's balancing task, what did you do next?",
-    format: "multiple_choice",
-    options: ["Asked for help", "Used an example", "I'm not sure"],
+    text: "Right after a tricky step in today's balancing task, what did you do next?",
+    format: "short_response",
   },
   {
     category: "metacognitive",
@@ -226,8 +223,10 @@ describe("LLM reflection intelligence (fake gateway)", () => {
     {
       failure: "a technical prompt rewritten as an emotion question",
       mutate: (questions: Record<string, unknown>[]) => {
-        questions[0] = {
-          ...questions[0],
+        // Index 1 is the technical mastery question; an emotion rewrite breaks its
+        // construct and must be rejected.
+        questions[1] = {
+          ...questions[1],
           text: "How did today's balancing task feel?",
         };
       },
@@ -235,7 +234,12 @@ describe("LLM reflection intelligence (fake gateway)", () => {
     {
       failure: "a closed response without honest uncertainty",
       mutate: (questions: Record<string, unknown>[]) => {
-        questions[1] = { ...questions[1], options: ["Calm", "Rushed"] };
+        // Index 4 (the rating prediction) is the only closed item; dropping the
+        // honest "I'm not sure" choice must be rejected.
+        questions[4] = {
+          ...questions[4],
+          options: ["Not at all", "A little", "Somewhat", "Mostly", "Completely"],
+        };
       },
     },
     {
