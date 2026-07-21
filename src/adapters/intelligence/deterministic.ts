@@ -462,6 +462,13 @@ export function createDeterministicReflectionIntelligence(deps: {
     const taskAnchor = taskAnchorFor(analysis);
     const predictionAnchor = predictionAnchorFor(analysis);
     const episode = `this part of today's lesson on ${topic}: "${taskAnchor}"`;
+    // Grade-band register: K-2 and 3-5 get shorter sentences and plainer words with
+    // the SAME meaning and the SAME {episode}/{predictionAnchor} anchors. The
+    // structure — categories, formats, options, order, counts — is identical to the
+    // default register; only the question TEXT changes. 6-8 / 9-12 / untagged keep
+    // the standard wording below.
+    const younger =
+      input.gradeLevel === "k_2" || input.gradeLevel === "3_5";
     // Ordered pool = the Zimmerman arc, and every prompt is FREE-RESPONSE so the
     // student writes in their own words (no closed pickers). It dissects two
     // dimensions at once — the MENTAL/psychological (forethought goal, feeling) and
@@ -476,7 +483,9 @@ export function createDeterministicReflectionIntelligence(deps: {
         // Forethought recall (Zimmerman beat 1) — the MENTAL frame: recall the goal
         // before reviewing what happened. Free-text, the student's own words.
         category: "metacognitive",
-        text: `Before ${episode}, what were you trying to figure out or get right?`,
+        text: younger
+          ? `Before ${episode}, what were you trying to do?`
+          : `Before ${episode}, what were you trying to figure out or get right?`,
         format: "short_response",
         required: true,
         aiGenerated: true,
@@ -486,7 +495,9 @@ export function createDeterministicReflectionIntelligence(deps: {
         // the student re-derives and EXPLAINS the actual skill, showing essential
         // mastery of the topic rather than picking a canned option. Long free-text.
         category: "technical",
-        text: `In your own words, how would you work through one example from ${episode}, step by step, so someone else could follow it?`,
+        text: younger
+          ? `In your own words, how would you do one example from ${episode}, step by step, so a friend could follow it?`
+          : `In your own words, how would you work through one example from ${episode}, step by step, so someone else could follow it?`,
         format: "long_response",
         required: true,
         aiGenerated: true,
@@ -496,7 +507,9 @@ export function createDeterministicReflectionIntelligence(deps: {
         // FREE-TEXT FIRST (Barrett granularity). The words below are an OPTIONAL
         // vocabulary assist shown as suggestions, never a closed picker.
         category: "emotional",
-        text: `Thinking about ${episode}, how did that part feel? Say it in your own words.`,
+        text: younger
+          ? `Thinking about ${episode}, how did that part feel? Use your own words.`
+          : `Thinking about ${episode}, how did that part feel? Say it in your own words.`,
         format: "short_response",
         options: EMOTION_VOCABULARY,
         required: true,
@@ -505,7 +518,9 @@ export function createDeterministicReflectionIntelligence(deps: {
       {
         // What they did (behavioral) — free-text, so the strategy is in their words.
         category: "behavioral",
-        text: `Right after a tricky step in ${episode}, what did you do next?`,
+        text: younger
+          ? `Right after a hard step in ${episode}, what did you do next?`
+          : `Right after a tricky step in ${episode}, what did you do next?`,
         format: "short_response",
         required: false,
         aiGenerated: true,
@@ -515,7 +530,9 @@ export function createDeterministicReflectionIntelligence(deps: {
         // = confidence vs. correctness) is plumb's core, and it needs a number to
         // compare against the real score, so this stays a scale by design.
         category: "metacognitive",
-        text: `Before seeing your score or an answer key for "${predictionAnchor}", how much of that work do you predict you completed correctly?`,
+        text: younger
+          ? `Before you see your score for "${predictionAnchor}", how much do you think you got right?`
+          : `Before seeing your score or an answer key for "${predictionAnchor}", how much of that work do you predict you completed correctly?`,
         format: "rating",
         options: PREDICTION_OPTIONS,
         required: false,
@@ -528,7 +545,9 @@ export function createDeterministicReflectionIntelligence(deps: {
             // then compares against the teacher's worked example. The exemplar rides
             // as structured data so the chat shows it as a reference panel.
             category: "metacognitive",
-            text: `Compare your work to this example. What is one step you'd do differently next time?`,
+            text: younger
+              ? `Look at this example next to your work. What is one thing you would do differently next time?`
+              : `Compare your work to this example. What is one step you'd do differently next time?`,
             format: "short_response",
             exemplar: analysis.exemplar.trim().slice(0, 600),
             required: false,
@@ -537,7 +556,9 @@ export function createDeterministicReflectionIntelligence(deps: {
         : {
             // No exemplar on file → the generic feed-forward (Hattie) next step.
             category: "metacognitive",
-            text: `For the next task based on "${predictionAnchor}", what is one small step you would try first?`,
+            text: younger
+              ? `For your next task on "${predictionAnchor}", what is one small step you would try first?`
+              : `For the next task based on "${predictionAnchor}", what is one small step you would try first?`,
             format: "short_response",
             required: false,
             aiGenerated: true,

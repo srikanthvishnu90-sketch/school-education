@@ -214,6 +214,51 @@ describe("deterministic reflection intelligence", () => {
     expect(set.questions[0]?.text).toContain("Factoring quadratic equations");
   });
 
+  it("phrases a younger (k_2) lesson more simply while keeping the same structure", async () => {
+    const a = await ai.analyzeLesson({ lesson: lesson({}) });
+    const younger = await ai.generateReflectionQuestions({
+      analysis: a,
+      depth: "standard",
+      adaptiveFollowups: true,
+      gradeLevel: "k_2",
+    });
+    const standard = await ai.generateReflectionQuestions({
+      analysis: a,
+      depth: "standard",
+      adaptiveFollowups: true,
+    });
+
+    // The forethought opener (order 0) is reworded for the younger band: it differs
+    // from the default, is genuinely present, and drops the "figure out or get right"
+    // phrasing for plainer words — same anchor, simpler sentence.
+    const youngForethought = younger.questions[0]?.text ?? "";
+    const stdForethought = standard.questions[0]?.text ?? "";
+    expect(youngForethought).not.toBe(stdForethought);
+    expect(youngForethought).toBe(
+      'Before this part of today\'s lesson on Factoring quadratic equations: "students completed six problems", what were you trying to do?',
+    );
+    expect(youngForethought).not.toMatch(/figure out or get right/);
+
+    // Same structure — the reword is text-only.
+    expect(younger.questions).toHaveLength(standard.questions.length);
+    expect(younger.questions.map((q) => q.category)).toEqual(
+      standard.questions.map((q) => q.category),
+    );
+    expect(younger.questions.map((q) => q.format)).toEqual(
+      standard.questions.map((q) => q.format),
+    );
+    expect(isBalancedQuestionSet(younger)).toBe(true);
+
+    // Every younger prompt still asks exactly one question and never opens with a
+    // yes/no verb (the deterministic invariants must hold in both registers).
+    for (const q of younger.questions) {
+      expect(q.text.match(/\?/g)).toHaveLength(1);
+      expect(q.text).not.toMatch(
+        /^(are|can|could|did|do|does|had|has|have|is|was|were|will|would)\b/i,
+      );
+    }
+  });
+
   it("respects depth: shorter=4, deeper=6, and disables follow-ups when asked", async () => {
     const a = await ai.analyzeLesson({ lesson: lesson({}) });
     const shorter = await ai.generateReflectionQuestions({

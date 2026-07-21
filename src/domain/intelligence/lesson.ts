@@ -8,6 +8,13 @@ import { lessonAnalysisSchema, lessonSchema } from "../schemas/intelligence";
  * required; every richer field is optional context (spec → Teacher lesson input).
  */
 
+/**
+ * The grade band a lesson targets. Optional context the reflection engine uses to
+ * phrase questions age-appropriately (simpler words + shorter sentences for younger
+ * bands) WITHOUT changing the reflection's structure. Absent = the default register.
+ */
+export type GradeBand = "k_2" | "3_5" | "6_8" | "9_12";
+
 export type LessonType =
   | "direct_instruction"
   | "discussion"
@@ -29,6 +36,11 @@ export interface Lesson {
   title: string;
   date: Date;
   lessonType: LessonType;
+  /**
+   * The grade band this lesson targets, if the teacher tagged one. Threaded into the
+   * question generator so younger students get plainer phrasing (same questions).
+   */
+  gradeBand?: GradeBand;
   /** The teacher's summary/notes/objectives text the AI reasons over. */
   content: string;
   objectives: string[];

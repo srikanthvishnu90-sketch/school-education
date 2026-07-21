@@ -1,6 +1,11 @@
 "use server";
 
-import { createLesson, type Lesson, type LessonType } from "@/domain/intelligence/lesson";
+import {
+  createLesson,
+  type GradeBand,
+  type Lesson,
+  type LessonType,
+} from "@/domain/intelligence/lesson";
 import type {
   ClassInsightSummary,
   StudentInsightSummary,
@@ -68,6 +73,8 @@ async function ownedLesson(
 export interface NewLessonInput {
   title: string;
   lessonType: LessonType;
+  /** Optional grade band, so the reflection engine phrases questions age-appropriately. */
+  gradeBand?: GradeBand;
   content: string;
   /** Optional photos of the day's work, as data URLs. */
   photos?: string[];
@@ -185,6 +192,7 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
     title,
     date: now,
     lessonType: input.lessonType,
+    gradeBand: input.gradeBand,
     content: input.content.trim(),
     objectives: [],
     standards: [],
@@ -206,6 +214,7 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
     analysis,
     depth: "standard",
     adaptiveFollowups: true,
+    gradeLevel: lesson.gradeBand,
   });
   await world.intel.questionSets.save(set);
   return id;

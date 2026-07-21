@@ -34,6 +34,7 @@ export const lessonSchema = z.object({
   title: z.string().min(1),
   date: z.date(),
   lessonType: lessonTypeSchema,
+  gradeBand: z.enum(["k_2", "3_5", "6_8", "9_12"]).optional(),
   content: z.string().min(1),
   objectives: z.array(z.string().min(1)),
   standards: z.array(z.string().min(1)),

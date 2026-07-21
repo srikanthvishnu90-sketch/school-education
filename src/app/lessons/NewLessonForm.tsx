@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition, type ReactElement } from "react";
 import { createLessonReflection } from "@/app/_world/teacherReflectionActions";
 import type { NewLessonInput } from "@/app/_world/teacherReflectionActions";
-import type { LessonType } from "@/domain/intelligence/lesson";
+import type { GradeBand, LessonType } from "@/domain/intelligence/lesson";
 
 /** Keep in sync with lessonMedia.MAX_PHOTOS (server enforces the real cap). */
 const MAX_PHOTOS = 6;
@@ -16,6 +16,15 @@ const MAX_PHOTO_BYTES = 2_000_000;
  * the AI reads it and drafts the reflection. No pre-assessment, no scoring here —
  * just the seed the whole loop grows from.
  */
+
+/** "" is the unset sentinel; every other value maps 1:1 to a GradeBand. */
+const GRADE_BANDS: { value: GradeBand | ""; label: string }[] = [
+  { value: "", label: "Not set" },
+  { value: "k_2", label: "Grades K–2" },
+  { value: "3_5", label: "Grades 3–5" },
+  { value: "6_8", label: "Grades 6–8" },
+  { value: "9_12", label: "Grades 9–12" },
+];
 
 const LESSON_TYPES: { value: LessonType; label: string }[] = [
   { value: "direct_instruction", label: "Direct instruction" },
@@ -43,6 +52,7 @@ export default function NewLessonForm(): ReactElement {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [lessonType, setLessonType] = useState<LessonType>("direct_instruction");
+  const [gradeBand, setGradeBand] = useState<GradeBand | "">("");
   const [content, setContent] = useState("");
   const [exemplar, setExemplar] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
@@ -91,7 +101,14 @@ export default function NewLessonForm(): ReactElement {
 
   function submit(): void {
     setError(null);
-    const input: NewLessonInput = { title, lessonType, content, photos, exemplar };
+    const input: NewLessonInput = {
+      title,
+      lessonType,
+      gradeBand: gradeBand === "" ? undefined : gradeBand,
+      content,
+      photos,
+      exemplar,
+    };
     startTransition(async () => {
       try {
         const reflectionId = await createLessonReflection(input);
@@ -131,6 +148,25 @@ export default function NewLessonForm(): ReactElement {
         {LESSON_TYPES.map((t) => (
           <option key={t.value} value={t.value}>
             {t.label}
+          </option>
+        ))}
+      </select>
+
+      <label className="mt-5 block text-[13px] font-medium text-ink-black" htmlFor="gradeBand">
+        Grade band (optional)
+      </label>
+      <p className="mt-1 text-[13px] text-secondary">
+        Younger bands get the same reflection in plainer, shorter wording.
+      </p>
+      <select
+        id="gradeBand"
+        value={gradeBand}
+        onChange={(e) => setGradeBand(e.target.value as GradeBand | "")}
+        className="mt-2 w-full rounded-control border border-ink-wash bg-white px-3 py-2 text-[15px] text-ink-black outline-none focus:border-ink-tint"
+      >
+        {GRADE_BANDS.map((g) => (
+          <option key={g.value} value={g.value}>
+            {g.label}
           </option>
         ))}
       </select>
