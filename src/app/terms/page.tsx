@@ -5,15 +5,20 @@ import LegalPage, { Section } from "@/app/_legal/LegalPage";
 export const metadata: Metadata = {
   title: "Terms of Service",
   description: "The terms for using plumb, a classroom reflection tool for K-12 schools.",
+  openGraph: {
+    title: "Terms of Service",
+    description: "The terms for using plumb, a classroom reflection tool for K-12 schools.",
+  },
 };
 
 export default function TermsPage(): ReactElement {
   return (
     <LegalPage title="Terms of Service" updated="Last updated July 2026">
       <p>
-        These terms govern use of plumb, a classroom reflection tool. By signing in
-        you agree to them. plumb is provided to schools and districts; individual
-        students and staff use it under their school&rsquo;s agreement.
+        These terms govern use of plumb, a classroom reflection tool operated by Plumb
+        Reflection (&ldquo;plumb&rdquo;, &ldquo;we&rdquo;). By signing in you agree to
+        them. plumb is provided to schools and districts; individual students and staff
+        use it under their school&rsquo;s agreement.
       </p>
 
       <Section heading="Who may use plumb">
@@ -65,7 +70,7 @@ export default function TermsPage(): ReactElement {
 
       <Section heading="Contact">
         <p>
-          Questions about these terms? See our{" "}
+          Questions about these terms? Reach Plumb Reflection through our{" "}
           <a className="text-ink-tint underline-offset-4 hover:underline" href="/contact">Contact</a> page.
         </p>
       </Section>

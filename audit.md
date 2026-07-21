@@ -212,52 +212,54 @@ Legend for confidence: P0 = ships-broken-trust, must fix before anything else.
 
 ## F — COPY (warm-precise voice, Part 5)
 
-- **F1** — `SignInList.tsx:288` "A space for honest academic growth" — therapy-speak
-  ("a space for…") + performative-growth framing, set as an italic-uppercase slogan.
-  **Status: open.**
-- **F2** — Safety copy "Thank you for sharing that…" (ChatFlow:472, CourseChat:150) —
-  counseling voice. (Same string as A6; fix once.) **Status: open.**
-- **F3** — `CourseChat.tsx:32` opener "I'm here to think through … with you. How did
-  today go?" — check-in/counseling register, not task-focused. **Status: open.**
-- **F4** — `_landing/QuickActions.tsx:20` "Notice and name how the work actually went" —
-  SEL/mindfulness register. **Status: open.**
-- **F5** — Vague error fallback "Something went wrong." in `ChatFlow`(via CourseChat:64),
-  `NewLessonForm:99`, `RosterForm:26`, `ConsentForm:28`, `LoginForm:48` — states neither
-  what happened nor what to do. **Status: open.**
-- **F6** — Legal entity **"Plumb Reflection"** appears nowhere. Footer wordmark +
-  copyright (`SiteFooter.tsx:34,43`; `SignInList.tsx:299,318`), Privacy
-  (`privacy/page.tsx:6,15`), Terms (`terms/page.tsx:13,19`) all use the product name
-  where the legal entity is required. **Status: open.**
-- **F7** — Action-name drift: landing says "Log in" (`LoginButton.tsx:19`) but the
-  destination and all legal headers say "Sign in". **Status: open.**
-- **F8** — Status→action labels diverge between `CourseShell.tsx:23-29` ("Review"/"Open")
-  and `reflections/page.tsx:27-33` ("Review reflection"/"Open reflection") for identical
-  statuses. **Status: open.**
-- **F9** — Passive empty states with no next action: `EscalationList.tsx:35` "Nothing to
-  look at right now."; `reflections/page.tsx:78-83`. **Status: open** (low confidence —
-  counselor queue genuinely may have nothing).
-- **F10** — `login/page.tsx` exports no `metadata` — falls back to the generic root title,
-  no page-specific description/OG. **Status: open.**
-- **F11** — Public pages (privacy/terms/help/contact) set title+description but no
-  per-page `openGraph`, so OG inherits the generic root. **Status: open.**
+- **F1** — SignInList therapy-speak slogan "A space for honest academic growth".
+  **Status: fixed.** → "Read the lesson honestly, then choose one next step." — plain,
+  task-focused, slogan treatment (uppercase-italic) dropped.
+- **F2** — Safety "Thank you for sharing that…" **Status: fixed** (with A6).
+- **F3** — CourseChat counseling opener "I'm here to think through … with you. How did
+  today go?" **Status: fixed.** → "Hi {name} — let's work through {course}. Name one
+  thing from today that clicked and one thing that felt tricky."
+- **F4** — QuickActions SEL "Notice and name how the work actually went". **Status:
+  fixed.** → "Review how today's work actually went."
+- **F5** — Vague "Something went wrong." fallbacks. **Status: fixed** in all five
+  (NewLessonForm, RosterForm, ConsentForm, LoginForm, CourseChat) — each now names what
+  failed + what to do, keeping any specific server error (`result.error ?? …`).
+- **F6** — Legal entity **"Plumb Reflection"** was absent everywhere. **Status: fixed.**
+  Now in the footer copyright (SiteFooter + SignInList), and named as the operating
+  entity in Privacy and Terms (`Plumb Reflection ("plumb", "we") operates plumb`). No
+  legal facts fabricated — only the entity name. "plumb" stays lowercase as the product.
+- **F7** — "Log in" vs "Sign in" drift. **Status: fixed.** LoginButton now says "Sign in".
+- **F8** — Status→action label drift ("Review" vs "Review reflection") between CourseShell
+  and reflections/page. **Status: open** (minor — pick one vocabulary).
+- **F9** — Passive empty states. **Status: open** (low confidence; a counselor queue
+  genuinely may have nothing to act on).
+- **F10** — `login/page.tsx` had no `metadata`. **Status: fixed.** Added title +
+  description + openGraph.
+- **F11** — Public pages missing per-page `openGraph`. **Status: fixed** for
+  privacy/terms/help/contact (each now has a matching openGraph).
 
 ### Unrouted marketing set (`_components/{Landing,GetStarted,HeroRotator,ScrollDrawHero,Reveal}.tsx`) — dead code
-- **F12** — "Read how plumb closes the calibration gap" under a "New" badge; "Try the
-  cycle"; "Get Started" generic CTAs; "Interested in bringing accurate self-knowledge
-  to your learners?" lead-form voice. Two competing `<h1>`s on one page. **Status:
-  deferred** — recommend deleting the whole unrouted set rather than fixing copy on dead code.
+- **F12 / G2** — A self-contained marketing island: `Landing.tsx` has no importers and
+  pulls in the other four; nothing routes to it (live landing is `_landing/LandingShell`).
+  Its copy ("Try the cycle", "Get Started", lead-form voice) and two competing `<h1>`s
+  would violate the voice rules if wired up, and it adds latent bundle weight. **Status:
+  deferred (decision needed)** — it is DEAD but `HeroRotator` has a test
+  (`test/app/HeroRotator.test.tsx`), so like `/reflections` it isn't pure dead code.
+  **Your call:** delete the 5 components + the test, or keep it as a staging ground for a
+  future marketing landing. Not deleted unilaterally.
 
 ---
 
 ## G — PERFORMANCE
 
-- **G1** — `lessons/page.tsx` sets `maxDuration = 30` for the vision call; other routes
-  making awaited calls should be reviewed for Hobby/Pro timeout ceilings. **Status: open.**
-- **G2** — Unrouted marketing set (HeroRotator video autoplay, ScrollDraw 300vh scroll
-  listener, IntersectionObserver) would add bundle weight if ever imported; deleting it
-  removes the risk. **Status: deferred** (same delete as F12).
-- **G3** — Data-URL images without dimensions cause layout shift (CLS) — see E12.
-  **Status: open.**
+- **G1** — Serverless timeout ceilings. **Status: reviewed / adequate.** The only route
+  that makes a slow (vision analyze + generate) call is `lessons/page.tsx`, and it sets
+  `maxDuration = 30`. Ingest is deterministic parsing (no model/vision call) and the chat
+  route runs the deterministic engine by default, so neither needs an extended ceiling.
+- **G2** — Unrouted marketing set adds latent bundle weight if ever imported. **Status:
+  deferred** — tied to the F12 decision (delete vs keep as a staging ground).
+- **G3** — Data-URL images without dimensions (CLS). **Status: fixed** (see E12 — explicit
+  `width`/`height` on both thumbnail sites; both already in space-reserving containers).
 
 ---
 

@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactElement } from "react";
 import type { LoginRole } from "@/app/_world/loginActions";
 import { DEMO_PASSWORD } from "@/app/_world/credentials";
 import LoginForm from "./LoginForm";
+
+export const metadata: Metadata = {
+  title: "Log in",
+  description: "Log in to plumb as a student or teacher, and pick up the reflection where you left off.",
+  openGraph: {
+    title: "Log in",
+    description: "Log in to plumb as a student or teacher, and pick up the reflection where you left off.",
+  },
+};
 
 /**
  * The login screen. The role comes from the landing toggle via ?role=, so the

@@ -40,7 +40,7 @@ export default function SiteFooter({
           </Link>
         ))}
       </nav>
-      <span>© 2026 plumb · All rights reserved.</span>
+      <span>© 2026 Plumb Reflection · All rights reserved.</span>
     </footer>
   );
 }

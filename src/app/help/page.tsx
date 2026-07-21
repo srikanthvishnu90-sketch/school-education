@@ -5,6 +5,10 @@ import LegalPage, { Section } from "@/app/_legal/LegalPage";
 export const metadata: Metadata = {
   title: "Help Center",
   description: "How plumb works for students and teachers, plus privacy and safety answers.",
+  openGraph: {
+    title: "Help Center",
+    description: "How plumb works for students and teachers, plus privacy and safety answers.",
+  },
 };
 
 export default function HelpPage(): ReactElement {

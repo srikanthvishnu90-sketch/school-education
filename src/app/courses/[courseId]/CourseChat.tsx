@@ -29,7 +29,7 @@ export default function CourseChat({
   /** The persisted conversation so far (empty on a first visit). */
   initial: AssistantMessage[];
 }): ReactElement {
-  const opening = `Hi ${studentName} — I'm here to think through ${courseName} with you. How did today go? Tell me one thing that clicked and one thing that felt tricky.`;
+  const opening = `Hi ${studentName} — let's work through ${courseName}. Name one thing from today that clicked and one thing that felt tricky.`;
   const [messages, setMessages] = useState<AssistantMessage[]>([
     { role: "assistant", text: opening },
     ...initial,
@@ -61,7 +61,11 @@ export default function CourseChat({
           setMessages((prev) => [...prev, { role: "assistant", text: turn.reply }]);
         }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong.");
+        setError(
+          e instanceof Error
+            ? e.message
+            : "We couldn’t send that just now. Your message is still here—try again.",
+        );
       }
     });
   }

@@ -81,7 +81,11 @@ export default function ConsentForm({ next }: { next: string }): ReactElement {
     startTransition(async () => {
       const result = await grantReflectionConsent(under13, parentConsent);
       if (result.ok) router.push(next);
-      else setError(result.error ?? "Something went wrong.");
+      else
+        setError(
+          result.error ??
+            "We couldn’t record your okay. Nothing has started yet—try again.",
+        );
     });
   }
 

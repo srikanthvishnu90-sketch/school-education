@@ -289,8 +289,8 @@ export default function SignInList({
             aria-hidden
             className="absolute right-8 top-6 h-14 w-28 rounded-lg border border-shell-border/70 bg-white/[0.02] sm:h-16 sm:w-40"
           />
-          <p className="relative z-10 px-4 text-center text-[12px] font-medium uppercase italic tracking-[0.28em] text-shell-muted">
-            A space for honest academic growth
+          <p className="relative z-10 max-w-md px-4 text-center text-[14px] font-medium leading-relaxed text-shell-muted">
+            Read the lesson honestly, then choose one next step.
           </p>
         </div>
 
@@ -320,7 +320,7 @@ export default function SignInList({
               </Link>
             ))}
           </nav>
-          <span>© 2026 plumb · All rights reserved.</span>
+          <span>© 2026 Plumb Reflection · All rights reserved.</span>
         </footer>
       </div>
     </main>

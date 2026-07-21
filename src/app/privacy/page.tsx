@@ -6,16 +6,22 @@ export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "How plumb handles student data: private by default, task-focused, never sold, with one narrow safety exception.",
+  openGraph: {
+    title: "Privacy Policy",
+    description:
+      "How plumb handles student data: private by default, task-focused, never sold, with one narrow safety exception.",
+  },
 };
 
 export default function PrivacyPage(): ReactElement {
   return (
     <LegalPage title="Privacy Policy" updated="Last updated July 2026">
       <p>
-        plumb is a classroom reflection tool for K-12 students. This policy explains,
-        in plain language, what we collect, where it goes, and the controls students,
-        families, and schools have. It reflects how the product actually works — not
-        generic boilerplate.
+        Plumb Reflection (&ldquo;plumb&rdquo;, &ldquo;we&rdquo;) operates plumb, a
+        classroom reflection tool for K-12 students. This policy explains, in plain
+        language, what we collect, where it goes, and the controls students, families,
+        and schools have. It reflects how the product actually works — not generic
+        boilerplate.
       </p>
 
       <Section heading="Our core commitment">
@@ -112,7 +118,7 @@ export default function PrivacyPage(): ReactElement {
       <Section heading="Changes and contact">
         <p>
           If this policy changes materially, we&rsquo;ll note it here with a new date.
-          Questions? See our <a className="text-ink-tint underline-offset-4 hover:underline" href="/contact">Contact</a> page.
+          Questions for Plumb Reflection? See our <a className="text-ink-tint underline-offset-4 hover:underline" href="/contact">Contact</a> page.
         </p>
       </Section>
     </LegalPage>

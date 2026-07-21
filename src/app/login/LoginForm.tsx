@@ -45,7 +45,10 @@ export default function LoginForm({
       if (result.ok && result.redirect !== undefined) {
         router.push(result.redirect);
       } else {
-        setError(result.error ?? "Something went wrong.");
+        setError(
+          result.error ??
+            "We couldn’t sign you in. Check your email and password, then try again.",
+        );
       }
     });
   }

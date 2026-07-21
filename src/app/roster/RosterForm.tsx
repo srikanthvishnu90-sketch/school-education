@@ -23,7 +23,11 @@ export default function RosterForm({ initial }: { initial: string[] }): ReactEle
         setSaved(names);
         setText(names.join("\n"));
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong.");
+        setError(
+          e instanceof Error
+            ? e.message
+            : "We couldn’t save the roster. Your list is still here—try again.",
+        );
       }
     });
   }

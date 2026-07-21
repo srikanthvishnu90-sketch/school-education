@@ -96,7 +96,11 @@ export default function NewLessonForm(): ReactElement {
         const reflectionId = await createLessonReflection(input);
         router.push(`/lessons/${reflectionId}`);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong.");
+        setError(
+          e instanceof Error
+            ? e.message
+            : "We couldn’t create the reflection. Your notes are still here—try again.",
+        );
       }
     });
   }

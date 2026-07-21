@@ -5,6 +5,10 @@ import LegalPage, { Section } from "@/app/_legal/LegalPage";
 export const metadata: Metadata = {
   title: "Contact",
   description: "How to reach plumb — support, privacy requests, and school inquiries.",
+  openGraph: {
+    title: "Contact",
+    description: "How to reach plumb — support, privacy requests, and school inquiries.",
+  },
 };
 
 /**
