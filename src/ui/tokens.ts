@@ -38,20 +38,23 @@ export const color = {
   chatMuted: "#BBC5CD",
   chatAccent: "#A9C5DE",
 
-  // App shell — the dark K-12 surface (landing, login, courses). Calm and
-  // editorial: #121212 canvas (never pure black), one sage-green accent for
-  // buttons / active states / highlights.
-  shellBackground: "#121212",
-  shellSidebar: "#171717",
-  shellCard: "#1A1A1A",
-  shellPanel: "#2F2F2F",
-  shellTrack: "#212121",
-  shellActive: "#414141",
-  shellBorder: "#3A3A3A",
-  shellText: "#ECECEC",
-  shellMuted: "#8E8EA0",
-  /** Primary accent. Buttons, active states, highlights. Dark text sits on it. */
-  shellSage: "#8FBC9F",
+  // App shell — the dark K-12 surface (landing, login, courses). DEEP INK NAVY,
+  // the same ink DNA as the light surfaces, so dark and light are two modes of
+  // ONE identity (not a neutral ChatGPT gray). The accent is PLUMB BRASS — the
+  // brass of a plumb bob — for buttons / active states / highlights.
+  shellBackground: "#0E1822",
+  shellSidebar: "#0A121A",
+  shellCard: "#13202B",
+  shellPanel: "#21323F",
+  shellTrack: "#16232F",
+  shellActive: "#2C4150",
+  shellBorder: "#294050",
+  shellText: "#EAF1F7",
+  shellMuted: "#93A7B7",
+  /** Primary accent (plumb brass). Buttons, active states, highlights. Dark text sits on it. */
+  shellAccent: "#BD9052",
+  /** @deprecated alias of shellAccent, kept equal until references migrate. */
+  shellSage: "#BD9052",
 
   // Subject color coding — desaturated for a dark bg, used ONLY as small tags or
   // left-borders on cards, never as a full fill.

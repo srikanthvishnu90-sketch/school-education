@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 
 // Sans = Inter, for all data / academic UI.
@@ -8,9 +8,16 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-// NOTE: the serif "voice" font (--font-voice) is intentionally NOT loaded yet.
-// The variable is wired in globals.css and falls back to a serif stack until a
-// reflection/emotional surface task adopts it.
+// Voice = Fraunces, an optical-size serif with real character — used for display
+// headings and the human/reflective "voice" moments (via `--font-voice`). It gives
+// plumb an editorial, instrument-like identity instead of a generic sans-only look.
+const fraunces = Fraunces({
+  variable: "--font-voice-serif",
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://awareness-sepia.vercel.app";
 const DESCRIPTION =
@@ -48,7 +55,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${inter.variable} h-full scroll-smooth antialiased`}
+      className={`${inter.variable} ${fraunces.variable} h-full scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <a href="#main-content" className="skip-link">

@@ -31,17 +31,23 @@
   --color-chat-muted: #bbc5cd;
   --color-chat-accent: #a9c5de;
 
-  /* App shell — dark K-12 surface + sage accent, mirrored in src/ui/tokens.ts. */
-  --color-shell-background: #121212;
-  --color-shell-sidebar: #171717;
-  --color-shell-card: #1a1a1a;
-  --color-shell-panel: #2f2f2f;
-  --color-shell-track: #212121;
-  --color-shell-active: #414141;
-  --color-shell-border: #3a3a3a;
-  --color-shell-text: #ececec;
-  --color-shell-muted: #8e8ea0;
-  --color-shell-sage: #8fbc9f;
+  /* App shell — the dark surface is DEEP INK NAVY (same ink DNA as the light
+     surfaces), not a neutral gray, so dark and light are two modes of ONE
+     identity. The accent is PLUMB BRASS (#bd9052) — the brass of a plumb bob —
+     not a green. Mirrored in src/ui/tokens.ts. */
+  --color-shell-background: #0e1822;
+  --color-shell-sidebar: #0a121a;
+  --color-shell-card: #13202b;
+  --color-shell-panel: #21323f;
+  --color-shell-track: #16232f;
+  --color-shell-active: #2c4150;
+  --color-shell-border: #294050;
+  --color-shell-text: #eaf1f7;
+  --color-shell-muted: #93a7b7;
+  /* shell-accent is the canonical name; shell-sage is a deprecated alias kept
+     equal until references are migrated (both resolve to plumb brass). */
+  --color-shell-accent: #bd9052;
+  --color-shell-sage: #bd9052;
 
   /* Subject color coding — small tags / left-borders only, never full fills. */
   --color-subject-math: #d97a7a;
@@ -135,5 +141,42 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .skip-link {
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   plumb identity motif — graph paper + the plumb line.
+   The product is named for a plumb line (a string + brass bob that finds true
+   vertical). These utilities make that identity visible instead of generic.
+   --------------------------------------------------------------------------- */
+
+/* Faint engineering-grid ("graph paper") for light surfaces. A quiet signature,
+   never loud enough to compete with content. Pair on a `paper`/white background. */
+.graph-paper {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-ink) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-ink) 6%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+/* Same grid tuned for the dark ink-navy shell. */
+.graph-paper-dark {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--color-shell-text) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-shell-text) 4%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .plumb-bob-drop {
+    animation: plumb-drop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+@keyframes plumb-drop {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
