@@ -449,6 +449,9 @@ export function createDeterministicReflectionIntelligence(deps: {
       independentApplication,
       emotionalPressurePoints: pressure,
       reflectionFocus,
+      // Pass the teacher's worked example through untouched — the generator uses
+      // it to close with an exemplar-grounded self-comparison (feedback that teaches).
+      exemplar: lesson.exemplar,
       createdAt: now(),
     });
   }
@@ -518,14 +521,27 @@ export function createDeterministicReflectionIntelligence(deps: {
         required: false,
         aiGenerated: true,
       },
-      {
-        // Feed-forward (Hattie) — one concrete next step, in the student's words.
-        category: "metacognitive",
-        text: `For the next task based on "${predictionAnchor}", what is one small step you would try first?`,
-        format: "short_response",
-        required: false,
-        aiGenerated: true,
-      },
+      analysis.exemplar !== undefined && analysis.exemplar.trim().length > 0
+        ? {
+            // Feedback against a CORRECT exemplar (Kluger & DeNisi), placed LAST so
+            // the student attempts the skill from memory first (retrieval practice),
+            // then compares against the teacher's worked example. The exemplar rides
+            // as structured data so the chat shows it as a reference panel.
+            category: "metacognitive",
+            text: `Compare your work to this example. What is one step you'd do differently next time?`,
+            format: "short_response",
+            exemplar: analysis.exemplar.trim().slice(0, 600),
+            required: false,
+            aiGenerated: true,
+          }
+        : {
+            // No exemplar on file → the generic feed-forward (Hattie) next step.
+            category: "metacognitive",
+            text: `For the next task based on "${predictionAnchor}", what is one small step you would try first?`,
+            format: "short_response",
+            required: false,
+            aiGenerated: true,
+          },
     ];
 
     const questions: GeneratedQuestion[] = pool
@@ -584,6 +600,7 @@ export function createDeterministicReflectionIntelligence(deps: {
         format: q.format,
         options: q.options,
         required: q.required,
+        exemplar: q.exemplar,
       };
     }
     // All primaries answered: one clarifying follow-up if the last reply was

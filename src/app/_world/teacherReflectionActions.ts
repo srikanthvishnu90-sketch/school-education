@@ -71,6 +71,9 @@ export interface NewLessonInput {
   content: string;
   /** Optional photos of the day's work, as data URLs. */
   photos?: string[];
+  /** Optional worked example — one correct way to do the task, shown to the student
+   *  after their own retrieval attempt so the reflection closes with real feedback. */
+  exemplar?: string;
 }
 
 export interface LessonDetail {
@@ -185,6 +188,10 @@ export async function createLessonReflection(input: NewLessonInput): Promise<str
     content: input.content.trim(),
     objectives: [],
     standards: [],
+    exemplar:
+      input.exemplar !== undefined && input.exemplar.trim().length > 0
+        ? input.exemplar.trim()
+        : undefined,
     createdAt: now,
   });
   await world.intel.lessons.save(lesson);

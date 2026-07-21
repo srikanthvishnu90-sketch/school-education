@@ -68,6 +68,8 @@ export type ConversationStep =
       /** Optional prompts expose a neutral skip path in the student chat. */
       required: boolean;
       options?: string[];
+      /** A teacher's worked example shown as a reference panel with this question. */
+      exemplar?: string;
     }
   | { kind: "summary" }
   | { kind: "safety" };

@@ -44,6 +44,7 @@ export default function NewLessonForm(): ReactElement {
   const [title, setTitle] = useState("");
   const [lessonType, setLessonType] = useState<LessonType>("direct_instruction");
   const [content, setContent] = useState("");
+  const [exemplar, setExemplar] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoNotice, setPhotoNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +91,7 @@ export default function NewLessonForm(): ReactElement {
 
   function submit(): void {
     setError(null);
-    const input: NewLessonInput = { title, lessonType, content, photos };
+    const input: NewLessonInput = { title, lessonType, content, photos, exemplar };
     startTransition(async () => {
       try {
         const reflectionId = await createLessonReflection(input);
@@ -146,6 +147,22 @@ export default function NewLessonForm(): ReactElement {
         onChange={(e) => setContent(e.target.value)}
         rows={5}
         placeholder="I modeled three examples, then students factored six on their own. The sign on the middle term tripped a lot of them up."
+        className="mt-2 w-full resize-none rounded-control border border-ink-wash bg-white px-3 py-2 text-[15px] leading-relaxed text-ink-black outline-none focus:border-ink-tint"
+      />
+
+      <label className="mt-5 block text-[13px] font-medium text-ink-black" htmlFor="exemplar">
+        A worked example (optional)
+      </label>
+      <p className="mt-1 text-[13px] text-secondary">
+        One correct way to do today&rsquo;s task. Students try it from memory first,
+        then compare their work to this — that&rsquo;s what makes the practice stick.
+      </p>
+      <textarea
+        id="exemplar"
+        value={exemplar}
+        onChange={(e) => setExemplar(e.target.value)}
+        rows={3}
+        placeholder="e.g. To factor x² + 5x + 6: find two numbers that multiply to 6 and add to 5 (2 and 3), so (x + 2)(x + 3)."
         className="mt-2 w-full resize-none rounded-control border border-ink-wash bg-white px-3 py-2 text-[15px] leading-relaxed text-ink-black outline-none focus:border-ink-tint"
       />
 

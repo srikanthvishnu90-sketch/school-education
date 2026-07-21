@@ -209,6 +209,10 @@ export default function ChatFlow({
     current.options.length > 0
       ? current.options
       : null;
+  // A teacher's worked example, shown as a reference beside the final self-compare
+  // question — the student attempts first, then checks their work against it.
+  const exemplar =
+    current.kind === "question" ? current.exemplar : undefined;
   const done = current.kind !== "question";
 
   return (
@@ -287,6 +291,16 @@ export default function ChatFlow({
       {!done && (
         <footer className="shrink-0 border-t border-chat-divider bg-chat-background">
           <div className="mx-auto max-w-2xl px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 sm:px-6">
+            {exemplar !== undefined && (
+              <figure className="mb-3 rounded-card border border-chat-divider bg-chat-surface p-4">
+                <figcaption className="text-[12px] font-medium uppercase tracking-[0.14em] text-chat-muted">
+                  A worked example
+                </figcaption>
+                <p className="mt-2 whitespace-pre-line text-[14px] leading-relaxed text-chat-text">
+                  {exemplar}
+                </p>
+              </figure>
+            )}
             {error !== null && (
               <p
                 role="alert"

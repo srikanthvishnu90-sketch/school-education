@@ -33,6 +33,15 @@ export interface Lesson {
   content: string;
   objectives: string[];
   standards: string[];
+  /**
+   * An optional teacher-authored WORKED EXAMPLE — one correct way to do the core
+   * task. When present, the reflection closes with an exemplar-grounded
+   * self-comparison: the student attempts the skill from memory first (retrieval
+   * practice), then compares against this correct exemplar (feedback against a
+   * correct answer — the Kluger & DeNisi principle plumb is built on). This is
+   * what turns the retrieval probe from "collect text" into feedback that teaches.
+   */
+  exemplar?: string;
   createdAt: Date;
 }
 
@@ -58,6 +67,8 @@ export interface LessonAnalysis {
   emotionalPressurePoints: string[];
   /** One-line steer for the question generator (e.g. "independent application, response to mistakes"). */
   reflectionFocus: string;
+  /** Passed through from the lesson: the teacher's worked example, if any (see Lesson.exemplar). */
+  exemplar?: string;
   createdAt: Date;
 }
 

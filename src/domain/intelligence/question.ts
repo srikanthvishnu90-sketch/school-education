@@ -36,6 +36,12 @@ export interface GeneratedQuestion {
   format: QuestionFormat;
   /** Required for closed formats; ignored for free-text ones. */
   options?: string[];
+  /**
+   * A teacher's worked example shown alongside this question (see Lesson.exemplar).
+   * Present only on the final self-compare beat, so the student sees a correct
+   * reference AFTER their own retrieval attempt — feedback that teaches.
+   */
+  exemplar?: string;
   order: number;
   required: boolean;
   aiGenerated: boolean;

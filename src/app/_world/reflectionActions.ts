@@ -101,6 +101,7 @@ async function advance(
       format: step.format,
       required: step.required,
       options: step.options,
+      exemplar: step.exemplar,
       history: historyOf(updated),
     };
   }
@@ -160,6 +161,7 @@ async function resumeActive(
       format: step.format,
       required: step.required,
       options: step.options,
+      exemplar: step.exemplar,
       history: historyOf(session),
     };
     return result;

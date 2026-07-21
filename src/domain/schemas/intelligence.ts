@@ -37,6 +37,7 @@ export const lessonSchema = z.object({
   content: z.string().min(1),
   objectives: z.array(z.string().min(1)),
   standards: z.array(z.string().min(1)),
+  exemplar: z.string().min(1).optional(),
   createdAt: z.date(),
 });
 
@@ -55,6 +56,7 @@ export const lessonAnalysisSchema = z.object({
   independentApplication: z.array(z.string().min(1)),
   emotionalPressurePoints: z.array(z.string().min(1)),
   reflectionFocus: z.string().min(1),
+  exemplar: z.string().min(1).optional(),
   createdAt: z.date(),
 });
 
@@ -84,6 +86,7 @@ export const generatedQuestionSchema = z.object({
   text: z.string().min(1),
   format: questionFormatSchema,
   options: z.array(z.string().min(1)).optional(),
+  exemplar: z.string().min(1).optional(),
   order: z.number().int().nonnegative(),
   required: z.boolean(),
   aiGenerated: z.boolean(),

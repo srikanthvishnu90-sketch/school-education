@@ -688,6 +688,9 @@ export function createLlmReflectionIntelligence(deps: {
                   ? raw.emotionalPressurePoints
                   : ["Students may hesitate to ask for help when confused."],
               reflectionFocus: raw.reflectionFocus.trim(),
+              // The worked example is teacher-authored, not model output — pass it
+              // through untouched so the self-compare beat works under the LLM path too.
+              exemplar: lesson.exemplar,
               createdAt: now(),
             }),
           };

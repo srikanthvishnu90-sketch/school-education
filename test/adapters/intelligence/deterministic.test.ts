@@ -136,6 +136,37 @@ describe("deterministic reflection intelligence", () => {
     ]);
   });
 
+  it("closes with an exemplar-grounded self-compare when a worked example is given", async () => {
+    const analysis = await ai.analyzeLesson({
+      lesson: lesson({
+        exemplar:
+          "Find two numbers that multiply to 6 and add to 5 (2 and 3): (x+2)(x+3).",
+      }),
+    });
+    const set = await ai.generateReflectionQuestions({
+      analysis,
+      depth: "deeper",
+      adaptiveFollowups: true,
+    });
+    const last = set.questions[set.questions.length - 1];
+    // The final beat carries the exemplar as structured data (shown as a reference
+    // panel) and asks the student to compare — feedback AFTER their own attempt.
+    expect(last?.text.toLowerCase()).toContain("compare your work");
+    expect(last?.exemplar).toContain("multiply to 6");
+  });
+
+  it("uses the generic feed-forward when no worked example is given", async () => {
+    const analysis = await ai.analyzeLesson({ lesson: lesson({}) });
+    const set = await ai.generateReflectionQuestions({
+      analysis,
+      depth: "deeper",
+      adaptiveFollowups: true,
+    });
+    const last = set.questions[set.questions.length - 1];
+    expect(last?.exemplar).toBeUndefined();
+    expect(last?.text.toLowerCase()).toContain("one small step");
+  });
+
   it("changes prompts when the teacher's objective changes, even for the same topic", async () => {
     const first = await ai.analyzeLesson({
       lesson: lesson({ objectives: ["Factor using the box method"] }),

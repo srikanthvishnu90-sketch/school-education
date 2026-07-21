@@ -34,6 +34,8 @@ export interface ChatQuestion extends ChatHistory {
   format: QuestionFormat;
   required: boolean;
   options?: string[];
+  /** A teacher's worked example, shown as a reference panel beside this question. */
+  exemplar?: string;
 }
 
 export interface ChatSummary extends ChatHistory {
