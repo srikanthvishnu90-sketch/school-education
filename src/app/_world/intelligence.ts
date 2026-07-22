@@ -1,5 +1,12 @@
 import { createLesson } from "@/domain/intelligence/lesson";
 import { approveQuestionSet } from "@/domain/intelligence/question";
+import {
+  createReflectionMessage,
+  createReflectionSession,
+  type ReflectionSession,
+} from "@/domain/intelligence/session";
+import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
+import type { ConversationStep } from "@/domain/ports/intelligence";
 import { SEED_STUDENTS } from "@/application";
 import { recordGuardrailTrip } from "./guardrailIncidents";
 import { TEACHER_NAME, studentDisplayName } from "./teacher";
@@ -227,6 +234,186 @@ async function seedOne(
   await intel.questionSets.save(approveQuestionSet(set, now()));
 }
 
+/**
+ * A demo student's sample reflection: rich, free-response answers keyed to each
+ * question's category, a confidence prediction, one chosen next step, and the
+ * teacher's later score. The three archetypes produce three calibration outcomes
+ * (over-confident / under-confident / aligned) so the timeline + class brief show
+ * a real spread. The answers are written to model the psychology the questions
+ * probe — the emotional journey (Barrett granularity) AND technical mastery
+ * (retrieval), not one-word replies.
+ */
+interface DemoReflection {
+  studentId: string;
+  forethought: string; // metacognitive short-response (goal + self-efficacy)
+  technical: string; // the mastery/retrieval answer
+  emotional: string; // the feeling, in their words
+  behavioral: string; // what they did next
+  predictionLabel: string; // the confidence rating they pick
+  nextStep: string; // the one step they commit to
+  score: number; // the teacher's later result (0..1) — reality, vs. confidence
+}
+
+const DEMO_REFLECTIONS: readonly DemoReflection[] = [
+  {
+    // Avery — overconfident: high confidence, a lower real score (unchecked sign errors).
+    studentId: "student-avery",
+    forethought:
+      "I wanted to factor all six on my own without peeking at a worked example — I'm trying to place into honors next year, so I want to prove I can do it clean.",
+    technical:
+      "Factoring clicked fast. For each one I found the two numbers that multiply to the constant and add to the middle coefficient, split the middle term, and grouped it into two binomials. I flew through all six.",
+    emotional:
+      "Honestly I felt calm and a little proud. It came quick and I never really got stuck, so I felt like I had it.",
+    behavioral:
+      "I finished early so I just turned it in. I didn't go back and recheck the signs on the middle term.",
+    predictionLabel: "Completely",
+    nextStep: "Try a harder mixed set and actually check each sign before I move on.",
+    score: 0.6,
+  },
+  {
+    // Blake — underconfident: low confidence, a much higher real score (did well, didn't trust it).
+    studentId: "student-blake",
+    forethought:
+      "My goal was honestly just to not freeze up the way I do on tests. I wasn't sure I could get through them, so I wanted to stay calm and finish.",
+    technical:
+      "The box method mostly worked for me. I set the products in the corners and read the factors off the sides. I think I flipped a sign on the middle term once or twice, and I second-guessed even the ones I got right.",
+    emotional:
+      "I felt nervous the whole time, and kind of discouraged. Even when a problem came out right, I didn't trust that it was actually right.",
+    behavioral:
+      "I asked for help once when I got stuck, then I went back and redid two problems to double-check myself.",
+    predictionLabel: "A little",
+    nextStep: "Check the sign on the middle term first, and trust a problem when I've checked it.",
+    score: 0.85,
+  },
+  {
+    // Casey — calibrated: confidence matches the real result.
+    studentId: "student-casey",
+    forethought:
+      "I wanted to actually understand factoring, not just memorize the steps — so I was trying to be able to explain WHY the box method works, not only get answers.",
+    technical:
+      "The box method made sense. I slowed down on the sign in the middle term and it worked out. Two of them I wasn't fully sure about, so I flagged those in my head.",
+    emotional:
+      "I felt focused most of the time. A little rushed near the end, but okay — steady, not panicked.",
+    behavioral:
+      "I checked two of them by multiplying the factors back together to see if I got the original quadratic.",
+    predictionLabel: "Mostly",
+    nextStep: "Explain factoring to a friend to test whether I really understand it, not just do it.",
+    score: 0.7,
+  },
+];
+
+/** The persona's free-response answer for a given question turn (by category/format). */
+function demoAnswerFor(step: ConversationStep, r: DemoReflection): string {
+  if (step.kind !== "question") return "";
+  if (step.format === "rating") return r.predictionLabel;
+  switch (step.category) {
+    case "technical":
+      return r.technical;
+    case "emotional":
+      return r.emotional;
+    case "behavioral":
+      return r.behavioral;
+    default:
+      // metacognitive short-response — the forethought opener (and any next-step).
+      return r.forethought;
+  }
+}
+
+/**
+ * Seed ONE demo student's completed reflection on a lesson: walk the real engine
+ * turn by turn feeding the persona's answers, persist the completed session + its
+ * summary + the teacher's score. This is exactly the path a live reflection takes,
+ * so the seeded data is indistinguishable from a student having actually reflected.
+ */
+async function seedStudentReflection(
+  intelligence: ReflectionIntelligence,
+  intel: IntelRepos,
+  base: Date,
+  reflectionId: string,
+  r: DemoReflection,
+): Promise<void> {
+  const set = await intel.questionSets.findByLesson(reflectionId);
+  if (set === null) return;
+  const sessionId = `${reflectionId}:${r.studentId}`;
+  if ((await intel.sessions.findById(sessionId)) !== null) return; // already seeded
+
+  const at = (min: number): Date => new Date(base.getTime() + min * 60_000);
+  let session = createReflectionSession({
+    id: sessionId,
+    reflectionId,
+    studentId: r.studentId,
+    status: "active",
+    startedAt: base,
+    messages: [],
+  });
+
+  for (let i = 0; i < 24; i++) {
+    const step = await intelligence.nextTurn({ session, questionSet: set });
+    if (step.kind !== "question") break;
+    const answer = demoAnswerFor(step, r);
+    session = createReflectionSession({
+      ...session,
+      messages: [
+        ...session.messages,
+        createReflectionMessage({
+          id: `${sessionId}-ai-${i}`,
+          sessionId,
+          sender: "ai",
+          text: step.text,
+          category: step.category,
+          createdAt: at(i * 2),
+        }),
+        createReflectionMessage({
+          id: `${sessionId}-stu-${i}`,
+          sessionId,
+          sender: "student",
+          text: answer,
+          createdAt: at(i * 2 + 1),
+        }),
+      ],
+    });
+  }
+
+  const signals = await intelligence.extractSignals({ session });
+  const summary = await intelligence.summarizeStudentReflection({ session, signals });
+  await intel.studentSummaries.save(summary);
+
+  const completed: ReflectionSession = createReflectionSession({
+    ...session,
+    status: "completed",
+    selectedAction: r.nextStep,
+    completedAt: at(50),
+  });
+  await intel.sessions.save(completed);
+
+  // The teacher's later score — reality against the confidence they predicted.
+  await intel.performances.save(
+    createReflectionPerformance({
+      reflectionId,
+      studentId: r.studentId,
+      score: r.score,
+      recordedAt: at(60),
+    }),
+  );
+}
+
+/**
+ * Seed the demo students' sample reflections on the demo (district-demo) lesson,
+ * so a fresh in-memory demo already shows populated journeys, a class brief with
+ * three students, and a real calibration spread. Left OFF the Slope lesson on
+ * purpose, so starting THAT one live shows loop closure (revisiting the step above).
+ */
+export async function seedDemoStudentReflections(
+  intelligence: ReflectionIntelligence,
+  intel: IntelRepos,
+  now: () => Date,
+): Promise<void> {
+  const base = now();
+  for (const r of DEMO_REFLECTIONS) {
+    await seedStudentReflection(intelligence, intel, base, DEMO_REFLECTION_ID, r);
+  }
+}
+
 /** Seed each district's demo lesson + questions so the chat runs out of the box. */
 export async function seedDemoReflection(
   intelligence: ReflectionIntelligence,
@@ -236,4 +423,7 @@ export async function seedDemoReflection(
   for (const spec of SEED_LESSONS) {
     await seedOne(intelligence, intel, now, spec);
   }
+  // Populate the demo students' sample reflections once the lessons + question
+  // sets exist (they must be approved and findable first).
+  await seedDemoStudentReflections(intelligence, intel, now);
 }

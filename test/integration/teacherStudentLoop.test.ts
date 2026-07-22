@@ -101,7 +101,7 @@ describe("teacher ↔ student connection (end to end, in-memory)", () => {
     // The gate: the AI draft is NOT approved, so the student MUST NOT see it yet.
     expect(isQuestionSetApproved(draft)).toBe(false);
     await w.questionSets.save(draft);
-    let visible = await w.questionSets.findByLesson(REFLECTION_ID);
+    const visible = await w.questionSets.findByLesson(REFLECTION_ID);
     expect(visible !== null && isQuestionSetApproved(visible)).toBe(false);
 
     // The teacher approves — now it opens to students.

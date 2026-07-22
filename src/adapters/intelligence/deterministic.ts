@@ -485,7 +485,7 @@ export function createDeterministicReflectionIntelligence(deps: {
         category: "metacognitive",
         text: younger
           ? `Before ${episode}, what were you trying to do?`
-          : `Before ${episode}, what were you trying to figure out or get right?`,
+          : `Before ${episode}, what were you hoping to get right, and what part were you unsure you could do?`,
         format: "short_response",
         required: true,
         aiGenerated: true,
@@ -509,7 +509,7 @@ export function createDeterministicReflectionIntelligence(deps: {
         category: "emotional",
         text: younger
           ? `Thinking about ${episode}, how did that part feel? Use your own words.`
-          : `Thinking about ${episode}, how did that part feel? Say it in your own words.`,
+          : `As you worked through ${episode}, which feeling was strongest, and did it shift at any point? Say it in your own words.`,
         format: "short_response",
         options: EMOTION_VOCABULARY,
         required: true,
@@ -520,7 +520,7 @@ export function createDeterministicReflectionIntelligence(deps: {
         category: "behavioral",
         text: younger
           ? `Right after a hard step in ${episode}, what did you do next?`
-          : `Right after a tricky step in ${episode}, what did you do next?`,
+          : `When a step in ${episode} got tricky, what did you do next, and what made you try that?`,
         format: "short_response",
         required: false,
         aiGenerated: true,
