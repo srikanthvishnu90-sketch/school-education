@@ -198,6 +198,16 @@ export function createMemoryEvidenceRepository(): EvidenceRepository {
     async listByStudent(studentId) {
       return [...byId.values()].filter((e) => e.studentId === studentId);
     },
+    async deleteByStudent(studentId) {
+      let n = 0;
+      for (const [id, e] of byId) {
+        if (e.studentId === studentId) {
+          byId.delete(id);
+          n += 1;
+        }
+      }
+      return n;
+    },
   };
 }
 
@@ -214,6 +224,16 @@ export function createMemoryCalibrationRecordRepository(): CalibrationRecordRepo
       return [...byId.values()].filter(
         (c) => c.studentId === studentId && c.skillId === skillId,
       );
+    },
+    async deleteByStudent(studentId) {
+      let n = 0;
+      for (const [id, c] of byId) {
+        if (c.studentId === studentId) {
+          byId.delete(id);
+          n += 1;
+        }
+      }
+      return n;
     },
   };
 }

@@ -20,7 +20,10 @@ vi.mock("@/app/_world/auditLog", () => ({
   recordAudit: mocks.recordAudit,
 }));
 
-import { buildClassBrief } from "@/app/_world/teacherReflectionActions";
+import {
+  buildClassBrief,
+  getLessonSkillCalibration,
+} from "@/app/_world/teacherReflectionActions";
 
 const NOW = new Date("2026-07-20T12:00:00.000Z");
 const REFLECTION_ID = "lesson-1";
@@ -201,5 +204,117 @@ describe("buildClassBrief — completion figures + aggregate calibration", () =>
     );
     // The per-student emotional text the factory read must not leak anywhere in the view.
     expect(JSON.stringify(view)).not.toContain("private feeling text");
+  });
+});
+
+/** A world for getLessonSkillCalibration: the lesson, its completed sessions, and each
+ *  student's calibration records + skill tags. `lessonTeacherId` toggles ownership. */
+function makeCalibrationWorld(options: {
+  lessonTeacherId?: string;
+  sessions: ReturnType<typeof completedSession>[];
+  recordsByStudent: Record<
+    string,
+    { skillId: string; lessonId: string; claimedConfidence: number; demonstrated: number; delta: number; computedAt: Date }[]
+  >;
+}): World {
+  return {
+    clock: { now: () => NOW },
+    intel: {
+      lessons: {
+        findById: vi.fn(async () => ({
+          ...LESSON,
+          teacherId: options.lessonTeacherId ?? LESSON.teacherId,
+        })),
+      },
+      sessions: { listByReflection: vi.fn(async () => options.sessions) },
+      calibrationRecords: {
+        listByStudent: vi.fn(async (studentId: string) =>
+          (options.recordsByStudent[studentId] ?? []).map((r) => ({
+            id: `cal-${studentId}-${r.skillId}`,
+            studentId,
+            ...r,
+          })),
+        ),
+      },
+      skillTags: {
+        findById: vi.fn(async (skillId: string) => ({
+          id: skillId,
+          classId: "class-1",
+          label: `label for ${skillId}`,
+          source: "ai_extracted",
+        })),
+      },
+    },
+  } as unknown as World;
+}
+
+describe("getLessonSkillCalibration — audits the staff calibration read (D3)", () => {
+  it("records a view_class_brief per contributing student on an owned lesson", async () => {
+    mocks.getWorld.mockResolvedValue(
+      makeCalibrationWorld({
+        sessions: [
+          completedSession("student-a", "Very confident"),
+          completedSession("student-b", "Somewhat"),
+        ],
+        recordsByStudent: {
+          "student-a": [
+            {
+              skillId: "skill-1",
+              lessonId: REFLECTION_ID,
+              claimedConfidence: 1,
+              demonstrated: 0.6,
+              delta: 0.4,
+              computedAt: NOW,
+            },
+          ],
+          "student-b": [
+            {
+              skillId: "skill-1",
+              lessonId: REFLECTION_ID,
+              claimedConfidence: 0.5,
+              demonstrated: 0.9,
+              delta: -0.4,
+              computedAt: NOW,
+            },
+          ],
+        },
+      }),
+    );
+
+    const view = await getLessonSkillCalibration(REFLECTION_ID);
+    expect(view.length).toBeGreaterThan(0);
+
+    const calls = mocks.recordAudit.mock.calls.map((c) => c[0]);
+    expect(calls).toHaveLength(2);
+    expect(calls.every((c) => c.action === "view_class_brief")).toBe(true);
+    expect(calls.every((c) => c.actorId === TEACHER.id && c.actorRole === "teacher")).toBe(
+      true,
+    );
+    expect(calls.map((c) => c.studentId).sort()).toEqual(["student-a", "student-b"]);
+  });
+
+  it("records nothing and returns [] on a lesson the teacher does NOT own", async () => {
+    mocks.getWorld.mockResolvedValue(
+      makeCalibrationWorld({
+        lessonTeacherId: "teacher-other",
+        sessions: [completedSession("student-a", "Very confident")],
+        recordsByStudent: {
+          "student-a": [
+            {
+              skillId: "skill-1",
+              lessonId: REFLECTION_ID,
+              claimedConfidence: 1,
+              demonstrated: 0.6,
+              delta: 0.4,
+              computedAt: NOW,
+            },
+          ],
+        },
+      }),
+    );
+
+    const view = await getLessonSkillCalibration(REFLECTION_ID);
+    expect(view).toEqual([]);
+    expect(mocks.recordAudit).not.toHaveBeenCalled();
   });
 });

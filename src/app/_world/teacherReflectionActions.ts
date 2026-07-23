@@ -481,6 +481,21 @@ export async function getLessonSkillCalibration(
     }
   }
 
+  // FERPA record-of-access: this read derives from the roster's calibration data, so
+  // reading it is an access event on each contributing student. It is part of the
+  // class brief, so reuse that action. Best-effort — auditing never blocks the read.
+  for (const studentId of seen) {
+    recordAudit({
+      tenantId: teacher.tenantId,
+      actorId: teacher.id,
+      actorRole: "teacher",
+      action: "view_class_brief",
+      reflectionId,
+      studentId,
+      at: world.clock.now(),
+    });
+  }
+
   // Resolve each skill's learning-map label; fall back to a readable id tail if a tag
   // is somehow missing.
   const labels = new Map<string, string>();

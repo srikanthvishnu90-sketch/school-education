@@ -97,10 +97,14 @@ export interface EvidenceRepository {
   save(evidence: Evidence): Promise<void>;
   listByStudentAndLesson(studentId: Id, lessonId: Id): Promise<Evidence[]>;
   listByStudent(studentId: Id): Promise<Evidence[]>;
+  /** Hard-delete every evidence row for a student (right-to-erasure). Returns the count. */
+  deleteByStudent(studentId: Id): Promise<number>;
 }
 
 export interface CalibrationRecordRepository {
   save(record: CalibrationRecord): Promise<void>;
   listByStudent(studentId: Id): Promise<CalibrationRecord[]>;
   listByStudentAndSkill(studentId: Id, skillId: Id): Promise<CalibrationRecord[]>;
+  /** Hard-delete every calibration record for a student (right-to-erasure). Returns the count. */
+  deleteByStudent(studentId: Id): Promise<number>;
 }

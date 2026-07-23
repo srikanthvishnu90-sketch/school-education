@@ -578,6 +578,13 @@ export function createPgEvidenceRepository(
         )
       ).map(reviveEvidence);
     },
+    async deleteByStudent(studentId) {
+      const { rows } = await client.query<{ id: string } & Record<string, unknown>>(
+        "delete from intel.evidence where student_id=$1 returning id",
+        [studentId],
+      );
+      return rows.length;
+    },
   };
 }
 
@@ -613,6 +620,13 @@ export function createPgCalibrationRecordRepository(
           [studentId, skillId],
         )
       ).map(reviveCalibrationRecord);
+    },
+    async deleteByStudent(studentId) {
+      const { rows } = await client.query<{ id: string } & Record<string, unknown>>(
+        "delete from intel.calibration_records where student_id=$1 returning id",
+        [studentId],
+      );
+      return rows.length;
     },
   };
 }
