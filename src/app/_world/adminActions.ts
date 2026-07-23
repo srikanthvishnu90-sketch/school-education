@@ -24,6 +24,11 @@ import {
   type ProgramMetricsGradedOutcome,
   type ProgramMetricsSession,
 } from "@/domain/intelligence/programMetrics";
+import {
+  computePilotSignals,
+  type PilotSignals,
+} from "@/domain/intelligence/pilotSignals";
+import type { ProbeSelfScore } from "@/domain/intelligence/probeAttempt";
 
 /**
  * The district-admin surface: usage for their tenant and the access audit log
@@ -175,6 +180,86 @@ export async function getProgramMetrics(): Promise<
       "to reflect). Trend over time and history across restarts need durable " +
       "storage (Neon), which is not provisioned here — that longitudinal view is " +
       "deferred.",
+  };
+}
+
+/**
+ * The tenant's EARLY PILOT SIGNALS — the two-week, no-teacher kill-test reduced to
+ * its only honest metrics: do students return, unprompted, for a second and third
+ * reflection, and does the self-scored from-memory check (transfer probe) move? Same
+ * auth and tenant scoping as `getProgramMetrics`: admin-only, confined to the admin's
+ * own district. AGGREGATE ONLY — the domain fold is fed identity-stripped counts and
+ * position-only self-score lists, so no per-student row, name, or reflection content
+ * leaves this action; no student is identifiable from the result. Because nothing
+ * student-identifying is exposed, no access-audit entry is warranted (matching
+ * `getProgramMetrics`).
+ *
+ * SNAPSHOT, NOT A TREND: computed live from the in-memory repositories. A durable
+ * return curve and full-window probe movement need persistent storage that survives
+ * restarts (Neon), not provisioned here — that longitudinal view is DEFERRED. `note`
+ * says so.
+ *
+ * Cohort: the tenant's students who have any reflection session (resolved exactly as
+ * `getProgramMetrics` resolves `seenStudents` — lessons in the tenant's class, then
+ * their sessions). Per student we gather (a) how many reflections they have COMPLETED,
+ * across lessons, so a 2nd completed reflection is a voluntary return, and (b) their
+ * own probe self-scores in time order. A student belongs to one tenant, so all their
+ * probe attempts are in scope; only the coarse self-score and its order are read.
+ */
+export async function getPilotSignals(): Promise<
+  PilotSignals & { tenantId: string; note: string }
+> {
+  const admin = await requireAdmin();
+  const world = await getWorld();
+
+  const lessons = (await world.intel.lessons.listByClass(CLASS_ID)).filter(
+    (l) => l.tenantId === admin.tenantId,
+  );
+
+  // Completed-reflection count per student, aggregated across the tenant's lessons.
+  const completedByStudent = new Map<string, number>();
+  const seenStudents = new Set<string>();
+  for (const lesson of lessons) {
+    const sessions = await world.intel.sessions.listByReflection(lesson.id);
+    for (const session of sessions) {
+      seenStudents.add(session.studentId);
+      if (session.status === "completed") {
+        completedByStudent.set(
+          session.studentId,
+          (completedByStudent.get(session.studentId) ?? 0) + 1,
+        );
+      }
+    }
+  }
+
+  // Per-student arrays over the same cohort: completed-reflection count and the
+  // time-ordered probe self-scores. Only counts and coarse self-scores are kept — no
+  // id, name, or response text is carried into the domain fold or the result.
+  const completedReflectionsByStudent: number[] = [];
+  const probeSelfScores: ProbeSelfScore[][] = [];
+  for (const studentId of seenStudents) {
+    completedReflectionsByStudent.push(completedByStudent.get(studentId) ?? 0);
+    const attempts = await world.intel.probeAttempts.listByStudent(studentId);
+    const ordered = [...attempts].sort(
+      (a, b) => a.attemptedAt.getTime() - b.attemptedAt.getTime(),
+    );
+    probeSelfScores.push(ordered.map((a) => a.selfScore));
+  }
+
+  const signals = computePilotSignals({
+    completedReflectionsByStudent,
+    probeSelfScores,
+  });
+
+  return {
+    ...signals,
+    tenantId: admin.tenantId,
+    note:
+      "Aggregate pilot snapshot, computed live from repository data — no student is " +
+      "identifiable. It reads unprompted return (a 2nd and 3rd completed reflection) " +
+      "and whether the self-scored from-memory check moves. A durable return curve " +
+      "and full-window probe movement need persistent storage (Neon), not provisioned " +
+      "here — that longitudinal trend is deferred.",
   };
 }
 

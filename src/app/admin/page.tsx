@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import {
   exportConsentRecords,
   getAdminOverview,
+  getPilotSignals,
   getProgramMetrics,
 } from "@/app/_world/adminActions";
 import { getSessionUser } from "@/app/_world/session";
@@ -36,6 +37,7 @@ export default async function AdminPage(): Promise<ReactElement> {
 
   const { tenantId, usage, audit, assistantHealth } = await getAdminOverview();
   const metrics = await getProgramMetrics();
+  const pilot = await getPilotSignals();
   const consent = await exportConsentRecords();
   const under13Count = consent.records.filter((r) => r.under13).length;
   const TASK_LABEL: Record<string, string> = {
@@ -126,6 +128,41 @@ export default async function AdminPage(): Promise<ReactElement> {
                 : `average ${metrics.meanAbsCalibrationGap.toFixed(2)}`
             }
             detail={`across ${metrics.calibrationGapCount} graded ${metrics.calibrationGapCount === 1 ? "record" : "records"} · lower means closer`}
+          />
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+          Early signals (pilot)
+        </h2>
+        <p className="mt-2 text-[14px] text-secondary">
+          The two questions a no-teacher pilot turns on: do students come back on
+          their own, and does the from-memory check move? Aggregate counts only, no
+          student named. Where the numbers are still thin they say so rather than
+          imply a figure. This is a point in time; a return curve over the full pilot
+          needs durable storage and is not yet wired.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Readout
+            label="Came back for a 2nd reflection"
+            value={asPercent(pilot.returnRateSecond)}
+            detail={`${pilot.returnedForSecond} of ${pilot.activeStudents} active ${pilot.activeStudents === 1 ? "student" : "students"} returned unprompted`}
+          />
+          <Readout
+            label="Came back a 3rd time"
+            value={asPercent(pilot.returnRateThird)}
+            detail={`${pilot.returnedForThird} of ${pilot.activeStudents} active ${pilot.activeStudents === 1 ? "student" : "students"} kept returning`}
+          />
+          <Readout
+            label="Used the from-memory check"
+            value={asPercent(pilot.probeCompletionRate)}
+            detail={`${pilot.probeCompletionCount} of ${pilot.activeStudents} active ${pilot.activeStudents === 1 ? "student" : "students"} tried a probe`}
+          />
+          <Readout
+            label="From-memory check moving up"
+            value={asPercent(pilot.improvingShare)}
+            detail={`across ${pilot.studentsWithMultipleProbes} ${pilot.studentsWithMultipleProbes === 1 ? "student" : "students"} with two or more checks`}
           />
         </div>
       </section>
