@@ -418,6 +418,15 @@ export function createPgConsentRepository(
       );
       return raws.map(reviveConsent);
     },
+    async listAll() {
+      const raws = await selectMany<RawConsent>(
+        client,
+        "academic.consent_records",
+        "1 = 1",
+        [],
+      );
+      return raws.map(reviveConsent);
+    },
     async recordDeletion(receipt) {
       await upsertRow(client, "academic.deletion_receipts", {
         ...base(receipt.id),

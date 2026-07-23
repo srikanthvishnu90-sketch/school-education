@@ -108,6 +108,11 @@ export default function ConsentForm({ next }: { next: string }): ReactElement {
         private — your teacher sees a short summary, never this chat, and your
         score never changes because of it. You can stop any time.
       </p>
+      <p className="mt-3 text-[14px] leading-relaxed text-shell-muted">
+        Your school set up plumb for this class, which is the basis for using it
+        here. If you&rsquo;re under 13, a parent or guardian also gives permission
+        before you begin — that&rsquo;s required by law (COPPA).
+      </p>
 
       <fieldset className="mt-6">
         <legend

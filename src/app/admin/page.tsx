@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import { getAdminOverview } from "@/app/_world/adminActions";
+import { exportConsentRecords, getAdminOverview } from "@/app/_world/adminActions";
 import { getSessionUser } from "@/app/_world/session";
 import type { AuditAction } from "@/app/_world/auditLog";
 
@@ -31,6 +31,8 @@ export default async function AdminPage(): Promise<ReactElement> {
   if (user === null || user.role !== "admin") redirect("/signin");
 
   const { tenantId, usage, audit, assistantHealth } = await getAdminOverview();
+  const consent = await exportConsentRecords();
+  const under13Count = consent.records.filter((r) => r.under13).length;
   const TASK_LABEL: Record<string, string> = {
     analyze: "Read the lesson",
     generate: "Draft the questions",
@@ -83,6 +85,44 @@ export default async function AdminPage(): Promise<ReactElement> {
           </ul>
         </section>
       )}
+
+      <section className="mt-10">
+        <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+          Consent register
+        </h2>
+        <p className="mt-2 text-[14px] text-secondary">
+          Who currently holds permission to reflect, and on what basis. Under-13
+          students reflect only on a parent or guardian&rsquo;s permission (COPPA);
+          this is the record of that. Roster-level only — no reflection content.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Stat label="With consent" value={consent.records.length} />
+          <Stat label="Parent/guardian-granted (under 13)" value={under13Count} />
+        </div>
+        {consent.records.length === 0 ? (
+          <p className="mt-4 text-[14px] text-secondary">No consent recorded yet.</p>
+        ) : (
+          <ul className="mt-4 divide-y divide-ink-wash rounded-card border border-ink-wash bg-white">
+            {consent.records.map((r) => (
+              <li key={r.studentId} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="min-w-0 truncate text-[14px] text-ink-black">
+                  <span className="font-medium">{displayName(r.studentId)}</span>{" "}
+                  <span className="text-secondary">
+                    · {r.under13 ? "Parent/guardian permission" : "Self (13 or older)"}
+                  </span>
+                </span>
+                <time className="shrink-0 text-[12px] text-secondary">
+                  {new Date(r.grantedAt).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </time>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className="mt-10">
         <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">

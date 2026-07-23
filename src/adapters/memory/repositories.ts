@@ -221,6 +221,9 @@ export function createConsentRepository(): ConsentRepository {
     async listByStudent(studentId) {
       return records.values().filter((r) => r.studentId === studentId);
     },
+    async listAll() {
+      return records.values();
+    },
     async recordDeletion(receipt) {
       receipts.set(receipt.id, receipt);
     },

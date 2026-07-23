@@ -74,6 +74,14 @@ export interface AffectRepository {
 export interface ConsentRepository {
   save(record: ConsentRecord): Promise<void>;
   listByStudent(studentId: Id): Promise<ConsentRecord[]>;
+  /**
+   * Every consent record across all students — the roster-level source for a
+   * tenant-scoped compliance export. Consent is stored per student and the tenant
+   * lives in the auth layer, so tenant filtering is the caller's job (it resolves
+   * each student's tenant); this method only enumerates. Never exposes any
+   * emotional content, only the consent lifecycle itself.
+   */
+  listAll(): Promise<ConsentRecord[]>;
   recordDeletion(receipt: DeletionReceipt): Promise<void>;
   listReceipts(studentId: Id): Promise<DeletionReceipt[]>;
 }
