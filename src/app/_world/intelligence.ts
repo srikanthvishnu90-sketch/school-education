@@ -19,22 +19,28 @@ import {
 } from "@/adapters/intelligence";
 import { PINNED_MODELS, createHttpGateway } from "@/adapters/language";
 import {
+  createMemoryCalibrationRecordRepository,
   createMemoryClassSummaryRepository,
+  createMemoryEvidenceRepository,
   createMemoryLessonRepository,
   createMemoryPerformanceRepository,
   createMemoryQuestionSetRepository,
   createMemoryReflectionSessionRepository,
+  createMemorySkillTagRepository,
   createMemoryStudentSummaryRepository,
 } from "@/adapters/memory/intelligenceRepositories";
 import { createPgIntelRepos } from "@/adapters/supabase";
 import type { SqlClient } from "@/adapters/supabase";
 import type { ReflectionIntelligence } from "@/domain/ports/intelligence";
 import type {
+  CalibrationRecordRepository,
   ClassSummaryRepository,
+  EvidenceRepository,
   LessonRepository,
   PerformanceRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
+  SkillTagRepository,
   StudentSummaryRepository,
 } from "@/domain/ports/intelligenceRepositories";
 
@@ -55,6 +61,9 @@ export interface IntelRepos {
   studentSummaries: StudentSummaryRepository;
   classSummaries: ClassSummaryRepository;
   performances: PerformanceRepository;
+  skillTags: SkillTagRepository;
+  evidence: EvidenceRepository;
+  calibrationRecords: CalibrationRecordRepository;
 }
 
 /**
@@ -149,6 +158,9 @@ export async function buildIntelRepos(
     studentSummaries: createMemoryStudentSummaryRepository(),
     classSummaries: createMemoryClassSummaryRepository(),
     performances: createMemoryPerformanceRepository(),
+    skillTags: createMemorySkillTagRepository(),
+    evidence: createMemoryEvidenceRepository(),
+    calibrationRecords: createMemoryCalibrationRecordRepository(),
   };
 }
 

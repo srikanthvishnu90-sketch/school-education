@@ -7,10 +7,18 @@ import {
 } from "@/domain/intelligence/session";
 import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
 import {
+  createCalibrationRecord,
+  createEvidence,
+  createSkillTag,
+} from "@/domain/intelligence/calibrationModel";
+import {
+  createMemoryCalibrationRecordRepository,
+  createMemoryEvidenceRepository,
   createMemoryLessonRepository,
   createMemoryPerformanceRepository,
   createMemoryQuestionSetRepository,
   createMemoryReflectionSessionRepository,
+  createMemorySkillTagRepository,
 } from "@/adapters/memory/intelligenceRepositories";
 import { createDeterministicReflectionIntelligence } from "@/adapters/intelligence/deterministic";
 
@@ -150,5 +158,83 @@ describe("in-memory intelligence repositories", () => {
     // Idempotent.
     await lessons.delete("L9");
     await questionSets.deleteByLesson("L9");
+  });
+});
+
+describe("in-memory calibration repositories", () => {
+  it("stores skill tags, finds by id, and lists scoped by class", async () => {
+    const repo = createMemorySkillTagRepository();
+    await repo.save(
+      createSkillTag({ id: "sk1", classId: "C", label: "Factoring", source: "ai_extracted" }),
+    );
+    await repo.save(
+      createSkillTag({ id: "sk2", classId: "C", label: "Slope", source: "teacher_edited" }),
+    );
+    await repo.save(
+      createSkillTag({ id: "sk3", classId: "other", label: "Photosynthesis", source: "ai_extracted" }),
+    );
+
+    expect(await repo.findById("sk1")).not.toBeNull();
+    expect(await repo.findById("missing")).toBeNull();
+    // Scoped to class, insertion-ordered.
+    expect((await repo.listByClass("C")).map((s) => s.id)).toEqual(["sk1", "sk2"]);
+    expect((await repo.listByClass("other")).map((s) => s.id)).toEqual(["sk3"]);
+
+    // Overwrite by id (teacher corrects the AI-drafted label).
+    await repo.save(
+      createSkillTag({ id: "sk1", classId: "C", label: "Factoring quadratics", source: "teacher_edited" }),
+    );
+    expect((await repo.findById("sk1"))?.label).toBe("Factoring quadratics");
+    expect(await repo.listByClass("C")).toHaveLength(2); // overwritten, not appended
+  });
+
+  it("stores evidence and lists it by student and by student+lesson", async () => {
+    const repo = createMemoryEvidenceRepository();
+    const mk = (id: string, studentId: string, lessonId: string) =>
+      createEvidence({ id, studentId, lessonId, skillId: "sk1", kind: "score", value: 4, maxValue: 6 });
+    await repo.save(mk("e1", "stu", "L1"));
+    await repo.save(mk("e2", "stu", "L1"));
+    await repo.save(mk("e3", "stu", "L2"));
+    await repo.save(mk("e4", "other", "L1"));
+
+    expect((await repo.listByStudent("stu")).map((e) => e.id)).toEqual(["e1", "e2", "e3"]);
+    expect((await repo.listByStudentAndLesson("stu", "L1")).map((e) => e.id)).toEqual(["e1", "e2"]);
+    expect(await repo.listByStudentAndLesson("stu", "none")).toEqual([]);
+
+    // Overwrite by id.
+    await repo.save(
+      createEvidence({ id: "e1", studentId: "stu", lessonId: "L1", skillId: "sk1", kind: "exit_answer", value: "x = 3" }),
+    );
+    expect(await repo.listByStudent("stu")).toHaveLength(3); // overwritten, not appended
+    expect((await repo.listByStudentAndLesson("stu", "L1"))[0]?.value).toBe("x = 3");
+  });
+
+  it("stores calibration records and lists by student and by student+skill", async () => {
+    const repo = createMemoryCalibrationRecordRepository();
+    const mk = (id: string, studentId: string, skillId: string, demonstrated: number | null) =>
+      createCalibrationRecord({
+        id,
+        studentId,
+        skillId,
+        lessonId: "L1",
+        claimedConfidence: 0.9,
+        demonstrated,
+        delta: demonstrated === null ? null : 0.9 - demonstrated,
+        computedAt: NOW,
+      });
+    await repo.save(mk("c1", "stu", "sk1", 0.6));
+    await repo.save(mk("c2", "stu", "sk2", null));
+    await repo.save(mk("c3", "other", "sk1", 0.5));
+
+    expect((await repo.listByStudent("stu")).map((c) => c.id)).toEqual(["c1", "c2"]);
+    expect((await repo.listByStudentAndSkill("stu", "sk1")).map((c) => c.id)).toEqual(["c1"]);
+    expect(await repo.listByStudentAndSkill("stu", "none")).toEqual([]);
+    // Dates round-trip as Date instances.
+    expect((await repo.listByStudent("stu"))[0]?.computedAt).toBeInstanceOf(Date);
+
+    // Overwrite by id (a grade arrives; the ungraded record is replaced).
+    await repo.save(mk("c2", "stu", "sk2", 0.8));
+    expect(await repo.listByStudent("stu")).toHaveLength(2); // overwritten, not appended
+    expect((await repo.listByStudentAndSkill("stu", "sk2"))[0]?.delta).toBeCloseTo(0.1);
   });
 });

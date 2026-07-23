@@ -8,11 +8,19 @@ import type {
 } from "@/domain/intelligence/insight";
 import type { ReflectionPerformance } from "@/domain/intelligence/metacognition";
 import type {
+  CalibrationRecord,
+  Evidence,
+  SkillTag,
+} from "@/domain/intelligence/calibrationModel";
+import type {
+  CalibrationRecordRepository,
   ClassSummaryRepository,
+  EvidenceRepository,
   LessonRepository,
   PerformanceRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
+  SkillTagRepository,
   StudentSummaryRepository,
 } from "@/domain/ports/intelligenceRepositories";
 
@@ -157,6 +165,55 @@ export function createMemoryPerformanceRepository(): PerformanceRepository {
         }
       }
       return n;
+    },
+  };
+}
+
+export function createMemorySkillTagRepository(): SkillTagRepository {
+  const byId = new Map<Id, SkillTag>();
+  return {
+    async save(skill) {
+      byId.set(skill.id, skill);
+    },
+    async findById(id) {
+      return byId.get(id) ?? null;
+    },
+    async listByClass(classId) {
+      return [...byId.values()].filter((s) => s.classId === classId);
+    },
+  };
+}
+
+export function createMemoryEvidenceRepository(): EvidenceRepository {
+  const byId = new Map<Id, Evidence>();
+  return {
+    async save(evidence) {
+      byId.set(evidence.id, evidence);
+    },
+    async listByStudentAndLesson(studentId, lessonId) {
+      return [...byId.values()].filter(
+        (e) => e.studentId === studentId && e.lessonId === lessonId,
+      );
+    },
+    async listByStudent(studentId) {
+      return [...byId.values()].filter((e) => e.studentId === studentId);
+    },
+  };
+}
+
+export function createMemoryCalibrationRecordRepository(): CalibrationRecordRepository {
+  const byId = new Map<Id, CalibrationRecord>();
+  return {
+    async save(record) {
+      byId.set(record.id, record);
+    },
+    async listByStudent(studentId) {
+      return [...byId.values()].filter((c) => c.studentId === studentId);
+    },
+    async listByStudentAndSkill(studentId, skillId) {
+      return [...byId.values()].filter(
+        (c) => c.studentId === studentId && c.skillId === skillId,
+      );
     },
   };
 }

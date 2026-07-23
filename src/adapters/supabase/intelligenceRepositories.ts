@@ -17,12 +17,23 @@ import {
   createReflectionPerformance,
   type ReflectionPerformance,
 } from "@/domain/intelligence/metacognition";
+import {
+  createCalibrationRecord,
+  createEvidence,
+  createSkillTag,
+  type CalibrationRecord,
+  type Evidence,
+  type SkillTag,
+} from "@/domain/intelligence/calibrationModel";
 import type {
+  CalibrationRecordRepository,
   ClassSummaryRepository,
+  EvidenceRepository,
   LessonRepository,
   PerformanceRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
+  SkillTagRepository,
   StudentSummaryRepository,
 } from "@/domain/ports/intelligenceRepositories";
 import type { SqlClient } from "./client";
@@ -96,6 +107,42 @@ create table if not exists intel.reflection_performances (
 create index if not exists performance_student_idx on intel.reflection_performances (student_id);
 `;
 
+/**
+ * The skill-tag calibration model tables (calibrationModel.ts, brief §2). A SEPARATE,
+ * additive migration: shipped migrations are checksum-immutable, so the calibration
+ * tables arrive as their own numbered step rather than editing `0003_intel_schema`.
+ * Each row is a jsonb `data` blob plus the owner columns its list queries filter on.
+ */
+const CALIBRATION_DDL = `
+create table if not exists intel.skill_tags (
+  id text primary key,
+  class_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists skill_tags_class_idx on intel.skill_tags (class_id);
+
+create table if not exists intel.evidence (
+  id text primary key,
+  student_id text not null,
+  lesson_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists evidence_student_idx on intel.evidence (student_id);
+create index if not exists evidence_student_lesson_idx on intel.evidence (student_id, lesson_id);
+
+create table if not exists intel.calibration_records (
+  id text primary key,
+  student_id text not null,
+  skill_id text not null,
+  data jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists calibration_student_idx on intel.calibration_records (student_id);
+create index if not exists calibration_student_skill_idx on intel.calibration_records (student_id, skill_id);
+`;
+
 const SERVICE_ONLY = [
   "intel.lessons",
   "intel.question_sets",
@@ -103,10 +150,16 @@ const SERVICE_ONLY = [
   "intel.student_summaries",
   "intel.class_summaries",
   "intel.reflection_performances",
+  "intel.skill_tags",
+  "intel.evidence",
+  "intel.calibration_records",
 ];
 
 async function provision(client: SqlClient): Promise<void> {
-  await applyMigrations(client, [{ id: "0003_intel_schema", sql: DDL }]);
+  await applyMigrations(client, [
+    { id: "0003_intel_schema", sql: DDL },
+    { id: "0004_calibration_schema", sql: CALIBRATION_DDL },
+  ]);
   for (const t of SERVICE_ONLY) {
     // Enable RLS with no authenticated grant/policy → service-role-only.
     await client.query(`alter table ${t} enable row level security;`);
@@ -193,6 +246,20 @@ function reviveClassSummary(d: ClassInsightSummary): ClassInsightSummary {
 
 function revivePerformance(d: ReflectionPerformance): ReflectionPerformance {
   return createReflectionPerformance({ ...d, recordedAt: new Date(d.recordedAt) });
+}
+
+// SkillTag and Evidence carry no dates; round-trip them through the domain factory
+// for the same validation the sibling revivers apply.
+function reviveSkillTag(d: SkillTag): SkillTag {
+  return createSkillTag({ ...d });
+}
+
+function reviveEvidence(d: Evidence): Evidence {
+  return createEvidence({ ...d });
+}
+
+function reviveCalibrationRecord(d: CalibrationRecord): CalibrationRecord {
+  return createCalibrationRecord({ ...d, computedAt: new Date(d.computedAt) });
 }
 
 // --- The six adapters ---------------------------------------------------------
@@ -444,6 +511,112 @@ export function createPgPerformanceRepository(
   };
 }
 
+export function createPgSkillTagRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): SkillTagRepository {
+  return {
+    async save(skill) {
+      await client.query(
+        `insert into intel.skill_tags (id, class_id, data) values ($1,$2,$3)
+         on conflict (id) do update set class_id=excluded.class_id, data=excluded.data`,
+        [skill.id, skill.classId, encode(skill, cipher)],
+      );
+    },
+    async findById(id) {
+      const d = await one<SkillTag>(
+        client,
+        cipher,
+        "select data from intel.skill_tags where id=$1",
+        [id],
+      );
+      return d === null ? null : reviveSkillTag(d);
+    },
+    async listByClass(classId) {
+      return (
+        await many<SkillTag>(
+          client,
+          cipher,
+          "select data from intel.skill_tags where class_id=$1 order by created_at",
+          [classId],
+        )
+      ).map(reviveSkillTag);
+    },
+  };
+}
+
+export function createPgEvidenceRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): EvidenceRepository {
+  return {
+    async save(evidence) {
+      await client.query(
+        `insert into intel.evidence (id, student_id, lesson_id, data) values ($1,$2,$3,$4)
+         on conflict (id) do update set student_id=excluded.student_id,
+           lesson_id=excluded.lesson_id, data=excluded.data`,
+        [evidence.id, evidence.studentId, evidence.lessonId, encode(evidence, cipher)],
+      );
+    },
+    async listByStudentAndLesson(studentId, lessonId) {
+      return (
+        await many<Evidence>(
+          client,
+          cipher,
+          "select data from intel.evidence where student_id=$1 and lesson_id=$2 order by created_at",
+          [studentId, lessonId],
+        )
+      ).map(reviveEvidence);
+    },
+    async listByStudent(studentId) {
+      return (
+        await many<Evidence>(
+          client,
+          cipher,
+          "select data from intel.evidence where student_id=$1 order by created_at",
+          [studentId],
+        )
+      ).map(reviveEvidence);
+    },
+  };
+}
+
+export function createPgCalibrationRecordRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): CalibrationRecordRepository {
+  return {
+    async save(record) {
+      await client.query(
+        `insert into intel.calibration_records (id, student_id, skill_id, data) values ($1,$2,$3,$4)
+         on conflict (id) do update set student_id=excluded.student_id,
+           skill_id=excluded.skill_id, data=excluded.data`,
+        [record.id, record.studentId, record.skillId, encode(record, cipher)],
+      );
+    },
+    async listByStudent(studentId) {
+      return (
+        await many<CalibrationRecord>(
+          client,
+          cipher,
+          "select data from intel.calibration_records where student_id=$1 order by created_at",
+          [studentId],
+        )
+      ).map(reviveCalibrationRecord);
+    },
+    async listByStudentAndSkill(studentId, skillId) {
+      return (
+        await many<CalibrationRecord>(
+          client,
+          cipher,
+          "select data from intel.calibration_records where student_id=$1 and skill_id=$2 order by created_at",
+          [studentId, skillId],
+        )
+      ).map(reviveCalibrationRecord);
+    },
+  };
+}
+
 export interface PgIntelRepos {
   lessons: LessonRepository;
   questionSets: QuestionSetRepository;
@@ -451,6 +624,9 @@ export interface PgIntelRepos {
   studentSummaries: StudentSummaryRepository;
   classSummaries: ClassSummaryRepository;
   performances: PerformanceRepository;
+  skillTags: SkillTagRepository;
+  evidence: EvidenceRepository;
+  calibrationRecords: CalibrationRecordRepository;
 }
 
 /**
@@ -468,5 +644,8 @@ export async function createPgIntelRepos(client: SqlClient): Promise<PgIntelRepo
     studentSummaries: createPgStudentSummaryRepository(client, cipher),
     classSummaries: createPgClassSummaryRepository(client, cipher),
     performances: createPgPerformanceRepository(client, cipher),
+    skillTags: createPgSkillTagRepository(client, cipher),
+    evidence: createPgEvidenceRepository(client, cipher),
+    calibrationRecords: createPgCalibrationRecordRepository(client, cipher),
   };
 }
