@@ -31,7 +31,7 @@ const tabId = (t: Tab): string => `course-tab-${t}`;
 const panelId = (t: Tab): string => `course-panel-${t}`;
 
 const STATUS_LABEL: Record<string, string> = {
-  not_started: "Start reflection",
+  not_started: "Start",
   active: "Continue",
   completed: "Review",
   escalated: "Open",
@@ -134,7 +134,7 @@ export default function CourseShell({
             {/* Tabs */}
             <div
               role="tablist"
-              aria-label="Reflection or chat"
+              aria-label="Today's check or ask for help"
               onKeyDown={onTabKeyDown}
               className="mt-4 flex gap-1 border-b border-shell-border"
             >
@@ -147,7 +147,7 @@ export default function CourseShell({
                 }}
                 badge={openCount > 0 ? openCount : undefined}
               >
-                Today&rsquo;s reflection
+                Today&rsquo;s check
               </TabButton>
               <TabButton
                 tab="chat"
@@ -177,7 +177,7 @@ export default function CourseShell({
           >
             {reflections.length === 0 ? (
               <p className="rounded-xl border border-shell-border bg-shell-card px-4 py-5 text-[14px] leading-relaxed text-shell-muted">
-                Nothing to reflect on yet. When {course.teacher} posts a lesson, it
+                Nothing to go through yet. When {course.teacher} posts a lesson, it
                 shows up here — and you can always use{" "}
                 <button
                   type="button"

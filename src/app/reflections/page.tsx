@@ -27,11 +27,11 @@ const STATUS_LABELS: Record<
   StudentReflectionStatus,
   { state: string; action: string }
 > = {
-  not_started: { state: "Ready", action: "Start reflection" },
+  not_started: { state: "Ready", action: "Start" },
   active: { state: "In progress", action: "Continue" },
-  completed: { state: "Completed", action: "Review reflection" },
+  completed: { state: "Completed", action: "Review" },
   abandoned: { state: "Closed", action: "Unavailable" },
-  escalated: { state: "Support requested", action: "Open reflection" },
+  escalated: { state: "Support requested", action: "Open" },
 };
 
 function formatDate(value: string): string {
@@ -56,13 +56,13 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
   const name = studentDisplayName(user.id);
 
   return (
-    <StudentShell studentName={name} headerLabel="Reflections">
+    <StudentShell studentName={name} headerLabel="Lessons">
       <header className="max-w-xl">
         <h1 className="mt-4 text-[22px] font-normal tracking-tight sm:text-[28px]">
-          Your reflections
+          Your lessons
         </h1>
         <p className="mt-2 max-w-[65ch] text-[14px] leading-relaxed text-shell-muted">
-          Choose a recent lesson and talk through how it went. Your teacher&rsquo;s
+          Pick a recent lesson and go through how it went. Your teacher&rsquo;s
           notes shape the questions, and you answer one at a time.
         </p>
       </header>
@@ -76,10 +76,10 @@ export default async function ReflectionsPage(): Promise<ReactElement> {
             id="empty-reflections-title"
             className="text-[15px] font-medium text-shell-text"
           >
-            No reflections are ready yet
+            No lessons are ready yet
           </h2>
           <p className="mt-2 max-w-[60ch] text-[14px] leading-relaxed text-shell-muted">
-            When your teacher creates a reflection after class, it will appear
+            When your teacher posts a lesson after class, it will appear
             here. You can come back when they let you know it&rsquo;s ready.
           </p>
         </section>

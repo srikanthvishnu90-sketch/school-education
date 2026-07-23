@@ -31,12 +31,12 @@ export default function EraseButton(): ReactElement {
           router.refresh();
         } else {
           setError(
-            "We couldn’t delete your reflection data just now. Nothing was removed—please try again in a moment.",
+            "We couldn’t delete your data just now. Nothing was removed—please try again in a moment.",
           );
         }
       } catch {
         setError(
-          "We couldn’t reach the server to delete your reflection data. Nothing was removed—check your connection and try again.",
+          "We couldn’t reach the server to delete your data. Nothing was removed—check your connection and try again.",
         );
       }
     });
@@ -45,7 +45,7 @@ export default function EraseButton(): ReactElement {
   if (done !== null) {
     return (
       <p className="text-[13px] text-secondary">
-        Your reflection data was deleted ({done} record{done === 1 ? "" : "s"}). You
+        Your data was deleted ({done} record{done === 1 ? "" : "s"}). You
         can start fresh any time.
       </p>
     );
@@ -59,13 +59,13 @@ export default function EraseButton(): ReactElement {
           onClick={() => setArmed(true)}
           className="self-start text-[13px] text-secondary underline underline-offset-4 hover:text-ink-black"
         >
-          Delete my reflection data
+          Delete my data
         </button>
       ) : (
         <div className="rounded-card border border-warm/40 bg-white p-4">
           <p className="text-[14px] text-ink-black">
-            This permanently deletes every reflection, summary, and graded result
-            tied to your account, and withdraws your consent. It can’t be undone.
+            This permanently deletes everything tied to your account — every check,
+            summary, and graded result — and withdraws your consent. It can’t be undone.
           </p>
           {error !== null && (
             <p

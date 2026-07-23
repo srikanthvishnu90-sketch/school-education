@@ -14,7 +14,7 @@ export default function ReflectionLoading(): ReactElement {
           aria-hidden="true"
           className="h-2 w-2 animate-pulse rounded-full bg-chat-accent motion-reduce:animate-none"
         />
-        Opening your reflection…
+        Opening your lesson…
       </div>
     </main>
   );

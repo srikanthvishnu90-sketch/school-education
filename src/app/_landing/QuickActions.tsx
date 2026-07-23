@@ -16,7 +16,7 @@ const ACTIONS: Record<Role, { label: string; Icon: typeof Camera }[]> = {
     { label: "Read the class back as one brief", Icon: MessageSquareText },
   ],
   student: [
-    { label: "Reflect on today's lesson, one question at a time", Icon: MessageSquareText },
+    { label: "Go through today's lesson, one question at a time", Icon: MessageSquareText },
     { label: "Review how today's work actually went", Icon: ClipboardList },
     { label: "Check how sure you felt against your results over time", Icon: Camera },
   ],

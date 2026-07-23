@@ -25,7 +25,7 @@ test("a provisioned student signs in with a magic link", async ({ page }) => {
   // Signed in → the student's teacher-created lesson inbox.
   await expect(page).toHaveURL(/\/reflections$/);
   await expect(
-    page.getByRole("heading", { name: "Your reflections" }),
+    page.getByRole("heading", { name: "Your lessons" }),
   ).toBeVisible();
   await expect(
     page.getByRole("link", { name: /factoring quadratic equations/i }),
@@ -47,6 +47,6 @@ test("a brand-new email self-signs-up and lands on a reflection", async ({
 
   await expect(page).toHaveURL(/\/reflections$/);
   await expect(
-    page.getByRole("heading", { name: "Your reflections" }),
+    page.getByRole("heading", { name: "Your lessons" }),
   ).toBeVisible();
 });

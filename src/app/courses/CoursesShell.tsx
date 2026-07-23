@@ -72,7 +72,7 @@ export default function CoursesShell({
                   {greeting}
                 </h1>
                 <p className="mt-2 text-[14px] leading-relaxed text-shell-muted">
-                  Pick a class to reflect on what happened today.
+                  Pick a class to go back over what happened today.
                 </p>
               </div>
             </div>
@@ -111,7 +111,7 @@ export default function CoursesShell({
                         <span className="mt-auto pt-3 text-[12px] text-shell-muted">
                           <span className="block border-t border-shell-border/60 pt-3">
                             {c.total === 0
-                              ? "No reflections yet"
+                              ? "Nothing to do yet"
                               : c.open > 0
                                 ? `${c.open} to do · ${c.total} total`
                                 : `All ${c.total} done`}

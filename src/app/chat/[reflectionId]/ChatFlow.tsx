@@ -232,7 +232,7 @@ export default function ChatFlow({
               id="reflection-title"
               className="font-voice text-[18px] font-normal leading-none tracking-tight text-chat-text"
             >
-              Reflection
+              Today&rsquo;s check
             </h1>
             <p className="mt-1.5 text-[12px] text-chat-muted">
               One question at a time
@@ -259,7 +259,7 @@ export default function ChatFlow({
       <section
         ref={thread}
         role="log"
-        aria-label="Reflection conversation"
+        aria-label="Your conversation"
         aria-live="polite"
         aria-relevant="additions text"
         aria-busy={pending}
@@ -485,7 +485,7 @@ function Avatar(): ReactElement {
 
 function AiTurn({ text }: { text: string }): ReactElement {
   return (
-    <div className="flex gap-3" role="article" aria-label="Reflection">
+    <div className="flex gap-3" role="article" aria-label="plumb">
       <Avatar />
       <div className="min-w-0 flex-1 whitespace-pre-wrap pt-1 text-[15px] leading-relaxed text-chat-text [overflow-wrap:anywhere]">
         {text}
@@ -509,7 +509,7 @@ function TypingTurn(): ReactElement {
     <div
       className="flex gap-3"
       role="status"
-      aria-label="Reflection is responding"
+      aria-label="plumb is responding"
     >
       <Avatar />
       <div className="flex items-center gap-1 pt-3" aria-hidden="true">
@@ -615,7 +615,7 @@ function SummaryTurn({
             className="mb-3.5 text-shell-accent"
           />
           <p className="text-[13px] font-medium text-chat-accent">
-            What this reflection suggests
+            What this check suggests
           </p>
           <p className="mt-2 text-[15px] leading-relaxed text-chat-text">
             {summary.studentFacingSummary}

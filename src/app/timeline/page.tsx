@@ -35,7 +35,7 @@ const TREND_COPY: Record<TrendDirection, string> = {
   converging: "How sure you feel and your results are getting closer.",
   diverging: "How sure you feel and your results have been drifting apart.",
   steady: "How sure you feel about your work has held steady.",
-  insufficient: "One more reflection and a trend starts to show.",
+  insufficient: "One more lesson and a trend starts to show.",
 };
 
 /** Per-skill trajectory, phrased about the work on that one skill — never a trait. */
@@ -43,7 +43,7 @@ const SKILL_TREND_COPY: Record<TrendDirection, string> = {
   converging: "Your sense of this skill is getting closer to your work.",
   diverging: "Your sense of this skill has been drifting from your work.",
   steady: "Your sense of this skill has held steady.",
-  insufficient: "One more graded reflection on this skill and a trend shows.",
+  insufficient: "One more graded lesson on this skill and a trend shows.",
 };
 
 /**
@@ -107,33 +107,16 @@ export default async function TimelinePage(): Promise<ReactElement> {
         Back to courses
       </Link>
       <p className="mt-4 text-[12px] font-medium uppercase tracking-[0.2em] text-secondary">
-        Your reflections over time
+        Your progress, just for you
       </p>
       <h1 className="mt-2 text-3xl font-medium tracking-tight text-ink-black">
-        How sure you felt, next to your results
+        What&rsquo;s actually sticking
       </h1>
 
-      {entries.length === 0 ? (
-        <p className="mt-6 text-[15px] leading-relaxed text-secondary">
-          Each reflection you finish shows up here, with the next step you chose. Once
-          it has a graded result, you also see how sure you felt beside how it went —
-          so you can watch, over time, how well you know your own work.
-        </p>
-      ) : (
-        <>
-          <p className="mt-4 rounded-card border border-ink-wash bg-ink-wash/60 px-4 py-3 text-[15px] leading-relaxed text-ink-black">
-            {TREND_COPY[trend]}
-          </p>
-          <ul className="mt-8 flex flex-col gap-3">
-            {entries.map((e) => (
-              <TimelineRow key={e.reflectionId} entry={e} />
-            ))}
-          </ul>
-        </>
-      )}
-
+      {/* The lead: the student's own from-memory checks and the next steps they
+          chose — the payoff they own, before any confidence-vs-result read. */}
       {probes.length > 0 ? (
-        <section className="mt-12 border-t border-ink-wash pt-8">
+        <section className="mt-8">
           <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-secondary">
             What you can do now — just for you
           </p>
@@ -154,6 +137,36 @@ export default async function TimelinePage(): Promise<ReactElement> {
           </ul>
         </section>
       ) : null}
+
+      {/* The honest confidence-next-to-results read — kept in full, but no longer
+          the page's headline. */}
+      <section
+        className={
+          probes.length > 0 ? "mt-12 border-t border-ink-wash pt-8" : "mt-8"
+        }
+      >
+        {entries.length === 0 ? (
+          <p className="text-[15px] leading-relaxed text-secondary">
+            Each lesson you finish shows up here, with the next step you chose. Once
+            it has a graded result, you also see how sure you felt beside how it went —
+            so you can watch, over time, how well you know your own work.
+          </p>
+        ) : (
+          <>
+            <h2 className="text-2xl font-medium tracking-tight text-ink-black">
+              How sure you felt, next to your results
+            </h2>
+            <p className="mt-4 rounded-card border border-ink-wash bg-ink-wash/60 px-4 py-3 text-[15px] leading-relaxed text-ink-black">
+              {TREND_COPY[trend]}
+            </p>
+            <ul className="mt-6 flex flex-col gap-3">
+              {entries.map((e) => (
+                <TimelineRow key={e.reflectionId} entry={e} />
+              ))}
+            </ul>
+          </>
+        )}
+      </section>
 
       {skills.length > 0 ? (
         <section className="mt-12 border-t border-ink-wash pt-8">
@@ -176,7 +189,7 @@ export default async function TimelinePage(): Promise<ReactElement> {
           Your data
         </p>
         <p className="mt-2 text-[14px] leading-relaxed text-secondary">
-          Your reflections are yours. You can delete them whenever you want.
+          Everything here is yours. You can delete it whenever you want.
         </p>
         <div className="mt-3">
           <EraseButton />

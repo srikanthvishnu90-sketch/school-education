@@ -22,7 +22,9 @@ export default function HeroInput({ role }: { role: Role }): ReactElement {
         <ArrowRight size={16} aria-hidden />
       </Link>
       <p className="text-[13px] text-shell-muted">
-        Your reflection begins once you sign in.
+        {role === "teacher"
+          ? "Your reflection begins once you sign in."
+          : "It begins the moment you sign in."}
       </p>
     </div>
   );

@@ -32,7 +32,7 @@ const PROMISES = [
 
 const NAV = [
   { label: "My courses", href: "/courses", Icon: BookOpen },
-  { label: "Reflections", href: "/reflections", Icon: MessageSquareText },
+  { label: "Lessons", href: "/reflections", Icon: MessageSquareText },
   { label: "Timeline", href: "/timeline", Icon: Clock },
 ] as const;
 

@@ -48,7 +48,7 @@ describe("student reflections page", () => {
 
     expect(
       screen.getByRole("link", {
-        name: "Start reflection: Comparing linear models. Status: Ready",
+        name: "Start: Comparing linear models. Status: Ready",
       }),
     ).toHaveAttribute("href", "/chat/lesson-from-teacher");
     expect(screen.getByText("Group work")).toBeInTheDocument();
@@ -61,10 +61,10 @@ describe("student reflections page", () => {
     render(await ReflectionsPage());
 
     expect(
-      screen.getByRole("heading", { name: "No reflections are ready yet" }),
+      screen.getByRole("heading", { name: "No lessons are ready yet" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/when your teacher creates a reflection/i),
+      screen.getByText(/when your teacher posts a lesson/i),
     ).toBeInTheDocument();
   });
 

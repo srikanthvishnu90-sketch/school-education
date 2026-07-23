@@ -16,7 +16,7 @@ export default function StudentShell({
   children,
 }: {
   studentName: string;
-  /** The muted label in the top bar, e.g. "Reflections". */
+  /** The muted label in the top bar, e.g. "Lessons". */
   headerLabel: string;
   children: ReactNode;
 }): ReactElement {

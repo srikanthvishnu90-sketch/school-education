@@ -26,12 +26,16 @@ export default function LandingShell({
   const [role, setRole] = useState<Role>(initialRole);
   const [menuOpen, setMenuOpen] = useState(false);
 
+  const eyebrow =
+    role === "teacher" ? "Classroom reflection" : "Before the test";
   const headline =
-    role === "teacher" ? "Read the class back." : "Know where you really are.";
+    role === "teacher"
+      ? "Read the class back."
+      : "You think you get it. Does the test agree?";
   const subline =
     role === "teacher"
       ? "Every student talks through what they understood and picks one next step — then you read the class back as one honest brief, including where their confidence matched the work and where it didn't. No ranking, no diagnosis, no surveillance."
-      : "Talk through what you actually understood, one question at a time. See how sure you felt next to how it went, and leave with one next step you choose.";
+      : "A few minutes after class: try it from memory, see what actually stuck, and leave with one thing to do. It never changes your grade — your teacher only sees how the class did.";
 
   return (
     <div className="flex h-[100svh] overflow-hidden bg-shell-background text-shell-text">
@@ -72,7 +76,7 @@ export default function LandingShell({
               className="text-shell-muted plumb-line-settle"
             />
             <p className="mt-6 text-[11px] font-medium uppercase tracking-[0.22em] text-shell-muted">
-              Classroom reflection
+              {eyebrow}
             </p>
             <h1 className="mt-3 text-balance text-center font-voice text-[30px] font-normal leading-[1.08] tracking-tight text-shell-text sm:text-[42px]">
               {headline}

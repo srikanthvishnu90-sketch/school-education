@@ -79,13 +79,13 @@ describe("ChatFlow", () => {
   it("renders an accessible, viewport-height dark conversation surface", () => {
     render(<ChatFlow initial={initial} />);
 
-    expect(screen.getByRole("main", { name: "Reflection" })).toHaveClass(
+    expect(screen.getByRole("main", { name: "Today’s check" })).toHaveClass(
       "h-[100svh]",
       "bg-chat-background",
       "text-chat-text",
     );
     expect(
-      screen.getByRole("log", { name: "Reflection conversation" }),
+      screen.getByRole("log", { name: "Your conversation" }),
     ).toBeInTheDocument();
     expect(screen.queryByLabelText("Message")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Somewhat" })).toHaveClass(

@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 /**
  * The crisis loop closes on a human (P16): a student's tier_1 text raises an
- * escalation, and the designated COUNSELOR — the only role that may — sees it,
+ * escalation, and the designated COUNSELOR â the only role that may â sees it,
  * reads who/which-tier/when (never the sealed text), and acknowledges it. Proves
  * the counselor surface end to end. Runs under prefers-reduced-motion.
  */
@@ -25,7 +25,7 @@ test("a student's crisis reaches the counselor, who acknowledges it", async ({
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByRole("link", { name: "Call 988" })).toBeVisible();
   await expect(
-    page.getByRole("main", { name: "Reflection" }).getByRole("alert"),
+    page.getByRole("main", { name: "Today’s check" }).getByRole("alert"),
   ).toContainText("counselor alert");
 
   // The counselor signs in and sees the escalation.
@@ -38,7 +38,7 @@ test("a student's crisis reaches the counselor, who acknowledges it", async ({
     page.getByText("Needs attention now", { exact: false }),
   ).toBeVisible();
 
-  // …and acknowledges it (which stops the retries).
+  // â¦and acknowledges it (which stops the retries).
   await page.getByRole("button", { name: "Acknowledge" }).first().click();
   await expect(page.getByText("Acknowledged").first()).toBeVisible();
 });
