@@ -12,6 +12,7 @@ import Wordmark from "@/app/_ui/Wordmark";
 const LINKS = [
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Service", href: "/terms" },
+  { label: "Trust", href: "/trust" },
   { label: "Help Center", href: "/help" },
   { label: "Contact", href: "/contact" },
 ] as const;

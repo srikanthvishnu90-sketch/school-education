@@ -7,5 +7,6 @@ export * from "./signals";
 export * from "./nonDiagnostic";
 export * from "./learnedGuards";
 export * from "./guardrail";
+export * from "./companionGuard";
 export * from "./insight";
 export * from "./metacognition";

@@ -39,7 +39,12 @@ export interface StudentTimeline {
 }
 
 export async function getStudentTimeline(): Promise<StudentTimeline> {
-  const studentId = (await getSessionStudent()) ?? "student-demo";
+  // Fail closed (tiered visibility): a timeline is a student's own data. A caller
+  // with no student session is refused — never falls back to some other id.
+  const studentId = await getSessionStudent();
+  if (studentId === null) {
+    throw new Error("Student authentication required.");
+  }
   const world = await getWorld();
 
   // A "day" is a reflection the student FINISHED — not one a teacher happened to
