@@ -23,6 +23,7 @@ export interface EraseResult {
     chats: number;
     evidence: number;
     calibrationRecords: number;
+    probeAttempts: number;
   };
 }
 
@@ -38,21 +39,30 @@ export async function eraseMyReflectionData(): Promise<EraseResult> {
         chats: 0,
         evidence: 0,
         calibrationRecords: 0,
+        probeAttempts: 0,
       },
     };
   }
   const studentId = user.id;
   const world = await getWorld();
 
-  const [sessions, summaries, performances, chats, evidence, calibrationRecords] =
-    await Promise.all([
-      world.intel.sessions.deleteByStudent(studentId),
-      world.intel.studentSummaries.deleteByStudent(studentId),
-      world.intel.performances.deleteByStudent(studentId),
-      deleteStudyChatsByStudent(studentId),
-      world.intel.evidence.deleteByStudent(studentId),
-      world.intel.calibrationRecords.deleteByStudent(studentId),
-    ]);
+  const [
+    sessions,
+    summaries,
+    performances,
+    chats,
+    evidence,
+    calibrationRecords,
+    probeAttempts,
+  ] = await Promise.all([
+    world.intel.sessions.deleteByStudent(studentId),
+    world.intel.studentSummaries.deleteByStudent(studentId),
+    world.intel.performances.deleteByStudent(studentId),
+    deleteStudyChatsByStudent(studentId),
+    world.intel.evidence.deleteByStudent(studentId),
+    world.intel.calibrationRecords.deleteByStudent(studentId),
+    world.intel.probeAttempts.deleteByStudent(studentId),
+  ]);
 
   // Revoke affect consent — the ConsentService hard-deletes affect rows and writes
   // a deletion receipt, so the withdrawal is itself on record.
@@ -76,6 +86,7 @@ export async function eraseMyReflectionData(): Promise<EraseResult> {
       chats,
       evidence,
       calibrationRecords,
+      probeAttempts,
     },
   };
 }

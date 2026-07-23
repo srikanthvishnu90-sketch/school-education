@@ -12,12 +12,14 @@ import type {
   Evidence,
   SkillTag,
 } from "@/domain/intelligence/calibrationModel";
+import type { ProbeAttempt } from "@/domain/intelligence/probeAttempt";
 import type {
   CalibrationRecordRepository,
   ClassSummaryRepository,
   EvidenceRepository,
   LessonRepository,
   PerformanceRepository,
+  ProbeAttemptRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
   SkillTagRepository,
@@ -229,6 +231,33 @@ export function createMemoryCalibrationRecordRepository(): CalibrationRecordRepo
       let n = 0;
       for (const [id, c] of byId) {
         if (c.studentId === studentId) {
+          byId.delete(id);
+          n += 1;
+        }
+      }
+      return n;
+    },
+  };
+}
+
+export function createMemoryProbeAttemptRepository(): ProbeAttemptRepository {
+  const byId = new Map<Id, ProbeAttempt>();
+  return {
+    async save(attempt) {
+      byId.set(attempt.id, attempt);
+    },
+    async listByStudent(studentId) {
+      return [...byId.values()].filter((a) => a.studentId === studentId);
+    },
+    async listByReflectionAndStudent(reflectionId, studentId) {
+      return [...byId.values()].filter(
+        (a) => a.reflectionId === reflectionId && a.studentId === studentId,
+      );
+    },
+    async deleteByStudent(studentId) {
+      let n = 0;
+      for (const [id, a] of byId) {
+        if (a.studentId === studentId) {
           byId.delete(id);
           n += 1;
         }

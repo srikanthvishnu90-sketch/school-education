@@ -12,6 +12,7 @@ import type {
   Evidence,
   SkillTag,
 } from "../intelligence/calibrationModel";
+import type { ProbeAttempt } from "../intelligence/probeAttempt";
 
 /**
  * Persistence ports for the reflection-intelligence subsystem. Pure interfaces,
@@ -106,5 +107,21 @@ export interface CalibrationRecordRepository {
   listByStudent(studentId: Id): Promise<CalibrationRecord[]>;
   listByStudentAndSkill(studentId: Id, skillId: Id): Promise<CalibrationRecord[]>;
   /** Hard-delete every calibration record for a student (right-to-erasure). Returns the count. */
+  deleteByStudent(studentId: Id): Promise<number>;
+}
+
+/**
+ * STUDENT-owned, self-scored transfer-probe attempts (probeAttempt.ts). Keyed by
+ * `id`, so `save` is an upsert. Reads are scoped to the owning student — this data
+ * is never on a teacher/admin read path — and it is erasable like the sibling repos.
+ */
+export interface ProbeAttemptRepository {
+  save(attempt: ProbeAttempt): Promise<void>;
+  listByStudent(studentId: Id): Promise<ProbeAttempt[]>;
+  listByReflectionAndStudent(
+    reflectionId: Id,
+    studentId: Id,
+  ): Promise<ProbeAttempt[]>;
+  /** Hard-delete every probe attempt for a student (right-to-erasure). Returns the count. */
   deleteByStudent(studentId: Id): Promise<number>;
 }

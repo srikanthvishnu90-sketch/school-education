@@ -25,12 +25,17 @@ import {
   type Evidence,
   type SkillTag,
 } from "@/domain/intelligence/calibrationModel";
+import {
+  createProbeAttempt,
+  type ProbeAttempt,
+} from "@/domain/intelligence/probeAttempt";
 import type {
   CalibrationRecordRepository,
   ClassSummaryRepository,
   EvidenceRepository,
   LessonRepository,
   PerformanceRepository,
+  ProbeAttemptRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
   SkillTagRepository,
@@ -143,6 +148,26 @@ create index if not exists calibration_student_idx on intel.calibration_records 
 create index if not exists calibration_student_skill_idx on intel.calibration_records (student_id, skill_id);
 `;
 
+/**
+ * The student-owned transfer-probe attempts table (probeAttempt.ts). Its own
+ * additive migration (shipped migrations are checksum-immutable). Like every intel
+ * table, the payload — including the student's from-memory `response` text — lives
+ * in the encryptable `data` jsonb; the owner columns each list query filters on
+ * (student_id, reflection_id) plus the carried skill_id are indexed alongside.
+ */
+const PROBE_ATTEMPTS_DDL = `
+create table if not exists intel.probe_attempts (
+  id text primary key,
+  reflection_id text not null,
+  student_id text not null,
+  skill_id text,
+  data jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists probe_attempts_student_idx on intel.probe_attempts (student_id);
+create index if not exists probe_attempts_reflection_student_idx on intel.probe_attempts (reflection_id, student_id);
+`;
+
 const SERVICE_ONLY = [
   "intel.lessons",
   "intel.question_sets",
@@ -153,12 +178,14 @@ const SERVICE_ONLY = [
   "intel.skill_tags",
   "intel.evidence",
   "intel.calibration_records",
+  "intel.probe_attempts",
 ];
 
 async function provision(client: SqlClient): Promise<void> {
   await applyMigrations(client, [
     { id: "0003_intel_schema", sql: DDL },
     { id: "0004_calibration_schema", sql: CALIBRATION_DDL },
+    { id: "0007_probe_attempts", sql: PROBE_ATTEMPTS_DDL },
   ]);
   for (const t of SERVICE_ONLY) {
     // Enable RLS with no authenticated grant/policy → service-role-only.
@@ -260,6 +287,10 @@ function reviveEvidence(d: Evidence): Evidence {
 
 function reviveCalibrationRecord(d: CalibrationRecord): CalibrationRecord {
   return createCalibrationRecord({ ...d, computedAt: new Date(d.computedAt) });
+}
+
+function reviveProbeAttempt(d: ProbeAttempt): ProbeAttempt {
+  return createProbeAttempt({ ...d, attemptedAt: new Date(d.attemptedAt) });
 }
 
 // --- The six adapters ---------------------------------------------------------
@@ -631,6 +662,56 @@ export function createPgCalibrationRecordRepository(
   };
 }
 
+export function createPgProbeAttemptRepository(
+  client: SqlClient,
+  cipher: DataCipher | null = null,
+): ProbeAttemptRepository {
+  return {
+    async save(attempt) {
+      await client.query(
+        `insert into intel.probe_attempts (id, reflection_id, student_id, skill_id, data)
+         values ($1,$2,$3,$4,$5)
+         on conflict (id) do update set reflection_id=excluded.reflection_id,
+           student_id=excluded.student_id, skill_id=excluded.skill_id, data=excluded.data`,
+        [
+          attempt.id,
+          attempt.reflectionId,
+          attempt.studentId,
+          attempt.skillId ?? null,
+          encode(attempt, cipher),
+        ],
+      );
+    },
+    async listByStudent(studentId) {
+      return (
+        await many<ProbeAttempt>(
+          client,
+          cipher,
+          "select data from intel.probe_attempts where student_id=$1 order by created_at",
+          [studentId],
+        )
+      ).map(reviveProbeAttempt);
+    },
+    async listByReflectionAndStudent(reflectionId, studentId) {
+      return (
+        await many<ProbeAttempt>(
+          client,
+          cipher,
+          "select data from intel.probe_attempts where reflection_id=$1 and student_id=$2 order by created_at",
+          [reflectionId, studentId],
+        )
+      ).map(reviveProbeAttempt);
+    },
+    async deleteByStudent(studentId) {
+      const { rows } = await client.query<{ id: string } & Record<string, unknown>>(
+        "delete from intel.probe_attempts where student_id=$1 returning id",
+        [studentId],
+      );
+      return rows.length;
+    },
+  };
+}
+
 export interface PgIntelRepos {
   lessons: LessonRepository;
   questionSets: QuestionSetRepository;
@@ -641,10 +722,11 @@ export interface PgIntelRepos {
   skillTags: SkillTagRepository;
   evidence: EvidenceRepository;
   calibrationRecords: CalibrationRecordRepository;
+  probeAttempts: ProbeAttemptRepository;
 }
 
 /**
- * Provision the schema and return the six Postgres-backed intelligence repos.
+ * Provision the schema and return the Postgres-backed intelligence repos.
  * When REFLECTION_KEY_HEX is set, every payload (student chat text, emotional
  * summaries, scores) is AES-256-GCM encrypted at rest.
  */
@@ -661,5 +743,6 @@ export async function createPgIntelRepos(client: SqlClient): Promise<PgIntelRepo
     skillTags: createPgSkillTagRepository(client, cipher),
     evidence: createPgEvidenceRepository(client, cipher),
     calibrationRecords: createPgCalibrationRecordRepository(client, cipher),
+    probeAttempts: createPgProbeAttemptRepository(client, cipher),
   };
 }

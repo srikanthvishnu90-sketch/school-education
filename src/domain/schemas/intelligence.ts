@@ -324,3 +324,27 @@ export const calibrationRecordSchema = z.object({
     .nullable(),
   computedAt: z.date(),
 });
+
+// --- Transfer-probe attempt (student-owned, self-scored) ---------------------
+
+/**
+ * The student's three-way self-comparison of their from-memory attempt against the
+ * revealed exemplar. A self-referential comparison, never a green/red verdict.
+ */
+export const probeSelfScoreSchema = z.enum(["got_it", "partly", "not_yet"]);
+
+/**
+ * A STUDENT-owned, self-scored transfer-probe attempt. `response` is the student's
+ * from-memory attempt (bounded like a chat message, 1..4000); `selfScore` bridges to
+ * calibration as a `demonstrated` fraction. Student data — erasable, off the teacher
+ * read path (see probeAttempt.ts).
+ */
+export const probeAttemptSchema = z.object({
+  id: idSchema,
+  reflectionId: idSchema,
+  studentId: idSchema,
+  skillId: idSchema.optional(),
+  response: z.string().min(1).max(4_000),
+  selfScore: probeSelfScoreSchema,
+  attemptedAt: z.date(),
+});

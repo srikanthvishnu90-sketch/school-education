@@ -15,6 +15,7 @@ import type {
   Evidence,
   SkillTag,
 } from "./calibrationModel";
+import type { ProbeAttempt } from "./probeAttempt";
 import type {
   attentionStudentSchema,
   calibrationRecordSchema,
@@ -24,6 +25,7 @@ import type {
   generatedQuestionSchema,
   lessonAnalysisSchema,
   lessonSchema,
+  probeAttemptSchema,
   reflectionMessageSchema,
   reflectionPerformanceSchema,
   reflectionQuestionSetSchema,
@@ -83,4 +85,7 @@ export type _EvidenceSync = Expect<
 >;
 export type _CalibrationRecordSync = Expect<
   Equal<CalibrationRecord, z.infer<typeof calibrationRecordSchema>>
+>;
+export type _ProbeAttemptSync = Expect<
+  Equal<ProbeAttempt, z.infer<typeof probeAttemptSchema>>
 >;

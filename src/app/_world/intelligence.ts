@@ -25,6 +25,7 @@ import {
   createMemoryEvidenceRepository,
   createMemoryLessonRepository,
   createMemoryPerformanceRepository,
+  createMemoryProbeAttemptRepository,
   createMemoryQuestionSetRepository,
   createMemoryReflectionSessionRepository,
   createMemorySkillTagRepository,
@@ -39,6 +40,7 @@ import type {
   EvidenceRepository,
   LessonRepository,
   PerformanceRepository,
+  ProbeAttemptRepository,
   QuestionSetRepository,
   ReflectionSessionRepository,
   SkillTagRepository,
@@ -65,6 +67,7 @@ export interface IntelRepos {
   skillTags: SkillTagRepository;
   evidence: EvidenceRepository;
   calibrationRecords: CalibrationRecordRepository;
+  probeAttempts: ProbeAttemptRepository;
 }
 
 /**
@@ -162,6 +165,7 @@ export async function buildIntelRepos(
     skillTags: createMemorySkillTagRepository(),
     evidence: createMemoryEvidenceRepository(),
     calibrationRecords: createMemoryCalibrationRecordRepository(),
+    probeAttempts: createMemoryProbeAttemptRepository(),
   };
 }
 

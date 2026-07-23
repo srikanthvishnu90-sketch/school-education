@@ -5,6 +5,7 @@ import {
   createCalibrationRecord,
   createEvidence,
 } from "@/domain/intelligence/calibrationModel";
+import { createProbeAttempt } from "@/domain/intelligence/probeAttempt";
 
 /**
  * B4 — the right-to-erasure cascade now reaches the skill-tag calibration model
@@ -62,6 +63,17 @@ async function seedCalibration(
       computedAt: NOW,
     }),
   );
+  await intel.probeAttempts.save(
+    createProbeAttempt({
+      id: `probe-${studentId}-${skillId}`,
+      reflectionId: LESSON_ID,
+      studentId,
+      skillId,
+      response: `${studentId}'s from-memory attempt on ${skillId}.`,
+      selfScore: "partly",
+      attemptedAt: NOW,
+    }),
+  );
 }
 
 let intel: IntelRepos;
@@ -98,14 +110,17 @@ describe("eraseMyReflectionData — the cascade reaches calibration data (B4)", 
     expect(result.ok).toBe(true);
     expect(result.deleted.evidence).toBe(2);
     expect(result.deleted.calibrationRecords).toBe(2);
+    expect(result.deleted.probeAttempts).toBe(2);
 
     // The student's data is gone from the real store…
     expect(await intel.evidence.listByStudent(STUDENT)).toEqual([]);
     expect(await intel.calibrationRecords.listByStudent(STUDENT)).toEqual([]);
+    expect(await intel.probeAttempts.listByStudent(STUDENT)).toEqual([]);
 
     // …and the second student's data is completely untouched.
     expect(await intel.evidence.listByStudent(OTHER)).toHaveLength(1);
     expect(await intel.calibrationRecords.listByStudent(OTHER)).toHaveLength(1);
+    expect(await intel.probeAttempts.listByStudent(OTHER)).toHaveLength(1);
   });
 
   it("reports zero calibration counts when the student had none, and still succeeds", async () => {
@@ -116,8 +131,10 @@ describe("eraseMyReflectionData — the cascade reaches calibration data (B4)", 
     expect(result.ok).toBe(true);
     expect(result.deleted.evidence).toBe(0);
     expect(result.deleted.calibrationRecords).toBe(0);
+    expect(result.deleted.probeAttempts).toBe(0);
     // The other student is untouched.
     expect(await intel.evidence.listByStudent(OTHER)).toHaveLength(1);
     expect(await intel.calibrationRecords.listByStudent(OTHER)).toHaveLength(1);
+    expect(await intel.probeAttempts.listByStudent(OTHER)).toHaveLength(1);
   });
 });

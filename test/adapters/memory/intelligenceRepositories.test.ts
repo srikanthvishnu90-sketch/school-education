@@ -11,11 +11,13 @@ import {
   createEvidence,
   createSkillTag,
 } from "@/domain/intelligence/calibrationModel";
+import { createProbeAttempt } from "@/domain/intelligence/probeAttempt";
 import {
   createMemoryCalibrationRecordRepository,
   createMemoryEvidenceRepository,
   createMemoryLessonRepository,
   createMemoryPerformanceRepository,
+  createMemoryProbeAttemptRepository,
   createMemoryQuestionSetRepository,
   createMemoryReflectionSessionRepository,
   createMemorySkillTagRepository,
@@ -236,5 +238,55 @@ describe("in-memory calibration repositories", () => {
     await repo.save(mk("c2", "stu", "sk2", 0.8));
     expect(await repo.listByStudent("stu")).toHaveLength(2); // overwritten, not appended
     expect((await repo.listByStudentAndSkill("stu", "sk2"))[0]?.delta).toBeCloseTo(0.1);
+  });
+});
+
+describe("in-memory probe-attempt repository", () => {
+  const mk = (
+    id: string,
+    studentId: string,
+    reflectionId: string,
+    selfScore: "got_it" | "partly" | "not_yet",
+  ) =>
+    createProbeAttempt({
+      id,
+      reflectionId,
+      studentId,
+      skillId: "sk1",
+      response: `My from-memory attempt for ${id}.`,
+      selfScore,
+      attemptedAt: NOW,
+    });
+
+  it("stores attempts and lists them by student and by reflection+student", async () => {
+    const repo = createMemoryProbeAttemptRepository();
+    await repo.save(mk("p1", "stu", "L1", "got_it"));
+    await repo.save(mk("p2", "stu", "L1", "partly"));
+    await repo.save(mk("p3", "stu", "L2", "not_yet"));
+    await repo.save(mk("p4", "other", "L1", "got_it"));
+
+    expect((await repo.listByStudent("stu")).map((a) => a.id)).toEqual(["p1", "p2", "p3"]);
+    expect(
+      (await repo.listByReflectionAndStudent("L1", "stu")).map((a) => a.id),
+    ).toEqual(["p1", "p2"]);
+    expect(await repo.listByReflectionAndStudent("none", "stu")).toEqual([]);
+
+    // Overwrite by id (a student revises the same attempt).
+    await repo.save(mk("p1", "stu", "L1", "not_yet"));
+    expect(await repo.listByStudent("stu")).toHaveLength(3); // overwritten, not appended
+    expect((await repo.listByReflectionAndStudent("L1", "stu"))[0]?.selfScore).toBe("not_yet");
+  });
+
+  it("deletes a student's attempts (right-to-erasure) without touching others", async () => {
+    const repo = createMemoryProbeAttemptRepository();
+    await repo.save(mk("p1", "stu", "L1", "got_it"));
+    await repo.save(mk("p2", "stu", "L2", "partly"));
+    await repo.save(mk("p3", "other", "L1", "got_it"));
+
+    expect(await repo.deleteByStudent("stu")).toBe(2);
+    expect(await repo.listByStudent("stu")).toHaveLength(0);
+    expect(await repo.listByStudent("other")).toHaveLength(1);
+    // Idempotent.
+    expect(await repo.deleteByStudent("stu")).toBe(0);
   });
 });
