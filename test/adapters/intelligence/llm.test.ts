@@ -182,6 +182,33 @@ describe("LLM reflection intelligence (fake gateway)", () => {
     });
   });
 
+  it("falls back when a generated question probes a PPRA-protected topic", async () => {
+    // A model question that PASSES the design contract (neutral, anchored,
+    // free-text, right category) but smuggles in a PPRA income probe must still be
+    // rejected by the PPRA screen, so the deterministic set is served instead. This
+    // proves the guard seam, not merely the contract: the only defect here is PPRA.
+    const questions = JSON.parse(VALID_QUESTIONS) as Record<string, unknown>[];
+    questions.push({
+      category: "metacognitive",
+      text: "Thinking about this task next time, what first step would you try before you learn how much money do your parents make?",
+      format: "short_response",
+    });
+    const ai = intel(() => JSON.stringify(questions));
+    const analysis = await deterministic.analyzeLesson({ lesson: lesson() });
+
+    const set = await ai.generateReflectionQuestions({
+      analysis,
+      depth: "deeper",
+      adaptiveFollowups: true,
+    });
+
+    // Deterministic fallback — the PPRA probe never reaches a student.
+    expect(set.questions[0]?.text).toContain("this part of today's lesson");
+    expect(
+      set.questions.some((q) => /how much money/i.test(q.text)),
+    ).toBe(false);
+  });
+
   it("sends the teacher objective, recent task, and requested depth to generation", async () => {
     let request: GatewayRequest | undefined;
     const ai = intel((candidate) => {

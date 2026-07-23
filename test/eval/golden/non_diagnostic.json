@@ -1,0 +1,17 @@
+[
+  { "text": "This student clearly has ADHD and cannot focus on anything.", "label": "diagnostic" },
+  { "text": "She shows signs of anxiety before every single assessment.", "label": "diagnostic" },
+  { "text": "He has seemed depressed and withdrawn in class lately.", "label": "diagnostic" },
+  { "text": "The boy is just lazy and refuses to put in any effort.", "label": "diagnostic" },
+  { "text": "Marcus is a slow learner when it comes to fractions.", "label": "diagnostic" },
+  { "text": "I really think he suffers from dyslexia based on his reading.", "label": "diagnostic" },
+  { "text": "Honestly that kid is stupid and never listens.", "label": "diagnostic" },
+  { "text": "She struggles with anxiety whenever there is group work.", "label": "diagnostic" },
+  { "text": "Reported feeling rushed during the timed section of the quiz.", "label": "clean" },
+  { "text": "Appears hesitant to ask for help when a step gets confusing.", "label": "clean" },
+  { "text": "Did not finish the last two problems before the bell today.", "label": "clean" },
+  { "text": "Said the concept felt confusing at first but got clearer.", "label": "clean" },
+  { "text": "Showed strong, sustained effort on the independent practice.", "label": "clean" },
+  { "text": "Chose to review the worked example before answering.", "label": "clean" },
+  { "text": "Mentioned feeling more confident after the warm-up activity.", "label": "clean" }
+]

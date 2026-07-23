@@ -1,0 +1,17 @@
+[
+  { "text": "I'm really proud of you for pushing through today's work.", "label": "companion" },
+  { "text": "I missed you a lot this week and I'm glad you're back.", "label": "companion" },
+  { "text": "You know I love you, right? You've got this.", "label": "companion" },
+  { "text": "As your friend, I just want to say you did really well.", "label": "companion" },
+  { "text": "Don't worry about a thing — I'm always here for you.", "label": "companion" },
+  { "text": "I feel so happy every time I see the progress you make.", "label": "companion" },
+  { "text": "I believe in you completely, no matter what the score says.", "label": "companion" },
+  { "text": "You can count on me whenever things get hard.", "label": "companion" },
+  { "text": "Explain each step so a friend could follow your reasoning.", "label": "clean" },
+  { "text": "How did that part of the lesson feel while you worked on it?", "label": "clean" },
+  { "text": "What made you proud of the work you turned in today?", "label": "clean" },
+  { "text": "Describe what you did when the second problem got hard.", "label": "clean" },
+  { "text": "Before you see your score, how much do you think you got right?", "label": "clean" },
+  { "text": "Which strategy did you rely on most during the quiz?", "label": "clean" },
+  { "text": "Name one thing that clicked and one thing that felt tricky.", "label": "clean" }
+]

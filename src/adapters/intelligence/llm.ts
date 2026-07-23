@@ -31,6 +31,7 @@ import {
   findDiagnosticLanguage,
   isNonDiagnostic,
 } from "@/domain/intelligence/nonDiagnostic";
+import { screenForPpra } from "@/domain/intelligence/ppraGuard";
 import {
   gateTask,
   recordTaskOutcome,
@@ -740,6 +741,23 @@ export function createLlmReflectionIntelligence(deps: {
             report({
               guard: "question_contract",
               matched: [],
+              sample: rawQs.map((q) => q.text).join(" | "),
+            });
+            return { accepted: false };
+          }
+          // PPRA screen (20 U.S.C. § 1232h): an AI-drafted question that probes a
+          // federally protected survey area must never reach a student. A hit on any
+          // question stem or option trips the same question_contract fallback, so the
+          // deterministic set is served instead. This does NOT weaken the human
+          // approval gate — a teacher still approves every set before students see it.
+          const ppraHits = [
+            ...rawQs.map((q) => q.text),
+            ...rawQs.flatMap((q) => q.options ?? []),
+          ].flatMap((s) => screenForPpra(s).categories);
+          if (ppraHits.length > 0) {
+            report({
+              guard: "question_contract",
+              matched: [...new Set(ppraHits)],
               sample: rawQs.map((q) => q.text).join(" | "),
             });
             return { accepted: false };

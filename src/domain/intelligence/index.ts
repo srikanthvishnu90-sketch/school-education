@@ -8,6 +8,7 @@ export * from "./nonDiagnostic";
 export * from "./learnedGuards";
 export * from "./guardrail";
 export * from "./companionGuard";
+export * from "./ppraGuard";
 export * from "./insight";
 export * from "./metacognition";
 export * from "./calibrationModel";

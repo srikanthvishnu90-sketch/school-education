@@ -17,7 +17,7 @@ import { createHash } from "node:crypto";
  * so the lexicon can never drift silently. The changelog is append-only.
  */
 
-export const LEXICON_VERSION = "2026.07.03";
+export const LEXICON_VERSION = "2026.07.23";
 
 /**
  * Explicit self-directed intent or plan. Anchored to self-reference ("myself",
@@ -48,7 +48,7 @@ export const TIER_2_SOURCES: readonly string[] = [
   "\\bi (hate|can'?t stand) (myself|my life)\\b",
   "\\bi wish i (was|were|wasn'?t) (dead|here|alive|born)\\b",
   "\\bno (reason|point) (to|in) liv(e|ing)\\b",
-  "\\b(everyone|they|you'?d all) (would )?be better (off )?without me\\b",
+  "\\b(everyone|they|you'?d all)\\b[^.?!]{0,24}?\\bbe better (off )?without me\\b",
   "\\bi (can'?t|cannot) (go on|do this any ?more|keep going)\\b",
   "\\bi (want|wanna) to disappear\\b",
   "\\bbetter off dead\\b",
@@ -85,5 +85,11 @@ export const LEXICON_CHANGELOG: readonly ChangelogEntry[] = [
     contentHash:
       "05906b3fe9c1e193ed761e0d3f3aa6283a7b2dddef50927a94d7029341fe56ec",
     note: "Initial recall-biased crisis lexicon (tier_1 intent/plan, tier_2 ideation-adjacent).",
+  },
+  {
+    version: "2026.07.23",
+    contentHash:
+      "b13b0fb3408823270bf3eb7fcaeb53ee690bfb1f7f9930f7d6f89fa819855f69",
+    note: "tier_2 burdensomeness: allow a bounded intervening qualifier between the subject and 'be better off without me' (catches 'everyone in my family would be better off without me'). Recall generalization surfaced by the eval harness.",
   },
 ];

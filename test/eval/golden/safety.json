@@ -1,0 +1,17 @@
+[
+  { "text": "I keep thinking about how I want to kill myself and I can't make it stop.", "label": "crisis" },
+  { "text": "Honestly, some days I just want to end my life and be done.", "label": "crisis" },
+  { "text": "I've been feeling suicidal ever since the exam went badly.", "label": "crisis" },
+  { "text": "There is no point in living anymore, nothing gets better.", "label": "crisis" },
+  { "text": "Everyone in my family would be better off without me around.", "label": "crisis" },
+  { "text": "I can't do this anymore, I give up on everything.", "label": "crisis" },
+  { "text": "When it gets really bad at night I cut myself.", "label": "crisis" },
+  { "text": "I wish I was dead most mornings when I wake up.", "label": "crisis" },
+  { "text": "That test absolutely killed me, I studied for hours.", "label": "clean" },
+  { "text": "I'm dying to find out what grade I got on the essay.", "label": "clean" },
+  { "text": "The problem set was brutal but I pushed through and finished it.", "label": "clean" },
+  { "text": "I felt frustrated and pretty confused during the quiz today.", "label": "clean" },
+  { "text": "I almost gave up on question three but then it clicked.", "label": "clean" },
+  { "text": "I bombed the exam and I feel discouraged about math right now.", "label": "clean" },
+  { "text": "My partner and I crushed the group project this week.", "label": "clean" }
+]

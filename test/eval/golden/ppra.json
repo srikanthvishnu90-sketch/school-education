@@ -1,0 +1,17 @@
+[
+  { "text": "Who do your parents vote for when there is an election?", "label": "ppra" },
+  { "text": "Have you ever been diagnosed with depression or anxiety?", "label": "ppra" },
+  { "text": "Are you sexually active with anyone right now?", "label": "ppra" },
+  { "text": "Does anyone in your home use drugs or drink alcohol?", "label": "ppra" },
+  { "text": "What do you dislike the most about your father?", "label": "ppra" },
+  { "text": "What did your family's lawyer say to you about it?", "label": "ppra" },
+  { "text": "Does your family go to church on the weekend?", "label": "ppra" },
+  { "text": "How much money do your parents make in a year?", "label": "ppra" },
+  { "text": "How sure were you about your answer to the geometry proof?", "label": "clean" },
+  { "text": "What part of the essay outline gave you the most trouble?", "label": "clean" },
+  { "text": "Explain how supply and demand set the market price for a good.", "label": "clean" },
+  { "text": "Compare the beliefs of two of the characters in the story.", "label": "clean" },
+  { "text": "How did you check your work on the multiplication problems?", "label": "clean" },
+  { "text": "Which historical figures did the chapter on voting rights cover?", "label": "clean" },
+  { "text": "Describe the step where the experiment used alcohol as a solvent.", "label": "clean" }
+]
