@@ -254,7 +254,7 @@ const STANDING_COPY: readonly string[] = [
   "What you wrote looks serious, and it shouldn't wait for an app. A counselor at your school has been notified and can reach out to you. You're not in trouble for writing it.",
   "If you might be in immediate danger, tell a nearby trusted adult or call emergency services now. In the U.S., you can also call or text 988.",
   // ChatFlow standing disclosure banner.
-  "Your answers don't change your score. Teachers see a summary, not this chat. Safety concerns create a counselor alert. These questions were drafted with AI and approved by your teacher before you saw them.",
+  "Your grade never changes. Your teacher sees how the class did and a short note so they can help — never what you typed. If you say you're in danger, a counselor at your school is told. These questions were drafted with AI and checked by your teacher before you saw them.",
   // ChatFlow SafetyTurn body (mirrors CourseChat's SafetyPanel).
   "What you wrote looks serious, and it shouldn't wait for an app. A counselor at your school has been notified and can reach out to you. You're not in trouble for writing it.",
 ];

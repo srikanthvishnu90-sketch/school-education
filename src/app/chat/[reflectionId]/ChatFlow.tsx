@@ -249,9 +249,10 @@ export default function ChatFlow({
 
       <div className="shrink-0 border-b border-chat-divider bg-chat-surface px-4 py-2.5">
         <p className="mx-auto max-w-2xl text-center text-[12px] leading-relaxed text-chat-muted [text-wrap:pretty]">
-          Your answers don’t change your score. Teachers see a summary, not this
-          chat. Safety concerns create a counselor alert. These questions were
-          drafted with AI and approved by your teacher before you saw them.
+          Your grade never changes. Your teacher sees how the class did and a
+          short note so they can help — never what you typed. If you say
+          you’re in danger, a counselor at your school is told. These questions
+          were drafted with AI and checked by your teacher before you saw them.
         </p>
       </div>
 

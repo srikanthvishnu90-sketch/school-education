@@ -4,6 +4,7 @@ import type { ReactElement } from "react";
 import { getSessionUser } from "@/app/_world/session";
 import {
   getStudentTimeline,
+  type StudentProbe,
   type TimelineEntry,
 } from "@/app/_world/timelineActions";
 import EraseButton from "./EraseButton";
@@ -12,6 +13,10 @@ import type {
   TrendDirection,
 } from "@/domain/intelligence/metacognition";
 import type { StudentSkillCalibration } from "@/domain/intelligence/skillCalibrationView";
+import type {
+  ProbeMovementDirection,
+  ProbeSelfScore,
+} from "@/domain/intelligence/probeAttempt";
 
 /**
  * The student's longitudinal view: each reflection set beside its graded result,
@@ -41,6 +46,33 @@ const SKILL_TREND_COPY: Record<TrendDirection, string> = {
   insufficient: "One more graded reflection on this skill and a trend shows.",
 };
 
+/**
+ * The one-line read on the student's own from-memory checks — calm, task-focused, about
+ * the work sticking, never about the student. Private to them.
+ */
+const PROBE_MOVEMENT_COPY: Record<ProbeMovementDirection, string> = {
+  improving: "When you test yourself from memory, more of it is sticking.",
+  steady: "You've been holding steady when you test yourself.",
+  mixed: "Some stuck, some didn't — that's what the next step is for.",
+  insufficient:
+    "Do one more from-memory check and your own trend starts to show.",
+};
+
+/** Neutral labels for a self-score — a three-way self-comparison, never a green/red verdict. */
+const PROBE_SCORE_COPY: Record<ProbeSelfScore, string> = {
+  got_it: "Got it",
+  partly: "Partly",
+  not_yet: "Not yet",
+};
+
+/** A calm, fixed date for a private practice record — no locale surprises on the server. */
+function formatProbeDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 /** Within this band the latest gap counts as a match; outside it, a gap reads warm. */
 const SKILL_GAP_EPS = 0.1;
 
@@ -57,7 +89,14 @@ export default async function TimelinePage(): Promise<ReactElement> {
   const user = await getSessionUser();
   if (user === null || user.role !== "student") redirect("/signin");
 
-  const { entries, trend, skills } = await getStudentTimeline();
+  const { entries, trend, skills, probes, movement } =
+    await getStudentTimeline();
+
+  // The student's chosen next step lives on the reflection; read it back beside the
+  // matching from-memory check — the feed-forward finally being closed on their timeline.
+  const actionByReflection = new Map<string, string | undefined>(
+    entries.map((e) => [e.reflectionId, e.selectedAction]),
+  );
 
   return (
     <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-2xl px-6 py-14">
@@ -92,6 +131,29 @@ export default async function TimelinePage(): Promise<ReactElement> {
           </ul>
         </>
       )}
+
+      {probes.length > 0 ? (
+        <section className="mt-12 border-t border-ink-wash pt-8">
+          <p className="text-[12px] font-medium uppercase tracking-[0.16em] text-secondary">
+            What you can do now — just for you
+          </p>
+          <h2 className="mt-2 text-2xl font-medium tracking-tight text-ink-black">
+            Your from-memory checks
+          </h2>
+          <p className="mt-4 rounded-card border border-ink-wash bg-ink-wash/60 px-4 py-3 text-[15px] leading-relaxed text-ink-black">
+            {PROBE_MOVEMENT_COPY[movement.direction]}
+          </p>
+          <ul className="mt-6 flex flex-col gap-3">
+            {probes.map((p, i) => (
+              <ProbeRow
+                key={`${p.reflectionId}-${p.attemptedAt}-${i}`}
+                probe={p}
+                nextStep={actionByReflection.get(p.reflectionId)}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       {skills.length > 0 ? (
         <section className="mt-12 border-t border-ink-wash pt-8">
@@ -207,6 +269,42 @@ function SkillRow({ skill }: { skill: StudentSkillCalibration }): ReactElement {
           />
           <span className="text-[14px] text-ink-black">{gapCopy}</span>
         </div>
+      ) : null}
+    </li>
+  );
+}
+
+/**
+ * One of the student's own from-memory checks, read back to them: the lesson, a NEUTRAL
+ * self-score chip (never green/red — a self-comparison, not a verdict), the date, and —
+ * when they named one — the next step they chose, finally read back. This is a private
+ * practice record, not a report; nothing here flows to a teacher.
+ */
+function ProbeRow({
+  probe,
+  nextStep,
+}: {
+  probe: StudentProbe;
+  nextStep: string | undefined;
+}): ReactElement {
+  return (
+    <li className="rounded-card border border-ink-wash bg-white p-5">
+      <div className="flex items-start justify-between gap-4">
+        <p className="text-[15px] font-medium text-ink-black">
+          {probe.lessonTitle}
+        </p>
+        <span className="shrink-0 rounded-control border border-ink-wash bg-paper px-2 py-0.5 text-[13px] font-medium text-ink-tint">
+          {PROBE_SCORE_COPY[probe.selfScore]}
+        </span>
+      </div>
+      <p className="mt-2 text-[13px] text-secondary">
+        {formatProbeDate(probe.attemptedAt)}
+      </p>
+      {nextStep !== undefined && nextStep !== "" ? (
+        <p className="mt-3 text-[14px] leading-relaxed text-secondary">
+          You chose to try:{" "}
+          <span className="text-ink-black">{nextStep}</span>
+        </p>
       ) : null}
     </li>
   );

@@ -97,7 +97,7 @@ describe("ChatFlow", () => {
       "/courses",
     );
     expect(
-      screen.getByText(/answers don’t change your score/i),
+      screen.getByText(/your grade never changes/i),
     ).toBeInTheDocument();
   });
 

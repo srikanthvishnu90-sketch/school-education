@@ -66,3 +66,81 @@ export function demonstratedFromSelfScore(score: ProbeSelfScore): number {
       return 0;
   }
 }
+
+/**
+ * Which way a student's own from-memory checks have moved over time. Read against the
+ * student's OWN series, never a peer or a bar: "improving" = each check landed at least
+ * as well as the last and the series rose overall; "steady" = it held flat; "mixed" =
+ * it dipped somewhere (fell or wobbled); "insufficient" = fewer than two checks, so no
+ * trend can honestly be claimed. Task-focused: it describes the work sticking, not the
+ * student.
+ */
+export type ProbeMovementDirection =
+  | "improving"
+  | "steady"
+  | "mixed"
+  | "insufficient";
+
+/**
+ * A calm, private summary of a student's self-scored probe history: how many landed at
+ * each level, the most recent self-score, and which way the series has moved. It is a
+ * READ over the student's own evidence — never a verdict, a grade, or a ranking.
+ */
+export interface ProbeMovement {
+  got: number;
+  partly: number;
+  notYet: number;
+  latestSelfScore: ProbeSelfScore | null;
+  direction: ProbeMovementDirection;
+}
+
+/**
+ * Fold a student's own probe attempts into a movement summary. Pure and deterministic:
+ * counts each self-score, reads the newest attempt's score, and derives direction from
+ * the time-ordered series mapped through `demonstratedFromSelfScore` (got=1, partly=.5,
+ * not_yet=0). Fewer than two attempts → "insufficient". A non-decreasing series that
+ * rose overall → "improving"; a flat series → "steady"; anything that dipped (fell or
+ * wobbled) → "mixed". The input need not be pre-sorted.
+ */
+export function summariseProbeMovement(
+  attempts: readonly ProbeAttempt[],
+): ProbeMovement {
+  const ordered = [...attempts].sort(
+    (a, b) => a.attemptedAt.getTime() - b.attemptedAt.getTime(),
+  );
+
+  let got = 0;
+  let partly = 0;
+  let notYet = 0;
+  for (const attempt of ordered) {
+    if (attempt.selfScore === "got_it") got += 1;
+    else if (attempt.selfScore === "partly") partly += 1;
+    else notYet += 1;
+  }
+
+  const latestSelfScore: ProbeSelfScore | null =
+    ordered.length === 0 ? null : ordered[ordered.length - 1].selfScore;
+
+  const direction = deriveMovementDirection(ordered);
+
+  return { got, partly, notYet, latestSelfScore, direction };
+}
+
+/** Direction over the time-ordered series of demonstrated values. */
+function deriveMovementDirection(
+  ordered: readonly ProbeAttempt[],
+): ProbeMovementDirection {
+  if (ordered.length < 2) return "insufficient";
+
+  const values = ordered.map((a) => demonstratedFromSelfScore(a.selfScore));
+  let dipped = false;
+  let rose = false;
+  for (let i = 1; i < values.length; i += 1) {
+    const step = values[i] - values[i - 1];
+    if (step < 0) dipped = true;
+    else if (step > 0) rose = true;
+  }
+
+  if (dipped) return "mixed";
+  return rose ? "improving" : "steady";
+}

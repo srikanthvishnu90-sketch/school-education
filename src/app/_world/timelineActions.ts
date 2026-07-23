@@ -12,6 +12,11 @@ import {
   summariseStudentSkillCalibration,
   type StudentSkillCalibration,
 } from "@/domain/intelligence/skillCalibrationView";
+import {
+  summariseProbeMovement,
+  type ProbeMovement,
+  type ProbeSelfScore,
+} from "@/domain/intelligence/probeAttempt";
 import { getSessionStudent } from "./session";
 import { getWorld } from "./world";
 
@@ -37,6 +42,22 @@ export interface TimelineEntry {
   recordedAt: string;
 }
 
+/**
+ * One of the student's own from-memory checks (transfer probe), read back to them on
+ * their private timeline. This is STUDENT-PRIVATE evidence (probeAttempts) — self-made,
+ * self-scored, never on a teacher/admin surface. The `selfScore` is a three-way
+ * self-comparison against the exemplar, never a green/red verdict.
+ */
+export interface StudentProbe {
+  reflectionId: string;
+  /** The lesson the probe belongs to, resolved to its title. */
+  lessonTitle: string;
+  /** The student's own three-way comparison of their attempt against the exemplar. */
+  selfScore: ProbeSelfScore;
+  /** ISO time the student attempted and self-scored this probe. */
+  attemptedAt: string;
+}
+
 export interface StudentTimeline {
   entries: TimelineEntry[];
   trend: TrendDirection;
@@ -47,6 +68,17 @@ export interface StudentTimeline {
    * student has no records yet.
    */
   skills: StudentSkillCalibration[];
+  /**
+   * The student's own from-memory checks, newest first — STUDENT-PRIVATE, read straight
+   * from `probeAttempts` and never routed through a teacher/admin path. Empty when the
+   * student has self-scored none.
+   */
+  probes: StudentProbe[];
+  /**
+   * How those checks have moved over the student's own timeline. A calm, task-focused
+   * read of their private series — never a verdict. "insufficient" until two exist.
+   */
+  movement: ProbeMovement;
 }
 
 /**
@@ -77,8 +109,19 @@ export async function getStudentTimeline(): Promise<StudentTimeline> {
   const outcomes: ReflectionOutcome[] = [];
   const entries: TimelineEntry[] = [];
 
+  // Resolve a reflection's title once and reuse it — the probe read-side below shares
+  // this same lookup so a lesson is fetched at most once.
+  const titleCache = new Map<string, string>();
+  const resolveLessonTitle = async (reflectionId: string): Promise<string> => {
+    const cached = titleCache.get(reflectionId);
+    if (cached !== undefined) return cached;
+    const lesson = await world.intel.lessons.findById(reflectionId);
+    const title = lesson?.title ?? "Reflection";
+    titleCache.set(reflectionId, title);
+    return title;
+  };
+
   for (const session of completed) {
-    const lesson = await world.intel.lessons.findById(session.reflectionId);
     const performance = await world.intel.performances.findByReflectionAndStudent(
       session.reflectionId,
       studentId,
@@ -86,7 +129,7 @@ export async function getStudentTimeline(): Promise<StudentTimeline> {
 
     const entry: TimelineEntry = {
       reflectionId: session.reflectionId,
-      title: lesson?.title ?? "Reflection",
+      title: await resolveLessonTitle(session.reflectionId),
       selectedAction: session.selectedAction,
       scorePercent: null,
       selfConfidencePercent: null,
@@ -124,5 +167,28 @@ export async function getStudentTimeline(): Promise<StudentTimeline> {
     (skillId) => labels.get(skillId) ?? readableSkillTail(skillId),
   );
 
-  return { entries, trend: metacognitiveTrend(outcomes).direction, skills };
+  // STUDENT-PRIVATE: the student's own from-memory checks, read straight from their
+  // probeAttempts. This never touches a teacher/admin path — it is the student's own
+  // evidence of movement, read back only to them.
+  const attempts = await world.intel.probeAttempts.listByStudent(studentId);
+  const probes: StudentProbe[] = [];
+  for (const attempt of attempts) {
+    probes.push({
+      reflectionId: attempt.reflectionId,
+      lessonTitle: await resolveLessonTitle(attempt.reflectionId),
+      selfScore: attempt.selfScore,
+      attemptedAt: attempt.attemptedAt.toISOString(),
+    });
+  }
+  // Newest first: the check they just did sits at the top.
+  probes.sort((a, b) => b.attemptedAt.localeCompare(a.attemptedAt));
+  const movement = summariseProbeMovement(attempts);
+
+  return {
+    entries,
+    trend: metacognitiveTrend(outcomes).direction,
+    skills,
+    probes,
+    movement,
+  };
 }

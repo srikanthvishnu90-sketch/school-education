@@ -104,9 +104,14 @@ export default function ConsentForm({ next }: { next: string }): ReactElement {
         </div>
       </div>
       <p className="mt-3 text-[14px] leading-relaxed text-shell-muted">
-        A reflection asks how a lesson went and how it felt. Your answers are
-        private — your teacher sees a short summary, never this chat, and your
-        score never changes because of it. You can stop any time.
+        A reflection asks how a lesson went and how it felt. Nobody reads
+        word-for-word what you type. Your teacher sees how the class did
+        together and — so they can help — a short, plain note about how
+        you&rsquo;re doing, never your exact words. It never changes your grade,
+        and the from-memory check at the end is just for you. One exception: if
+        you say you&rsquo;re in danger, a counselor at your school is told —
+        that&rsquo;s a safety rule, not sharing your reflection. You can stop any
+        time.
       </p>
       <p className="mt-3 text-[14px] leading-relaxed text-shell-muted">
         Your school set up plumb for this class, which is the basis for using it
