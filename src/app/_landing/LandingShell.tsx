@@ -27,11 +27,11 @@ export default function LandingShell({
   const [menuOpen, setMenuOpen] = useState(false);
 
   const headline =
-    role === "teacher" ? "Read the class back." : "See how the lesson really went.";
+    role === "teacher" ? "Read the class back." : "Know where you really are.";
   const subline =
     role === "teacher"
-      ? "Turn a lesson into an honest, task-focused brief. No ranking, no diagnosis, no surveillance."
-      : "Talk through a lesson one question at a time, and leave with one next step you choose.";
+      ? "Every student talks through what they understood and picks one next step — then you read the class back as one honest brief, including where their confidence matched the work and where it didn't. No ranking, no diagnosis, no surveillance."
+      : "Talk through what you actually understood, one question at a time. See how sure you felt next to how it went, and leave with one next step you choose.";
 
   return (
     <div className="flex h-[100svh] overflow-hidden bg-shell-background text-shell-text">

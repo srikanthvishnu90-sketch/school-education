@@ -359,7 +359,10 @@ function RolePanel({
             disabled={pending}
             className="flex items-center gap-3 rounded-xl border border-shell-border bg-shell-panel/40 px-3.5 py-3 text-left transition-colors hover:border-shell-accent disabled:opacity-50"
           >
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-shell-active text-[13px] font-medium text-shell-text">
+            <span
+              aria-hidden
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-shell-active text-[13px] font-medium text-shell-text"
+            >
               {initialOf(p.name)}
             </span>
             <span className="min-w-0 flex-1 truncate text-[15px] text-shell-text">

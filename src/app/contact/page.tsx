@@ -71,7 +71,8 @@ export default function ContactPage(): ReactElement {
             </li>
             <li>
               <strong>Schools &amp; districts</strong> evaluating plumb, including a
-              Data Processing Agreement — ask your plumb point of contact.
+              Data Processing Agreement — we&rsquo;d welcome the conversation; a pilot
+              starts with a single classroom.
             </li>
           </ul>
         </Section>

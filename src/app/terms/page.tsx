@@ -50,6 +50,29 @@ export default function TermsPage(): ReactElement {
         </p>
       </Section>
 
+      <Section heading="How plumb uses AI">
+        <p>
+          plumb uses AI as labor, not judgment. It helps <strong>draft</strong>{" "}
+          reflection questions and <strong>classify</strong> free-text responses into
+          structured categories. A teacher reviews and approves the questions before any
+          student sees them. AI drafts and classifies; people own every decision — it
+          never decides grades, interventions, or safety outcomes.
+        </p>
+        <p>
+          AI can be wrong and can produce imperfect drafts. Its outputs are a starting
+          point for a person&rsquo;s judgment, not authoritative determinations. Schools
+          and teachers remain responsible for instructional decisions.
+        </p>
+        <p>
+          plumb is an academic reflection instrument. It is <strong>not</strong> a
+          medical, psychological, diagnostic, or crisis-counseling service, and it is not
+          a substitute for a counselor, professional help, or emergency services, as
+          described under &ldquo;What plumb is — and isn&rsquo;t&rdquo; above. A
+          deterministic safety screen may flag concerning language and route an alert to
+          a designated school adult; this is a safety measure, not clinical advice.
+        </p>
+      </Section>
+
       <Section heading="Data and privacy">
         <p>
           Our handling of student data is described in the{" "}

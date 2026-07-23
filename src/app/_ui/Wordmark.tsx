@@ -54,11 +54,15 @@ export default function Wordmark({
 
   const content = (
     <>
-      plum
-      {/* The terminal "b" anchors the bob, so it scales and aligns at any size. */}
-      <span className="relative inline-block">
-        b
-        {mark && (
+      {/* Visual letters are decorative — the inline-block "b" (which anchors the bob)
+          would otherwise be read as a separate word ("plum b"). A screen reader gets
+          the clean wordmark from the sr-only text below. */}
+      <span aria-hidden className="inline-flex items-baseline">
+        plum
+        {/* The terminal "b" anchors the bob, so it scales and aligns at any size. */}
+        <span className="relative inline-block">
+          b
+          {mark && (
           <span
             aria-hidden
             className={`pointer-events-none absolute flex flex-col items-center ${
@@ -82,7 +86,9 @@ export default function Wordmark({
             </svg>
           </span>
         )}
+        </span>
       </span>
+      <span className="sr-only">plumb</span>
     </>
   );
 
