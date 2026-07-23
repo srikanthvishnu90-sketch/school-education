@@ -6,6 +6,7 @@ import {
   type ReflectionSession,
 } from "@/domain/intelligence/session";
 import { createReflectionPerformance } from "@/domain/intelligence/metacognition";
+import { syncSkillCalibration } from "./calibrationSync";
 import type { ConversationStep } from "@/domain/ports/intelligence";
 import { SEED_STUDENTS } from "@/application";
 import { recordGuardrailTrip } from "./guardrailIncidents";
@@ -406,6 +407,21 @@ async function seedStudentReflection(
       score: r.score,
       recordedAt: at(60),
     }),
+  );
+
+  // Fan that score + the reflection's self-confidence out across the lesson's skills,
+  // so the seeded students ship with per-skill calibration (skill-tag model, brief §2)
+  // exactly as a live scored reflection would. Same helper as the teacher score path.
+  const lesson = await intel.lessons.findById(reflectionId);
+  await syncSkillCalibration(
+    { intel, clock: { now: () => at(60) } },
+    {
+      reflectionId,
+      studentId: r.studentId,
+      classId: lesson?.classId ?? "class-1",
+      scorePercent: r.score * 100,
+      session: completed,
+    },
   );
 }
 

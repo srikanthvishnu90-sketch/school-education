@@ -67,4 +67,38 @@ describe("seeded demo student reflections", () => {
     const slope = await intel.sessions.listByReflection("lesson-demo-slope");
     expect(slope).toHaveLength(0);
   });
+
+  it("ships each demo student with per-skill calibration whose delta sign matches their archetype", async () => {
+    const intel = await seed();
+    // The demo lesson tags at least one skill; every seeded student gets a record per tag.
+    const tags = await intel.skillTags.listByClass("class-1");
+    expect(tags.length).toBeGreaterThan(0);
+
+    const recordsFor = async (studentId: string) => {
+      const records = (await intel.calibrationRecords.listByStudent(studentId)).filter(
+        (r) => r.lessonId === DEMO,
+      );
+      expect(records.length).toBe(tags.length); // one per tagged skill
+      // Evidence backs every scored skill too.
+      const evidence = await intel.evidence.listByStudentAndLesson(studentId, DEMO);
+      expect(evidence.length).toBe(tags.length);
+      return records;
+    };
+
+    // Avery — over-confident: claim ran ahead of the result → delta > 0.
+    for (const r of await recordsFor("student-avery")) {
+      expect(r.delta).not.toBeNull();
+      expect(r.delta!).toBeGreaterThan(0);
+    }
+    // Blake — under-confident: the result ran ahead of the claim → delta < 0.
+    for (const r of await recordsFor("student-blake")) {
+      expect(r.delta).not.toBeNull();
+      expect(r.delta!).toBeLessThan(0);
+    }
+    // Casey — aligned: the gap sits inside the tolerance band.
+    for (const r of await recordsFor("student-casey")) {
+      expect(r.delta).not.toBeNull();
+      expect(Math.abs(r.delta!)).toBeLessThanOrEqual(0.15);
+    }
+  });
 });

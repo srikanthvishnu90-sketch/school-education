@@ -34,6 +34,7 @@ import {
 } from "./lessonMedia";
 import { getRoster, parseRoster, saveRoster } from "./rosterNames";
 import { recordAudit } from "./auditLog";
+import { syncSkillCalibration } from "./calibrationSync";
 
 /**
  * The teacher side of the reflection loop: enter a lesson, and the AI reads it,
@@ -501,7 +502,8 @@ export async function recordReflectionScore(
   const world = await getWorld();
   // The lesson must be the caller's, and the student must actually have a session
   // on it — a teacher can't score another teacher's class or an arbitrary id.
-  if ((await ownedLesson(world, reflectionId, teacher)) === null) {
+  const lesson = await ownedLesson(world, reflectionId, teacher);
+  if (lesson === null) {
     throw new Error("That lesson isn’t available.");
   }
   const participated = (
@@ -518,6 +520,19 @@ export async function recordReflectionScore(
       recordedAt: world.clock.now(),
     }),
   );
+  // Fan the score + the student's in-chat self-confidence out across the lesson's
+  // skills (skill-tag calibration, brief §2). Derived server-side and invisible to
+  // the student — this adds no step to the reflection. Idempotent by id on re-score.
+  await syncSkillCalibration(world, {
+    reflectionId,
+    studentId,
+    classId: lesson.classId,
+    scorePercent,
+    session: await world.intel.sessions.findByReflectionAndStudent(
+      reflectionId,
+      studentId,
+    ),
+  });
   recordAudit({
     tenantId: teacher.tenantId,
     actorId: teacher.id,
