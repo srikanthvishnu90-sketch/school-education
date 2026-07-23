@@ -11,3 +11,4 @@ export * from "./companionGuard";
 export * from "./insight";
 export * from "./metacognition";
 export * from "./calibrationModel";
+export * from "./skillCalibrationView";

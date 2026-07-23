@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   listSessionsByStudent: vi.fn(),
   findLessonById: vi.fn(),
   findPerformance: vi.fn(),
+  listCalibrationByStudent: vi.fn(),
+  findSkillTagById: vi.fn(),
 }));
 
 vi.mock("@/app/_world/session", () => ({
@@ -66,12 +68,17 @@ describe("student timeline", () => {
         sessions: { listByStudent: mocks.listSessionsByStudent },
         lessons: { findById: mocks.findLessonById },
         performances: { findByReflectionAndStudent: mocks.findPerformance },
+        calibrationRecords: { listByStudent: mocks.listCalibrationByStudent },
+        skillTags: { findById: mocks.findSkillTagById },
       },
     });
     mocks.findLessonById.mockImplementation(async (id: string) => ({
       id,
       title: `Lesson ${id}`,
     }));
+    // Default: no skill calibration records (each test opts in as needed).
+    mocks.listCalibrationByStudent.mockResolvedValue([]);
+    mocks.findSkillTagById.mockResolvedValue(null);
   });
 
   it("shows a completed-but-ungraded reflection with its chosen next step and no score", async () => {
@@ -127,6 +134,66 @@ describe("student timeline", () => {
       // Felt "very confident" (1.0) but scored 0.5 → confidence ran ahead.
       alignment: "confidence_ahead_of_result",
     });
+  });
+
+  it("surfaces per-skill calibration, resolving each skill's tag label", async () => {
+    mocks.listSessionsByStudent.mockResolvedValue([
+      session({ reflectionId: "lesson-b", completedAt: "2026-07-11T15:00:00.000Z" }),
+    ]);
+    mocks.findPerformance.mockResolvedValue(null);
+    mocks.listCalibrationByStudent.mockResolvedValue([
+      {
+        id: "cal-1",
+        studentId: "student-avery",
+        skillId: "skill-class-1-adding-fractions",
+        lessonId: "lesson-b",
+        claimedConfidence: 0.9,
+        demonstrated: 0.5,
+        delta: 0.4,
+        computedAt: new Date("2026-07-12T15:00:00.000Z"),
+      },
+    ]);
+    mocks.findSkillTagById.mockResolvedValue({
+      id: "skill-class-1-adding-fractions",
+      classId: "class-1",
+      label: "Adding fractions",
+      source: "ai_extracted",
+    });
+
+    const { skills } = await getStudentTimeline();
+
+    expect(skills).toHaveLength(1);
+    expect(skills[0]).toMatchObject({
+      label: "Adding fractions",
+      latestDelta: 0.4,
+      direction: "insufficient",
+      count: 1,
+    });
+  });
+
+  it("falls back to a readable id tail when a skill tag is missing", async () => {
+    mocks.listSessionsByStudent.mockResolvedValue([
+      session({ reflectionId: "lesson-b", completedAt: "2026-07-11T15:00:00.000Z" }),
+    ]);
+    mocks.findPerformance.mockResolvedValue(null);
+    mocks.listCalibrationByStudent.mockResolvedValue([
+      {
+        id: "cal-1",
+        studentId: "student-avery",
+        skillId: "skill-comparing-decimals",
+        lessonId: "lesson-b",
+        claimedConfidence: 0.9,
+        demonstrated: null,
+        delta: null,
+        computedAt: new Date("2026-07-12T15:00:00.000Z"),
+      },
+    ]);
+    mocks.findSkillTagById.mockResolvedValue(null);
+
+    const { skills } = await getStudentTimeline();
+
+    expect(skills[0].label).toBe("comparing decimals");
+    expect(skills[0].latestDelta).toBeNull();
   });
 
   it("orders entries newest-first by completion time", async () => {

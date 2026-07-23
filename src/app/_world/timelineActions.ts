@@ -8,6 +8,10 @@ import {
   type ReflectionOutcome,
   type TrendDirection,
 } from "@/domain/intelligence/metacognition";
+import {
+  summariseStudentSkillCalibration,
+  type StudentSkillCalibration,
+} from "@/domain/intelligence/skillCalibrationView";
 import { getSessionStudent } from "./session";
 import { getWorld } from "./world";
 
@@ -36,6 +40,23 @@ export interface TimelineEntry {
 export interface StudentTimeline {
   entries: TimelineEntry[];
   trend: TrendDirection;
+  /**
+   * Per-skill calibration: for each skill this student has been graded on, how their
+   * self-judgment on it has lined up with their work over time. Already computed and
+   * stored (skill-tag calibration, brief §2) — this only reads it. Empty when the
+   * student has no records yet.
+   */
+  skills: StudentSkillCalibration[];
+}
+
+/**
+ * A last-resort human-readable name when a skill tag is somehow missing: strip the
+ * `skill-` prefix and turn the id's tokens back into words. Real skills carry a proper
+ * tag label; this only keeps a stray id from reading like a slug.
+ */
+function readableSkillTail(skillId: string): string {
+  const tail = skillId.replace(/^skill-/, "").replace(/-/g, " ").trim();
+  return tail.length === 0 ? skillId : tail;
 }
 
 export async function getStudentTimeline(): Promise<StudentTimeline> {
@@ -89,5 +110,19 @@ export async function getStudentTimeline(): Promise<StudentTimeline> {
 
   // Newest first: the day the student just finished sits at the top.
   entries.sort((a, b) => b.recordedAt.localeCompare(a.recordedAt));
-  return { entries, trend: metacognitiveTrend(outcomes).direction };
+
+  // Per-skill calibration — read the already-stored records and resolve each skill's
+  // learning-map label (its tag), falling back to a readable id tail if a tag is gone.
+  const records = await world.intel.calibrationRecords.listByStudent(studentId);
+  const labels = new Map<string, string>();
+  for (const skillId of new Set(records.map((r) => r.skillId))) {
+    const tag = await world.intel.skillTags.findById(skillId);
+    labels.set(skillId, tag?.label ?? readableSkillTail(skillId));
+  }
+  const skills = summariseStudentSkillCalibration(
+    records,
+    (skillId) => labels.get(skillId) ?? readableSkillTail(skillId),
+  );
+
+  return { entries, trend: metacognitiveTrend(outcomes).direction, skills };
 }

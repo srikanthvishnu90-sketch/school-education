@@ -23,6 +23,11 @@ import {
   isQuestionSetApproved,
   type GeneratedQuestion,
 } from "@/domain/intelligence/question";
+import type { CalibrationRecord } from "@/domain/intelligence/calibrationModel";
+import {
+  summariseClassSkillCalibration,
+  type ClassSkillCalibration,
+} from "@/domain/intelligence/skillCalibrationView";
 import type { ClassStudentInput } from "@/domain/ports/intelligence";
 import { getSessionUser } from "./session";
 import { getWorld, type World } from "./world";
@@ -443,6 +448,50 @@ export async function buildClassBrief(reflectionId: string): Promise<ClassBriefV
     startedCount,
     calibration,
   };
+}
+
+/**
+ * Roster-level skill calibration for ONE lesson (brief §2, Phase 2c): per skill the
+ * lesson tags, how the class as a whole over- or under-estimated itself, from the
+ * already-stored calibration records. Aggregate only — a signed mean and a headcount
+ * per skill, never a per-student name or ordering. Ownership-gated exactly like
+ * `listScoreRows`; returns [] for a non-owned lesson. Empty when nothing is graded yet.
+ */
+export async function getLessonSkillCalibration(
+  reflectionId: string,
+): Promise<ClassSkillCalibration[]> {
+  const teacher = await requireTeacher();
+  const world = await getWorld();
+  if ((await ownedLesson(world, reflectionId, teacher)) === null) return [];
+
+  // The lesson's completed-session students, deduped like listScoreRows.
+  const sessions = (await world.intel.sessions.listByReflection(reflectionId)).filter(
+    (s) => s.status === "completed",
+  );
+  const seen = new Set<string>();
+  const records: CalibrationRecord[] = [];
+  for (const session of sessions) {
+    if (seen.has(session.studentId)) continue;
+    seen.add(session.studentId);
+    const forStudent = await world.intel.calibrationRecords.listByStudent(
+      session.studentId,
+    );
+    for (const record of forStudent) {
+      if (record.lessonId === reflectionId) records.push(record);
+    }
+  }
+
+  // Resolve each skill's learning-map label; fall back to a readable id tail if a tag
+  // is somehow missing.
+  const labels = new Map<string, string>();
+  for (const skillId of new Set(records.map((r) => r.skillId))) {
+    const tag = await world.intel.skillTags.findById(skillId);
+    labels.set(skillId, tag?.label ?? skillId.replace(/^skill-/, "").replace(/-/g, " "));
+  }
+  return summariseClassSkillCalibration(
+    records,
+    (skillId) => labels.get(skillId) ?? skillId,
+  );
 }
 
 /**

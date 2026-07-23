@@ -4,6 +4,7 @@ import { getSessionUser } from "@/app/_world/session";
 import {
   buildClassBrief,
   getLessonDetail,
+  getLessonSkillCalibration,
   getReflectionDraft,
   listScoreRows,
   listTeacherLessons,
@@ -12,6 +13,7 @@ import { studentDisplayName, TEACHER_NAME } from "@/app/_world/teacher";
 import type { AttentionGroup } from "@/domain/intelligence/insight";
 import type { LessonType } from "@/domain/intelligence/lesson";
 import type { ClassCalibrationSummary } from "@/domain/intelligence/metacognition";
+import type { ClassSkillCalibration } from "@/domain/intelligence/skillCalibrationView";
 import TeacherShell from "../TeacherShell";
 import ApproveQuestions from "./ApproveQuestions";
 import DeleteLessonButton from "./DeleteLessonButton";
@@ -66,11 +68,12 @@ export default async function ClassBriefPage({
   const lesson = await getLessonDetail(reflectionId);
   if (lesson === null) notFound();
 
-  const [view, scoreRows, allLessons, draft] = await Promise.all([
+  const [view, scoreRows, allLessons, draft, skillCalibration] = await Promise.all([
     buildClassBrief(reflectionId),
     listScoreRows(reflectionId),
     listTeacherLessons(),
     getReflectionDraft(reflectionId),
+    getLessonSkillCalibration(reflectionId),
   ]);
   const awaitingApproval = draft !== null && !draft.approved;
   const byGroup = new Map<AttentionGroup, string[]>();
@@ -125,7 +128,11 @@ export default async function ClassBriefPage({
           this lesson. You can still enter graded results below.
         </p>
       ) : (
-        <ClassBriefBody view={view} byGroup={byGroup} />
+        <ClassBriefBody
+          view={view}
+          byGroup={byGroup}
+          skillCalibration={skillCalibration}
+        />
       )}
 
       <section className="mt-10">
@@ -151,9 +158,11 @@ export default async function ClassBriefPage({
 function ClassBriefBody({
   view,
   byGroup,
+  skillCalibration,
 }: {
   view: NonNullable<Awaited<ReturnType<typeof buildClassBrief>>>;
   byGroup: Map<AttentionGroup, string[]>;
+  skillCalibration: ClassSkillCalibration[];
 }): ReactElement {
   const { brief, studentCount, completedCount, startedCount, calibration } = view;
   return (
@@ -170,6 +179,8 @@ function ClassBriefBody({
       </p>
 
       <ClassCalibrationPanel calibration={calibration} />
+
+      <ClassSkillCalibrationPanel skills={skillCalibration} />
 
       <div className="mt-8 flex flex-col gap-4">
         <Panel label="Understanding">{brief.technicalSummary}</Panel>
@@ -292,6 +303,74 @@ function ClassCalibrationPanel({
           ) : null}
         </>
       )}
+    </section>
+  );
+}
+
+/** Within this band the class's mean gap on a skill counts as reading itself well. */
+const CLASS_SKILL_EPS = 0.1;
+
+/** The class's mean gap on one skill, phrased about the work — never a ranking. */
+function classSkillCopy(meanDelta: number | null): string {
+  if (meanDelta === null) return "Not graded yet on this skill.";
+  if (Math.abs(meanDelta) <= CLASS_SKILL_EPS) return "The class read itself well here.";
+  return meanDelta > 0
+    ? "The class felt surer than the work showed."
+    : "The class sold itself short here.";
+}
+
+/**
+ * Roster-level calibration BY SKILL (brief §2, Phase 2c): per skill the lesson tags,
+ * whether the class as a whole over- or under-estimated itself, from the already-stored
+ * records. Aggregate only — a line and a headcount per skill, never a student name or a
+ * ranking. Aligned reads in ink-tint; a gap carries the warm accent (the dot only),
+ * never green-good / red-bad. Renders nothing until at least one skill has records.
+ */
+function ClassSkillCalibrationPanel({
+  skills,
+}: {
+  skills: ClassSkillCalibration[];
+}): ReactElement | null {
+  if (skills.length === 0) return null;
+  return (
+    <section className="mt-10">
+      <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+        Calibration by skill
+      </h2>
+      <p className="mt-2 text-[14px] text-secondary">
+        Where, skill by skill, the class&rsquo;s sense of the work ran ahead of or behind
+        the results — read after the fact, never a bet up front.
+      </p>
+      <div className="mt-4 flex flex-col gap-3">
+        {skills.map((s) => {
+          const aligned =
+            s.meanDelta === null || Math.abs(s.meanDelta) <= CLASS_SKILL_EPS;
+          return (
+            <div
+              key={s.skillId}
+              className="rounded-card border border-ink-wash bg-white p-4"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={
+                    aligned
+                      ? "inline-block h-2 w-2 rounded-full bg-ink-tint"
+                      : "inline-block h-2 w-2 rounded-full bg-warm"
+                  }
+                  aria-hidden
+                />
+                <p className="text-[14px] font-medium text-ink-black">{s.label}</p>
+              </div>
+              <p className="mt-2 text-[14px] text-secondary">
+                {classSkillCopy(s.meanDelta)}
+              </p>
+              <p className="mt-1 text-[13px] text-secondary">
+                Across {s.studentCount} student{s.studentCount === 1 ? "" : "s"}.
+              </p>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
