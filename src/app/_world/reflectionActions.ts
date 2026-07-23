@@ -8,6 +8,10 @@ import {
   type ReflectionSession,
 } from "@/domain/intelligence";
 import type { ConversationStep } from "@/domain/ports/intelligence";
+import {
+  createProbeAttempt,
+  type ProbeSelfScore,
+} from "@/domain/intelligence/probeAttempt";
 import { getSessionStudent } from "./session";
 import { hasReflectionConsent } from "./consentActions";
 import { hit } from "./rateLimit";
@@ -130,12 +134,33 @@ async function advance(
     completedAt: now,
   });
   await world.intel.sessions.save(completed);
+  const { exemplar, lessonTitle } = await lessonProbeContext(
+    world,
+    session.reflectionId,
+  );
   return {
     kind: "summary",
     sessionId: session.id,
     summary,
+    exemplar,
+    lessonTitle,
     history: historyOf(completed),
   };
+}
+
+/**
+ * The bits of the lesson the closing transfer probe needs: the teacher's worked
+ * example (whose presence unlocks the probe) and the title (to phrase its prompt).
+ * Both undefined when the lesson is missing or has no exemplar — the summary then
+ * ends exactly as before, with no probe shown.
+ */
+async function lessonProbeContext(
+  world: World,
+  reflectionId: string,
+): Promise<{ exemplar?: string; lessonTitle?: string }> {
+  const lesson = await world.intel.lessons.findById(reflectionId);
+  if (lesson === null) return {};
+  return { exemplar: lesson.exemplar, lessonTitle: lesson.title };
 }
 
 async function resumeActive(
@@ -206,11 +231,17 @@ export async function startReflection(
       );
     if (summary === null)
       throw new Error("This reflection summary is unavailable.");
+    const { exemplar, lessonTitle } = await lessonProbeContext(
+      world,
+      reflectionId,
+    );
     return {
       kind: "summary",
       sessionId: existing.id,
       summary,
       selectedAction: existing.selectedAction,
+      exemplar,
+      lessonTitle,
       history: historyOf(existing),
     };
   }
@@ -348,4 +379,37 @@ export async function selectReflectionAction(
       selectedAction: selected,
     }),
   );
+}
+
+/**
+ * Persist the student's closing from-memory transfer probe — the in-session payoff.
+ * The student attempted the lesson's key idea from memory, revealed the teacher's
+ * worked exemplar, and self-compared (`got_it` | `partly` | `not_yet`).
+ *
+ * This is the STUDENT's OWN, PRIVATE evidence. By construction it writes ONLY a
+ * ProbeAttempt (never a CalibrationRecord or Evidence) and never touches a
+ * teacher/admin read path — the probe is the student's to see, not the school's.
+ * Keyed by a derived id so a re-attempt cleanly overwrites (idempotent). Fails
+ * closed to `{ ok: false }` with no student session — never throws to the client.
+ */
+export async function submitProbeAttempt(
+  reflectionId: string,
+  response: string,
+  selfScore: ProbeSelfScore,
+): Promise<{ ok: boolean }> {
+  const studentId = await getSessionStudent();
+  if (studentId === null) return { ok: false };
+  const attempt = boundedText(response, "Attempt", MAX_MESSAGE_LENGTH);
+  const world = await getWorld();
+  await world.intel.probeAttempts.save(
+    createProbeAttempt({
+      id: `probe-${reflectionId}-${studentId}`,
+      reflectionId,
+      studentId,
+      response: attempt,
+      selfScore,
+      attemptedAt: world.clock.now(),
+    }),
+  );
+  return { ok: true };
 }

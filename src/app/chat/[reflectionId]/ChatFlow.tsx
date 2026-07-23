@@ -10,9 +10,11 @@ import {
 import {
   selectReflectionAction,
   sendReflectionMessage,
+  submitProbeAttempt,
 } from "@/app/_world/reflectionActions";
 import { useReducedMotion } from "@/app/_components/useReducedMotion";
 import type { QuestionFormat } from "@/domain/intelligence/question";
+import type { ProbeSelfScore } from "@/domain/intelligence/probeAttempt";
 import type {
   ChatHistoryMessage,
   ChatResult,
@@ -284,6 +286,8 @@ export default function ChatFlow({
               summary={current.summary}
               sessionId={current.sessionId}
               initialAction={current.selectedAction}
+              exemplar={current.exemplar}
+              lessonTitle={current.lessonTitle}
             />
           )}
 
@@ -567,10 +571,14 @@ function SummaryTurn({
   summary,
   sessionId,
   initialAction,
+  exemplar,
+  lessonTitle,
 }: {
   summary: StudentInsightSummary;
   sessionId: string;
   initialAction?: string;
+  exemplar?: string;
+  lessonTitle?: string;
 }): ReactElement {
   const [chosen, setChosen] = useState<string | null>(initialAction ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -647,6 +655,14 @@ function SummaryTurn({
             </div>
           )}
         </div>
+        {chosen !== null && exemplar !== undefined && (
+          <TransferProbe
+            reflectionId={summary.reflectionId}
+            exemplar={exemplar}
+            lessonTitle={lessonTitle}
+            chosen={chosen}
+          />
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-1">
           <Link
             href="/timeline"
@@ -662,6 +678,204 @@ function SummaryTurn({
           </Link>
         </div>
       </div>
+    </div>
+  );
+}
+
+const SELF_SCORES: { value: ProbeSelfScore; label: string }[] = [
+  { value: "got_it", label: "I’ve got it" },
+  { value: "partly", label: "Partly" },
+  { value: "not_yet", label: "Not yet" },
+];
+
+/** The immediate, private takeaway — always TASK-focused (Kluger & DeNisi): it ties
+ *  the result to the next step the student already chose, and never praises the self. */
+function takeaway(score: ProbeSelfScore, chosen: string): string {
+  switch (score) {
+    case "not_yet":
+      return `Not yet — that’s exactly what your next step is for: ${chosen}`;
+    case "partly":
+      return `Almost — ${chosen} is how you close the gap.`;
+    case "got_it":
+      return `You’ve got it. ${chosen} will lock it in.`;
+  }
+}
+
+/**
+ * The closing in-session payoff: after the student has chosen their next step, they
+ * attempt the lesson's key idea FROM MEMORY (retrieval practice), reveal the
+ * teacher's worked example, and self-compare three ways. The verdict is the
+ * student's OWN — immediate, private, no teacher grade, no waiting. Neutral ink
+ * tones only: never green/red, no reward animation. Fully skippable.
+ */
+function TransferProbe({
+  reflectionId,
+  exemplar,
+  lessonTitle,
+  chosen,
+}: {
+  reflectionId: string;
+  exemplar: string;
+  lessonTitle?: string;
+  chosen: string;
+}): ReactElement | null {
+  const [phase, setPhase] = useState<
+    "attempt" | "revealed" | "resolved" | "skipped"
+  >("attempt");
+  const [attempt, setAttempt] = useState("");
+  const [submitted, setSubmitted] = useState("");
+  const [selfScore, setSelfScore] = useState<ProbeSelfScore | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+  const firstScore = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (phase === "revealed") firstScore.current?.focus();
+  }, [phase]);
+
+  if (phase === "skipped") return null;
+
+  const title = lessonTitle ?? "this lesson";
+
+  function reveal(): void {
+    const text = attempt.trim();
+    if (text.length === 0 || pending) return;
+    setSubmitted(text);
+    setError(null);
+    setPhase("revealed");
+  }
+
+  function score(value: ProbeSelfScore): void {
+    if (pending || selfScore !== null) return;
+    setSelfScore(value);
+    setError(null);
+    startTransition(async () => {
+      try {
+        const { ok } = await submitProbeAttempt(reflectionId, submitted, value);
+        if (!ok) throw new Error("not saved");
+        setPhase("resolved");
+      } catch {
+        setSelfScore(null);
+        setError("We couldn’t save that. Nothing was lost—choose again.");
+      }
+    });
+  }
+
+  return (
+    <div className="mt-3 rounded-card border border-chat-divider bg-chat-surface p-5">
+      <p className="text-[13px] font-medium text-chat-accent">
+        One last thing, just for you
+      </p>
+
+      {phase === "attempt" && (
+        <>
+          <p className="mt-2 text-[15px] leading-relaxed text-chat-text [text-wrap:pretty]">
+            Try the main idea from “{title}” from memory — no notes. Just for you;
+            no grade, and no one else sees this.
+          </p>
+          <div className="mt-3 flex items-end gap-2 rounded-2xl border border-chat-control bg-chat-raised px-3 py-2.5 transition-colors focus-within:border-chat-accent focus-within:ring-2 focus-within:ring-chat-accent focus-within:ring-offset-2 focus-within:ring-offset-chat-surface sm:px-4">
+            <textarea
+              value={attempt}
+              onChange={(e) => setAttempt(e.target.value)}
+              onKeyDown={(e) => {
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !e.nativeEvent.isComposing
+                ) {
+                  e.preventDefault();
+                  reveal();
+                }
+              }}
+              rows={1}
+              maxLength={MAX_MESSAGE_LENGTH}
+              placeholder="Your attempt…"
+              aria-label="Your attempt from memory"
+              className="min-h-7 max-h-40 flex-1 resize-none bg-transparent py-1 text-[15px] leading-relaxed text-chat-text outline-none [field-sizing:content] placeholder:text-chat-muted"
+            />
+            <button
+              type="button"
+              disabled={attempt.trim().length === 0}
+              onClick={reveal}
+              className="inline-flex min-h-11 shrink-0 items-center rounded-control bg-chat-text px-4 text-sm font-medium text-chat-background transition-colors hover:bg-chat-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent focus-visible:ring-offset-2 focus-visible:ring-offset-chat-surface disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              Check it
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => setPhase("skipped")}
+            className="mt-3 inline-flex min-h-11 items-center rounded-control px-1 text-[13px] text-chat-muted underline-offset-4 hover:text-chat-text hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent"
+          >
+            Skip this
+          </button>
+        </>
+      )}
+
+      {(phase === "revealed" || phase === "resolved") && (
+        <>
+          <div className="mt-3">
+            <p className="text-[12px] text-chat-muted">Your attempt</p>
+            <p className="mt-1 whitespace-pre-wrap text-[15px] leading-relaxed text-chat-text [overflow-wrap:anywhere]">
+              {submitted}
+            </p>
+          </div>
+          <figure className="mt-4 overflow-hidden rounded-card border border-chat-divider bg-chat-raised">
+            <figcaption className="flex items-center gap-2 border-b border-chat-divider px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.16em] text-chat-muted">
+              <span
+                aria-hidden
+                className="h-1 w-1 shrink-0 rounded-full bg-chat-accent"
+              />
+              A worked example
+            </figcaption>
+            <p className="whitespace-pre-line px-4 py-3.5 text-[14px] leading-relaxed text-chat-text [overflow-wrap:anywhere]">
+              {exemplar}
+            </p>
+          </figure>
+
+          {error !== null && (
+            <p
+              role="alert"
+              className="mt-4 rounded-control border border-chat-control bg-chat-raised px-3 py-2 text-[13px] leading-relaxed text-chat-text"
+            >
+              {error}
+            </p>
+          )}
+
+          {phase === "revealed" ? (
+            <>
+              <p className="mt-4 text-[13px] font-medium text-chat-text">
+                Next to the worked example, how did yours line up?
+              </p>
+              <div
+                className="mt-3 flex flex-wrap gap-2"
+                role="group"
+                aria-label="How your attempt compared"
+              >
+                {SELF_SCORES.map((option, index) => (
+                  <button
+                    ref={index === 0 ? firstScore : undefined}
+                    key={option.value}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => score(option.value)}
+                    className="min-h-11 rounded-full border border-chat-control bg-chat-raised px-5 py-2 text-[14px] text-chat-text transition-colors hover:border-chat-accent hover:bg-chat-divider focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-chat-accent focus-visible:ring-offset-2 focus-visible:ring-offset-chat-surface disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div
+              role="status"
+              className="mt-4 rounded-control bg-chat-raised px-4 py-3 text-[15px] leading-relaxed text-chat-text"
+            >
+              {selfScore !== null && takeaway(selfScore, chosen)}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

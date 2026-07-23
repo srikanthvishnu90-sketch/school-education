@@ -44,6 +44,15 @@ export interface ChatSummary extends ChatHistory {
   summary: StudentInsightSummary;
   /** The student's already-persisted choice, when revisiting a completed chat. */
   selectedAction?: string;
+  /**
+   * The lesson's teacher-authored worked example, when one exists. Present ONLY on
+   * lessons with an exemplar; its presence is what unlocks the closing from-memory
+   * transfer probe (attempt → reveal this exemplar → self-compare). Absent = the
+   * reflection ends at the summary exactly as before.
+   */
+  exemplar?: string;
+  /** The lesson title, used to phrase the probe prompt ("the main idea from '…'"). */
+  lessonTitle?: string;
 }
 
 export interface ChatSafety extends ChatHistory {

@@ -11,6 +11,12 @@ import type {
   ConversationStep,
   ReflectionIntelligence,
 } from "@/domain/ports/intelligence";
+import type { Lesson } from "@/domain/intelligence/lesson";
+import {
+  createMemoryCalibrationRecordRepository,
+  createMemoryEvidenceRepository,
+  createMemoryProbeAttemptRepository,
+} from "@/adapters/memory/intelligenceRepositories";
 import type { World } from "@/app/_world/world";
 
 const mocks = vi.hoisted(() => ({
@@ -40,6 +46,7 @@ import {
   selectReflectionAction,
   sendReflectionMessage,
   startReflection,
+  submitProbeAttempt,
 } from "@/app/_world/reflectionActions";
 
 const NOW = new Date("2026-07-11T12:00:00.000Z");
@@ -118,17 +125,26 @@ function makeWorld(initial?: {
   summary?: StudentInsightSummary | null;
   nextTurn?: ConversationStep;
   priorSessions?: ReflectionSession[];
+  lesson?: Lesson | null;
 }): {
   world: World;
   savedSessions: Map<string, ReflectionSession>;
   nextTurn: ReturnType<typeof vi.fn>;
   saveSession: ReturnType<typeof vi.fn>;
+  probeAttempts: ReturnType<typeof createMemoryProbeAttemptRepository>;
+  calibrationRecords: ReturnType<typeof createMemoryCalibrationRecordRepository>;
+  evidence: ReturnType<typeof createMemoryEvidenceRepository>;
 } {
   const savedSessions = new Map<string, ReflectionSession>();
   if (initial?.session !== undefined) {
     savedSessions.set(initial.session.id, initial.session);
   }
   let savedSummary = initial?.summary ?? null;
+  // Real in-memory adapters so the probe test proves the write reaches the port —
+  // and that calibration/evidence stay untouched (the probe is student-private).
+  const probeAttempts = createMemoryProbeAttemptRepository();
+  const calibrationRecords = createMemoryCalibrationRecordRepository();
+  const evidence = createMemoryEvidenceRepository();
   const saveSession = vi.fn(async (session: ReflectionSession) => {
     savedSessions.set(session.id, session);
   });
@@ -172,11 +188,46 @@ function makeWorld(initial?: {
         }),
         findByReflectionAndStudent: vi.fn(async () => savedSummary),
       },
+      lessons: {
+        findById: vi.fn(async (id: string) =>
+          initial?.lesson !== undefined
+            ? id === initial.lesson?.id
+              ? initial.lesson
+              : null
+            : null,
+        ),
+      },
+      probeAttempts,
+      calibrationRecords,
+      evidence,
     },
   } as unknown as World;
 
-  return { world, savedSessions, nextTurn, saveSession };
+  return {
+    world,
+    savedSessions,
+    nextTurn,
+    saveSession,
+    probeAttempts,
+    calibrationRecords,
+    evidence,
+  };
 }
+
+const LESSON_WITH_EXEMPLAR: Lesson = {
+  id: REFLECTION_ID,
+  tenantId: "tenant-1",
+  classId: "class-1",
+  teacherId: "teacher-1",
+  title: "Factoring quadratics",
+  date: NOW,
+  lessonType: "direct_instruction",
+  content: "We factored quadratics by grouping.",
+  objectives: ["Factor a quadratic"],
+  standards: [],
+  exemplar: "x^2 + 5x + 6 = (x + 2)(x + 3).",
+  createdAt: NOW,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -416,5 +467,106 @@ describe("reflection server actions", () => {
     ).rejects.toThrow(
       "An action can only be selected for a completed reflection.",
     );
+  });
+
+  it("threads the lesson's exemplar and title onto the terminal summary result", async () => {
+    const { world } = makeWorld({
+      session: makeSession("active"),
+      nextTurn: { kind: "summary" },
+      lesson: LESSON_WITH_EXEMPLAR,
+    });
+    mocks.getWorld.mockResolvedValue(world);
+
+    const result = await sendReflectionMessage(SESSION_ID, "Here is my thinking.");
+
+    expect(result).toMatchObject({
+      kind: "summary",
+      exemplar: LESSON_WITH_EXEMPLAR.exemplar,
+      lessonTitle: LESSON_WITH_EXEMPLAR.title,
+    });
+  });
+
+  it("leaves the summary exemplar undefined when the lesson has none", async () => {
+    const { world } = makeWorld({
+      session: makeSession("active"),
+      nextTurn: { kind: "summary" },
+      lesson: { ...LESSON_WITH_EXEMPLAR, exemplar: undefined },
+    });
+    mocks.getWorld.mockResolvedValue(world);
+
+    const result = await sendReflectionMessage(SESSION_ID, "Here is my thinking.");
+
+    expect(result.kind).toBe("summary");
+    if (result.kind === "summary") {
+      expect(result.exemplar).toBeUndefined();
+    }
+  });
+});
+
+describe("submitProbeAttempt", () => {
+  it("saves the authenticated student's probe attempt through the port", async () => {
+    const { world, probeAttempts } = makeWorld();
+    mocks.getWorld.mockResolvedValue(world);
+
+    const result = await submitProbeAttempt(
+      REFLECTION_ID,
+      "  (x + 2)(x + 3)  ",
+      "partly",
+    );
+
+    expect(result).toEqual({ ok: true });
+    const saved = await probeAttempts.listByReflectionAndStudent(
+      REFLECTION_ID,
+      STUDENT_ID,
+    );
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      id: `probe-${REFLECTION_ID}-${STUDENT_ID}`,
+      reflectionId: REFLECTION_ID,
+      studentId: STUDENT_ID,
+      response: "(x + 2)(x + 3)",
+      selfScore: "partly",
+    });
+  });
+
+  it("is idempotent on re-submit — a second attempt overwrites the first", async () => {
+    const { world, probeAttempts } = makeWorld();
+    mocks.getWorld.mockResolvedValue(world);
+
+    await submitProbeAttempt(REFLECTION_ID, "first try", "not_yet");
+    await submitProbeAttempt(REFLECTION_ID, "second try", "got_it");
+
+    const saved = await probeAttempts.listByReflectionAndStudent(
+      REFLECTION_ID,
+      STUDENT_ID,
+    );
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      response: "second try",
+      selfScore: "got_it",
+    });
+  });
+
+  it("fails closed with no student session and writes nothing", async () => {
+    mocks.getSessionStudent.mockResolvedValue(null);
+    const { world, probeAttempts } = makeWorld();
+    mocks.getWorld.mockResolvedValue(world);
+
+    const result = await submitProbeAttempt(REFLECTION_ID, "an attempt", "got_it");
+
+    expect(result).toEqual({ ok: false });
+    expect(mocks.getWorld).not.toHaveBeenCalled();
+    expect(await probeAttempts.listByStudent(STUDENT_ID)).toHaveLength(0);
+  });
+
+  it("writes ONLY a ProbeAttempt — calibration and evidence stay empty (student-private)", async () => {
+    const { world, probeAttempts, calibrationRecords, evidence } = makeWorld();
+    mocks.getWorld.mockResolvedValue(world);
+
+    await submitProbeAttempt(REFLECTION_ID, "my attempt", "got_it");
+
+    expect(await probeAttempts.listByStudent(STUDENT_ID)).toHaveLength(1);
+    expect(await calibrationRecords.listByStudent(STUDENT_ID)).toHaveLength(0);
+    expect(await evidence.listByStudent(STUDENT_ID)).toHaveLength(0);
   });
 });
