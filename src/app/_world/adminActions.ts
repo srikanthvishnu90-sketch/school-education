@@ -14,6 +14,16 @@ import {
   taskHealthSummary,
   type TaskHealthRow,
 } from "@/domain/intelligence/taskHealth";
+import {
+  deriveReflectionOutcome,
+  readSelfConfidence,
+} from "@/domain/intelligence/metacognition";
+import {
+  computeProgramMetrics,
+  type ProgramMetrics,
+  type ProgramMetricsGradedOutcome,
+  type ProgramMetricsSession,
+} from "@/domain/intelligence/programMetrics";
 
 /**
  * The district-admin surface: usage for their tenant and the access audit log
@@ -74,6 +84,97 @@ export async function getAdminOverview(): Promise<AdminOverview> {
     },
     audit: listAudit(admin.tenantId, 100),
     assistantHealth: taskHealthSummary(),
+  };
+}
+
+/**
+ * The tenant's PROGRAM METRICS — an aggregate, task-focused snapshot of engagement
+ * and self-knowledge for the district-admin surface (brief D1). Same auth and tenant
+ * scoping as `getAdminOverview`: admin-only, and every number is confined to the
+ * admin's own district. AGGREGATE ONLY — no per-student row, no name, no reflection
+ * content leaves this action, so no new access-audit entry is warranted (nothing
+ * student-identifying is exposed).
+ *
+ * SNAPSHOT, NOT A TREND: these are computed live from the in-memory repositories.
+ * A true longitudinal program view (this week vs. last, the alignment share month
+ * over month) needs durable storage that survives restarts (Neon) — not provisioned
+ * here — so that trend-over-time piece is deliberately DEFERRED. `note` says so.
+ *
+ * Denominators: participation is measured against the tenant's STANDING-CONSENT
+ * roster (students currently permitted to reflect) — the closest thing to an
+ * enrollment roster this world persists — while the numerator is the distinct
+ * students who have actually started a reflection. Completion and alignment ride on
+ * the tenant's sessions and graded reflections, joined exactly as the student/teacher
+ * timelines do (performance + the in-chat self-confidence).
+ */
+export async function getProgramMetrics(): Promise<
+  ProgramMetrics & { tenantId: string; note: string }
+> {
+  const admin = await requireAdmin();
+  const world = await getWorld();
+
+  // The roster-of-record: students in this tenant who currently hold reflection
+  // (affect) consent, i.e. who are permitted to reflect at all. Reuses the same
+  // tenant-scoped consent register the admin already sees; count only — no rows kept.
+  const roster = await exportConsentRecords();
+  const rosterSize = roster.records.length;
+
+  const lessons = (await world.intel.lessons.listByClass(CLASS_ID)).filter(
+    (l) => l.tenantId === admin.tenantId,
+  );
+
+  const sessionsIn: ProgramMetricsSession[] = [];
+  const gradedOutcomes: ProgramMetricsGradedOutcome[] = [];
+  const calibrationDeltas: number[] = [];
+  const seenStudents = new Set<string>();
+
+  for (const lesson of lessons) {
+    const sessions = await world.intel.sessions.listByReflection(lesson.id);
+    for (const session of sessions) {
+      sessionsIn.push({ studentId: session.studentId, status: session.status });
+      seenStudents.add(session.studentId);
+      // Graded subset: a reflection counts as graded once a teacher score exists.
+      // Alignment joins the in-chat self-confidence to that score (timeline join).
+      const performance = await world.intel.performances.findByReflectionAndStudent(
+        session.reflectionId,
+        session.studentId,
+      );
+      if (performance !== null) {
+        const outcome = deriveReflectionOutcome(
+          performance,
+          readSelfConfidence(session),
+        );
+        gradedOutcomes.push({ alignment: outcome.alignment });
+      }
+    }
+  }
+
+  // Calibration gaps: the signed deltas of every graded calibration record for the
+  // tenant's students. A student belongs to one tenant, so their records are all in
+  // scope; magnitudes are taken in the domain (signs never cancel).
+  for (const studentId of seenStudents) {
+    const records = await world.intel.calibrationRecords.listByStudent(studentId);
+    for (const record of records) {
+      if (record.delta !== null) calibrationDeltas.push(record.delta);
+    }
+  }
+
+  const metrics = computeProgramMetrics({
+    rosterSize,
+    sessions: sessionsIn,
+    gradedOutcomes,
+    calibrationDeltas,
+  });
+
+  return {
+    ...metrics,
+    tenantId: admin.tenantId,
+    note:
+      "Current snapshot, computed live from repository data. Participation is " +
+      "measured against the tenant's standing-consent roster (students permitted " +
+      "to reflect). Trend over time and history across restarts need durable " +
+      "storage (Neon), which is not provisioned here — that longitudinal view is " +
+      "deferred.",
   };
 }
 

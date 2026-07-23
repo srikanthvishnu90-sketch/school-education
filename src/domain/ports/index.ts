@@ -5,3 +5,4 @@ export * from "./evidence";
 export * from "./provider";
 export * from "./intelligence";
 export * from "./intelligenceRepositories";
+export * from "./rostering";

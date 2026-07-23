@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import { exportConsentRecords, getAdminOverview } from "@/app/_world/adminActions";
+import {
+  exportConsentRecords,
+  getAdminOverview,
+  getProgramMetrics,
+} from "@/app/_world/adminActions";
 import { getSessionUser } from "@/app/_world/session";
 import type { AuditAction } from "@/app/_world/auditLog";
 
@@ -31,6 +35,7 @@ export default async function AdminPage(): Promise<ReactElement> {
   if (user === null || user.role !== "admin") redirect("/signin");
 
   const { tenantId, usage, audit, assistantHealth } = await getAdminOverview();
+  const metrics = await getProgramMetrics();
   const consent = await exportConsentRecords();
   const under13Count = consent.records.filter((r) => r.under13).length;
   const TASK_LABEL: Record<string, string> = {
@@ -85,6 +90,45 @@ export default async function AdminPage(): Promise<ReactElement> {
           </ul>
         </section>
       )}
+
+      <section className="mt-10">
+        <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
+          Program metrics
+        </h2>
+        <p className="mt-2 text-[14px] text-secondary">
+          A current snapshot of engagement and self-knowledge across the district —
+          aggregate counts only, no student named. Rates read against their raw
+          denominators, and where the numbers are still thin they say so rather than
+          imply a precise figure. This is a point in time; a trend over time needs
+          durable storage and is not yet wired.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <Readout
+            label="Participation"
+            value={asPercent(metrics.participationRate)}
+            detail={`${metrics.participantCount} of ${metrics.rosterSize} students have started a reflection`}
+          />
+          <Readout
+            label="Reflections finished"
+            value={asPercent(metrics.completionRate)}
+            detail={`${metrics.completedCount} of ${metrics.startedCount} started reflections completed`}
+          />
+          <Readout
+            label="Self-judgment in step with results"
+            value={asPercent(metrics.alignmentShare)}
+            detail={`across ${metrics.gradedCount} graded ${metrics.gradedCount === 1 ? "reflection" : "reflections"}`}
+          />
+          <Readout
+            label="Self-knowledge gap"
+            value={
+              metrics.meanAbsCalibrationGap === null
+                ? null
+                : `average ${metrics.meanAbsCalibrationGap.toFixed(2)}`
+            }
+            detail={`across ${metrics.calibrationGapCount} graded ${metrics.calibrationGapCount === 1 ? "record" : "records"} · lower means closer`}
+          />
+        </div>
+      </section>
 
       <section className="mt-10">
         <h2 className="text-[13px] font-medium uppercase tracking-[0.16em] text-secondary">
@@ -168,6 +212,42 @@ function Stat({ label, value }: { label: string; value: number }): ReactElement 
     <div className="rounded-card border border-ink-wash bg-white px-4 py-3">
       <p className="text-[12px] text-secondary">{label}</p>
       <p className="mt-1 text-2xl font-semibold tracking-tight text-ink-black">{value}</p>
+    </div>
+  );
+}
+
+/** A rate as a whole-number percent, or null when there is no denominator to divide by. */
+function asPercent(rate: number | null): string | null {
+  return rate === null ? null : `${Math.round(rate * 100)}%`;
+}
+
+/**
+ * One program-metric readout: a label, its headline value, and the raw denominator it
+ * rests on. A null value renders as a plain "Not enough data yet" — never 0%, never a
+ * colour-coded verdict — so a thin metric reads as absence of data, not as a bad score.
+ */
+function Readout({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string | null;
+  detail: string;
+}): ReactElement {
+  return (
+    <div className="rounded-card border border-ink-wash bg-white px-4 py-3">
+      <p className="text-[12px] text-secondary">{label}</p>
+      {value === null ? (
+        <p className="mt-1 text-[15px] text-secondary">Not enough data yet</p>
+      ) : (
+        <>
+          <p className="mt-1 text-2xl font-semibold tracking-tight text-ink-black">
+            {value}
+          </p>
+          <p className="mt-1 text-[13px] text-secondary">{detail}</p>
+        </>
+      )}
     </div>
   );
 }

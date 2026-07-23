@@ -38,6 +38,7 @@ import {
   saveLessonPhotos,
 } from "./lessonMedia";
 import { getRoster, parseRoster, saveRoster } from "./rosterNames";
+import { createGoogleClassroomRosterSource } from "@/adapters/rostering";
 import { recordAudit } from "./auditLog";
 import { syncSkillCalibration } from "./calibrationSync";
 
@@ -370,6 +371,38 @@ export async function saveClassRoster(rosterText: string): Promise<string[]> {
 export async function getClassRoster(): Promise<string[]> {
   const teacher = await requireTeacher();
   return getRoster(teacher.id);
+}
+
+/** The outcome of a Google Classroom roster import, surface-friendly (no thrown error). */
+export type ImportRosterResult =
+  | { ok: true; names: string[] }
+  | { ok: false; reason: "not_configured" };
+
+/**
+ * Import a class roster from Google Classroom and persist it beside the manual flow.
+ *
+ * The Google integration is deferred (see `src/adapters/rostering`): in a deployment
+ * without OAuth credentials this returns `{ ok: false, reason: "not_configured" }`
+ * rather than throwing across the server boundary, so the teacher surface can offer the
+ * option without a dead button. When credentials ARE present, it imports and persists
+ * the names through the SAME `saveRoster` the manual paste uses — so imported names get
+ * the identical PII-redaction refresh and consent path; there is no side door.
+ *
+ * The manual `saveClassRoster` is unchanged; this is an additional way to populate the
+ * one roster.
+ */
+export async function importRosterFromGoogleClassroom(
+  courseId: string,
+): Promise<ImportRosterResult> {
+  const teacher = await requireTeacher();
+  const source = createGoogleClassroomRosterSource();
+  if (!source.isConfigured()) {
+    return { ok: false, reason: "not_configured" };
+  }
+  const imported = await source.importRoster(courseId);
+  const names = imported.students.map((s) => s.displayName);
+  await saveRoster(teacher.id, teacher.tenantId, names);
+  return { ok: true, names };
 }
 
 /**
