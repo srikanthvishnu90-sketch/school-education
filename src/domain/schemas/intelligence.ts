@@ -271,3 +271,56 @@ export const reflectionPerformanceSchema = z.object({
   score: unitIntervalSchema,
   recordedAt: z.date(),
 });
+
+// --- Skill-tag calibration model (brief §2) ----------------------------------
+
+/**
+ * A skill (learning-map tag) a lesson exercises. Drafted by the AI from a lesson
+ * ("labor, not judgment") and optionally corrected by a teacher — `source` records
+ * which. Skills are the tag layer calibration attaches to.
+ */
+export const skillTagSourceSchema = z.enum(["ai_extracted", "teacher_edited"]);
+
+export const skillTagSchema = z.object({
+  id: idSchema,
+  classId: idSchema,
+  label: z.string().min(1),
+  source: skillTagSourceSchema,
+  standardRef: z.string().min(1).optional(),
+});
+
+/**
+ * A raw graded/observed datum tied to one student, lesson, and skill. `kind` names
+ * what it is; `value` is a number (a score) or a string (an exit answer / work
+ * sample). `maxValue` is the denominator when a numeric value is out of some total.
+ */
+export const evidenceKindSchema = z.enum(["score", "exit_answer", "work_sample"]);
+
+export const evidenceSchema = z.object({
+  id: idSchema,
+  studentId: idSchema,
+  lessonId: idSchema,
+  skillId: idSchema,
+  kind: evidenceKindSchema,
+  value: z.union([z.number(), z.string()]),
+  maxValue: z.number().optional(),
+});
+
+/**
+ * One student's self-claimed confidence on a skill set beside what they demonstrated
+ * on it. `demonstrated`/`delta` are null while the work is ungraded; `delta` is the
+ * signed gap (claim − demonstrated), never a red/green verdict — it OPENS reflection.
+ */
+export const calibrationRecordSchema = z.object({
+  id: idSchema,
+  studentId: idSchema,
+  skillId: idSchema,
+  lessonId: idSchema,
+  claimedConfidence: unitIntervalSchema,
+  demonstrated: unitIntervalSchema.nullable(),
+  delta: z
+    .number()
+    .refine((n) => Number.isFinite(n), "must be a finite number")
+    .nullable(),
+  computedAt: z.date(),
+});

@@ -11,8 +11,15 @@ import type {
 } from "./insight";
 import type { ReflectionPerformance } from "./metacognition";
 import type {
+  CalibrationRecord,
+  Evidence,
+  SkillTag,
+} from "./calibrationModel";
+import type {
   attentionStudentSchema,
+  calibrationRecordSchema,
   classInsightSummarySchema,
+  evidenceSchema,
   extractedSignalsSchema,
   generatedQuestionSchema,
   lessonAnalysisSchema,
@@ -21,6 +28,7 @@ import type {
   reflectionPerformanceSchema,
   reflectionQuestionSetSchema,
   reflectionSessionSchema,
+  skillTagSchema,
   studentInsightSummarySchema,
 } from "../schemas/intelligence";
 
@@ -66,4 +74,13 @@ export type _ClassInsightSummarySync = Expect<
 >;
 export type _ReflectionPerformanceSync = Expect<
   Equal<ReflectionPerformance, z.infer<typeof reflectionPerformanceSchema>>
+>;
+export type _SkillTagSync = Expect<
+  Equal<SkillTag, z.infer<typeof skillTagSchema>>
+>;
+export type _EvidenceSync = Expect<
+  Equal<Evidence, z.infer<typeof evidenceSchema>>
+>;
+export type _CalibrationRecordSync = Expect<
+  Equal<CalibrationRecord, z.infer<typeof calibrationRecordSchema>>
 >;

@@ -10,3 +10,4 @@ export * from "./guardrail";
 export * from "./companionGuard";
 export * from "./insight";
 export * from "./metacognition";
+export * from "./calibrationModel";
